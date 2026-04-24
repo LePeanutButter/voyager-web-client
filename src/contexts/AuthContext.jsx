@@ -3,6 +3,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react'
 // Initial state
 const initialState = {
   user: null,
+  token: null,
   isAuthenticated: false,
   loading: true,
   error: null
@@ -41,6 +42,7 @@ const authReducer = (state, action) => {
       return {
         ...state,
         user: action.payload,
+        token: action.token || state.token,
         isAuthenticated: true,
         loading: false,
         error: null
@@ -52,6 +54,7 @@ const authReducer = (state, action) => {
       return {
         ...state,
         user: null,
+        token: null,
         isAuthenticated: false,
         loading: false,
         error: action.payload
@@ -61,6 +64,7 @@ const authReducer = (state, action) => {
       return {
         ...state,
         user: null,
+        token: null,
         isAuthenticated: false,
         loading: false,
         error: null
@@ -87,18 +91,21 @@ export const AuthProvider = ({ children }) => {
   // Load user from localStorage on mount
   useEffect(() => {
     const loadUser = async () => {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('smartrip_token') || localStorage.getItem('token')
       const userData = localStorage.getItem('userData')
       
       if (token && userData) {
         try {
           const user = JSON.parse(userData)
-          dispatch({ type: AUTH_ACTIONS.LOAD_USER_SUCCESS, payload: user })
+          dispatch({ type: AUTH_ACTIONS.LOAD_USER_SUCCESS, payload: user, token })
         } catch (error) {
+          localStorage.removeItem('smartrip_token')
           localStorage.removeItem('token')
           localStorage.removeItem('userData')
           dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'Failed to load user data' })
         }
+      } else if (token) {
+        dispatch({ type: AUTH_ACTIONS.LOAD_USER_SUCCESS, payload: null, token })
       } else {
         dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: null })
       }
@@ -107,18 +114,31 @@ export const AuthProvider = ({ children }) => {
     loadUser()
   }, [])
 
-  // Login action
-  const login = async (credentials) => {
+  // Login action (supports both: login(credentials) and login(userData, token))
+  const login = async (arg1, arg2) => {
+    // If token is provided, treat as "set session"
+    if (typeof arg2 === 'string' && arg2.length > 0) {
+      const userData = arg1 || null
+      const token = arg2
+      localStorage.setItem('smartrip_token', token)
+      localStorage.setItem('token', token)
+      localStorage.setItem('userData', JSON.stringify(userData || {}))
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: userData, token })
+      return { token, user: userData }
+    }
+
+    const credentials = arg1
     dispatch({ type: AUTH_ACTIONS.LOGIN_START })
     
     try {
       // Simulate API call
       const response = await mockLogin(credentials)
       
+      localStorage.setItem('smartrip_token', response.token)
       localStorage.setItem('token', response.token)
       localStorage.setItem('userData', JSON.stringify(response.user))
       
-      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: response.user })
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: response.user, token: response.token })
       return response
     } catch (error) {
       dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message })
@@ -134,10 +154,11 @@ export const AuthProvider = ({ children }) => {
       // Simulate API call
       const response = await mockRegister(userData)
       
+      localStorage.setItem('smartrip_token', response.token)
       localStorage.setItem('token', response.token)
       localStorage.setItem('userData', JSON.stringify(response.user))
       
-      dispatch({ type: AUTH_ACTIONS.REGISTER_SUCCESS, payload: response.user })
+      dispatch({ type: AUTH_ACTIONS.REGISTER_SUCCESS, payload: response.user, token: response.token })
       return response
     } catch (error) {
       dispatch({ type: AUTH_ACTIONS.REGISTER_FAILURE, payload: error.message })
@@ -147,6 +168,7 @@ export const AuthProvider = ({ children }) => {
 
   // Logout action
   const logout = () => {
+    localStorage.removeItem('smartrip_token')
     localStorage.removeItem('token')
     localStorage.removeItem('userData')
     dispatch({ type: AUTH_ACTIONS.LOGOUT })
