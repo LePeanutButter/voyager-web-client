@@ -1,0 +1,202 @@
+# ===========================================
+# GitHub Actions Workflow: CI Build & Deploy
+# Environment: Development
+# Description:
+#   - Runs tests (if present) and generates coverage artifacts
+#   - Performs SonarCloud static analysis
+#   - Performs Trivy filesystem security scan
+#   - Builds and packages the Voyager web client
+#   - Runs on every pull request to 'development'
+# ===========================================
+
+name: CI Build & Deploy (Web Client - Development PR)
+
+# -------------------------------------------
+# Trigger: Run workflow on PR to 'development' branch
+# -------------------------------------------
+on:
+  pull_request:
+    branches:
+      - development
+  workflow_dispatch:
+
+# -------------------------------------------
+# Jobs Definition
+# -------------------------------------------
+jobs:
+  # =========================================
+  # Job: Dynamic Analysis (Tests + Coverage)
+  # Purpose: Run tests and generate coverage for SonarCloud
+  # =========================================
+  test_and_coverage:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: Setup Node
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Step 3: Cache npm dependencies
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}
+
+      # Step 4: Install dependencies
+      - name: Clean Install dependencies
+        run: |
+          rm -rf node_modules
+          npm ci
+
+      # Step 5: Run tests with coverage (if test script exists)
+      - name: Run tests with coverage
+        run: npm run test --if-present -- --coverage
+
+      # Step 6: Upload coverage results
+      - name: Upload Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Coverage
+          path: coverage
+
+  # =========================================
+  # Job: Security Scan (Trivy)
+  # Purpose: Scan filesystem and dependencies for vulnerabilities
+  # =========================================
+  trivy_scan:
+    name: Run Trivy Security Scan
+    needs: test_and_coverage
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      # Step 2: Run Trivy filesystem scan
+      - name: Run Trivy FS Scan
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+
+  # =========================================
+  # Job: SonarCloud Scan
+  # Purpose: Run static code analysis with SonarCloud
+  # =========================================
+  sonar_scan:
+    name: Sonar Cloud static analysis
+    needs: trivy_scan
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: Install Java
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Step 3: Cache SonarCloud packages
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      # Step 4: Download coverage artifact
+      - name: Download Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Coverage
+          path: coverage
+        continue-on-error: true
+
+      # Step 5: Set up Node.js for Sonar
+      - name: Set up Node.js for Sonar
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Step 6: Install npm dependencies for Sonar
+      - name: Install npm dependencies for Sonar
+        run: npm ci --prefer-offline --no-audit
+
+      # Step 7: Run SonarCloud scan
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # =========================================
+  # Job: Build Stage
+  # Purpose: Lint and build the app
+  # =========================================
+  build:
+    name: Build Stage for Voyager Web Client (Development)
+    needs: sonar_scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+    steps:
+      # Step 1: Checkout source code from repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up the Node.js environment
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # Step 3: Cache npm dependencies to speed up builds
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-package-lock.json
+          restore-keys: |
+            npm-${{ runner.os }}
+
+      # Step 4: Install dependencies and lint
+      - name: Install dependencies and lint
+        run: |
+          npm ci
+          npm run lint
+
+      # Step 5: Build the application
+      - name: Compile source code
+        run: npm run build
+
+      # Step 6: Package build output and upload artifact
+      - name: Package build artifacts
+        run: |
+          mkdir -p release
+          tar -czf release/web-client-dist.tar.gz dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-client-dist
+          path: release/web-client-dist.tar.gz
