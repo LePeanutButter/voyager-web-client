@@ -18,6 +18,8 @@ import GoogleCallbackPage from './pages/Auth/GoogleCallbackPage'
 import ProfilePage from './pages/Profile/ProfilePage'
 import Social from './pages/Social/Social'
 import CreateTravelPlanPage from './pages/TravelPlanning/CreateTravelPlanPage'
+import MyTravels from './pages/MyTravels/MyTravels'
+import TravelDetails from './pages/TravelDetails/TravelDetails'
 
 function App() {
   return (
@@ -44,6 +46,8 @@ function App() {
               <Route element={<PrivateRoute />}>
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="travel-plans/create" element={<CreateTravelPlanPage />} />
+                <Route path="my-travels" element={<MyTravels />} />
+                <Route path="travel-plans/:id" element={<TravelDetails />} />
               </Route>
             </Route>
           </Routes>

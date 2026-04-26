@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../contexts/AuthContext'
 import { Search, Bell, User, Menu, Globe } from 'lucide-react'
 import './Header.css'
 
@@ -45,6 +45,7 @@ const Header = () => {
               </button>
               <div className="user-dropdown">
                 <Link to="/profile">Profile</Link>
+                <Link to="/my-travels">Mis Viajes</Link>
                 <Link to="/travel-plans/create">Create Travel Plan</Link>
                 <Link to="/settings">Settings</Link>
                 <button onClick={logout}>Logout</button>
