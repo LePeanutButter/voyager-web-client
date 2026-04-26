@@ -29,6 +29,18 @@ const getPlansStorageKey = () => {
   }
 }
 
+const toDateInputValue = (value) => {
+  if (!value) return ''
+  return String(value).split('T')[0]
+}
+
+const toLocalDateTimeString = (value, endOfDay = false) => {
+  if (!value) return null
+  const stringValue = String(value)
+  if (stringValue.includes('T')) return stringValue
+  return endOfDay ? `${stringValue}T23:59:59` : `${stringValue}T00:00:00`
+}
+
 const TravelPlanning = () => {
   const [activeTab, setActiveTab] = useState('planner')
   const [lastCreatedPlan, setLastCreatedPlan] = useState(null)
@@ -36,6 +48,8 @@ const TravelPlanning = () => {
   const [plansLoading, setPlansLoading] = useState(false)
   const [plansError, setPlansError] = useState('')
   const [editingPlanId, setEditingPlanId] = useState(null)
+  const [savingPlanId, setSavingPlanId] = useState(null)
+  const [deletingPlanId, setDeletingPlanId] = useState(null)
   const [tripData, setTripData] = useState({
     destination: '',
     startDate: '',
@@ -121,20 +135,43 @@ const TravelPlanning = () => {
 
   const savePlan = async (plan) => {
     try {
-      await travelPlanService.update(plan.id, {
-        title: plan.title,
-        destinationLocation: plan.destinationLocation,
-        originLocation: plan.originLocation,
-        startDate: plan.startDate,
-        endDate: plan.endDate,
-        estimatedBudget: plan.estimatedBudget,
-        numberOfTravelers: plan.numberOfTravelers,
-        description: plan.description
-      })
+      setSavingPlanId(plan.id)
+      const {
+        id,
+        createdAt,
+        updatedAt,
+        shareToken,
+        ...updatableFields
+      } = plan
+      const payload = {
+        ...updatableFields,
+        startDate: toLocalDateTimeString(updatableFields.startDate, false),
+        endDate: toLocalDateTimeString(updatableFields.endDate, true)
+      }
+      await travelPlanService.update(plan.id, payload)
       setEditingPlanId(null)
       setPlansError('')
     } catch (err) {
       setPlansError(err?.message || 'No se pudo actualizar el plan')
+    } finally {
+      setSavingPlanId(null)
+    }
+  }
+
+  const deletePlan = async (planId) => {
+    const confirmed = window.confirm('Quieres borrar este plan? Esta accion no se puede deshacer.')
+    if (!confirmed) return
+
+    try {
+      setDeletingPlanId(planId)
+      await travelPlanService.remove(planId)
+      setUserPlans((prev) => prev.filter((plan) => plan.id !== planId))
+      setPlansError('')
+      if (editingPlanId === planId) setEditingPlanId(null)
+    } catch (err) {
+      setPlansError(err?.message || 'No se pudo borrar el plan')
+    } finally {
+      setDeletingPlanId(null)
     }
   }
 
@@ -324,21 +361,87 @@ const TravelPlanning = () => {
                         <input
                           value={plan.title || ''}
                           onChange={(e) => updatePlanField(plan.id, 'title', e.target.value)}
+                          placeholder="Titulo"
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <input
                           value={plan.destinationLocation || ''}
                           onChange={(e) => updatePlanField(plan.id, 'destinationLocation', e.target.value)}
+                          placeholder="Destino"
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
-                        <Button size="small" variant="primary" onClick={() => savePlan(plan)}>Guardar</Button>
+                        <input
+                          value={plan.originLocation || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'originLocation', e.target.value)}
+                          placeholder="Origen"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          type="date"
+                          value={toDateInputValue(plan.startDate)}
+                          onChange={(e) => updatePlanField(plan.id, 'startDate', e.target.value)}
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          type="date"
+                          value={toDateInputValue(plan.endDate)}
+                          onChange={(e) => updatePlanField(plan.id, 'endDate', e.target.value)}
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          value={plan.estimatedBudget ?? ''}
+                          onChange={(e) => updatePlanField(plan.id, 'estimatedBudget', e.target.value === '' ? null : Number(e.target.value))}
+                          placeholder="Presupuesto estimado"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          type="number"
+                          min="1"
+                          value={plan.numberOfTravelers ?? ''}
+                          onChange={(e) => updatePlanField(plan.id, 'numberOfTravelers', e.target.value === '' ? null : Number(e.target.value))}
+                          placeholder="Numero de viajeros"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <textarea
+                          value={plan.description || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'description', e.target.value)}
+                          placeholder="Descripcion"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <Button
+                            size="small"
+                            variant="primary"
+                            onClick={() => savePlan(plan)}
+                            disabled={savingPlanId === plan.id}
+                          >
+                            {savingPlanId === plan.id ? 'Guardando...' : 'Guardar'}
+                          </Button>
+                          <Button size="small" variant="outline" onClick={() => setEditingPlanId(null)}>
+                            Cancelar
+                          </Button>
+                        </div>
                       </>
                     ) : (
                       <>
                         <h4>{plan.title || 'Plan sin titulo'}</h4>
                         <p>{plan.destinationLocation || 'Destino no especificado'}</p>
                         <div className="trip-status">{plan.status || 'Planning'}</div>
-                        <Button size="small" variant="outline" onClick={() => setEditingPlanId(plan.id)}>Editar</Button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <Button size="small" variant="outline" onClick={() => setEditingPlanId(plan.id)}>
+                            Editar
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outline"
+                            onClick={() => deletePlan(plan.id)}
+                            disabled={deletingPlanId === plan.id}
+                          >
+                            {deletingPlanId === plan.id ? 'Borrando...' : 'Borrar'}
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>
