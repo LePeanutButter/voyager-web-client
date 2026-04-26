@@ -25,13 +25,12 @@ const decodeJwtPayload = (token) => {
   }
 }
 
-const MicrosoftCallbackPage = () => {
+const GoogleCallbackPage = () => {
   const { search } = useLocation()
   const navigate = useNavigate()
   const { login } = useAuth()
-
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const token = useMemo(() => {
     const params = new URLSearchParams(search)
@@ -44,7 +43,7 @@ const MicrosoftCallbackPage = () => {
       setError('')
 
       if (!token) {
-        setError('No se recibió token desde Microsoft.')
+        setError('No se recibió token en la URL. Para este frontend, el backend debe redirigir a /auth/google/callback?token=...')
         setLoading(false)
         return
       }
@@ -60,15 +59,14 @@ const MicrosoftCallbackPage = () => {
           firstName: payload.firstName,
           lastName: payload.lastName,
           username: payload.username,
-          provider: 'microsoft'
+          provider: 'google'
         }
 
         localStorage.setItem('userData', JSON.stringify(userData))
         await login(userData, token)
-
         navigate('/dashboard', { replace: true })
       } catch (err) {
-        setError(err?.message || 'No se pudo iniciar sesión con Microsoft.')
+        setError(err?.message || 'No se pudo completar el login con Google.')
       } finally {
         setLoading(false)
       }
@@ -84,7 +82,7 @@ const MicrosoftCallbackPage = () => {
           <Card className="auth-card">
             <div className="loading-container">
               <div className="loading-spinner"></div>
-              <p>Validando sesión…</p>
+              <p>Validando sesión con Google…</p>
             </div>
           </Card>
         </div>
@@ -97,8 +95,8 @@ const MicrosoftCallbackPage = () => {
       <div className="auth-container">
         <Card className="auth-card">
           <div className="auth-header">
-            <h1>Microsoft Login</h1>
-            <p>Hubo un problema al completar el inicio de sesión</p>
+            <h1>Google Login</h1>
+            <p>No se pudo completar automáticamente</p>
           </div>
 
           {error && <div className="auth-error">{error}</div>}
@@ -112,5 +110,5 @@ const MicrosoftCallbackPage = () => {
   )
 }
 
-export default MicrosoftCallbackPage
+export default GoogleCallbackPage
 

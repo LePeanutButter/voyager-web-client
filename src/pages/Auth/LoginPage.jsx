@@ -17,9 +17,9 @@ const LoginPage = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const microsoftLoginUrl = useMemo(() => {
+  const googleLoginUrl = useMemo(() => {
     const base = import.meta.env.VITE_API_BASE_URL || ''
-    return `${base.replace(/\/$/, '')}/auth/microsoft/login`
+    return `${base.replace(/\/$/, '')}/auth/google/login`
   }, [])
 
   const handleChange = (e) => {
@@ -65,8 +65,8 @@ const LoginPage = () => {
     }
   }
 
-  const handleMicrosoft = () => {
-    window.location.href = microsoftLoginUrl
+  const handleGoogle = () => {
+    window.location.href = googleLoginUrl
   }
 
   return (
@@ -132,11 +132,11 @@ const LoginPage = () => {
               type="button"
               variant="outline"
               size="large"
-              onClick={handleMicrosoft}
+              onClick={handleGoogle}
               disabled={loading}
               className="auth-submit"
             >
-              Continuar con Microsoft
+              Continuar con Google
             </Button>
           </form>
 

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import { usersService } from '../../services/usersService'
-import { Mail, Lock, User, Eye, EyeOff, Phone, IdCard } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react'
 import './Auth.css'
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -91,7 +91,7 @@ const RegisterPage = () => {
             <div className="form-group">
               <label htmlFor="username">Username</label>
               <div className="input-with-icon">
-                <IdCard size={20} />
+                <User size={20} />
                 <input
                   id="username"
                   name="username"

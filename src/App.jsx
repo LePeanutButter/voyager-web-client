@@ -14,7 +14,7 @@ import TravelPlanning from './pages/TravelPlanning/TravelPlanning'
 import BusinessDashboard from './pages/BusinessDashboard/BusinessDashboard'
 import LoginPage from './pages/Auth/LoginPage'
 import RegisterPage from './pages/Auth/RegisterPage'
-import MicrosoftCallbackPage from './pages/Auth/MicrosoftCallbackPage'
+import GoogleCallbackPage from './pages/Auth/GoogleCallbackPage'
 import Profile from './pages/Profile/Profile'
 import ProfilePage from './pages/Profile/ProfilePage'
 import Social from './pages/Social/Social'
@@ -30,7 +30,7 @@ function App() {
               <Route index element={<Home />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />
-              <Route path="auth/microsoft/callback" element={<MicrosoftCallbackPage />} />
+                <Route path="auth/google/callback" element={<GoogleCallbackPage />} />
               
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>
