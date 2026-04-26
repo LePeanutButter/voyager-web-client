@@ -38,6 +38,8 @@ const RegisterPage = () => {
   const validate = () => {
     const next = {}
     if (!formData.username.trim()) next.username = 'El username es requerido'
+    if (formData.username && formData.username.trim().length < 3) next.username = 'El username debe tener mínimo 3 caracteres'
+    if (formData.username && formData.username.trim().length > 50) next.username = 'El username no puede superar 50 caracteres'
     if (!formData.email.trim()) next.email = 'El email es requerido'
     if (formData.email && !emailRegex.test(formData.email)) next.email = 'Email inválido'
     if (!formData.firstName.trim()) next.firstName = 'El nombre es requerido'

@@ -25,6 +25,12 @@ const decodeJwtPayload = (token) => {
   }
 }
 
+const getNumericId = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && /^\d+$/.test(value.trim())) return Number(value.trim())
+  return null
+}
+
 const GoogleCallbackPage = () => {
   const { search } = useLocation()
   const navigate = useNavigate()
@@ -54,11 +60,11 @@ const GoogleCallbackPage = () => {
 
         const payload = decodeJwtPayload(token) || {}
         const userData = {
-          id: payload.userId || payload.sub || payload.id,
+          id: getNumericId(payload.userId) ?? getNumericId(payload.id) ?? null,
           email: payload.email,
           firstName: payload.firstName,
           lastName: payload.lastName,
-          username: payload.username,
+          username: payload.username || payload.sub,
           provider: 'google'
         }
 

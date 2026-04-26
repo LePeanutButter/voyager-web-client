@@ -24,6 +24,20 @@ const decodeJwtPayload = (token) => {
   }
 }
 
+const getNumericId = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && /^\d+$/.test(value.trim())) return Number(value.trim())
+  return null
+}
+
+const pickUserObject = (raw) => {
+  if (!raw) return null
+  if (Array.isArray(raw)) return raw[0] || null
+  if (Array.isArray(raw?.content)) return raw.content[0] || null
+  if (Array.isArray(raw?.data)) return raw.data[0] || null
+  return raw?.data || raw
+}
+
 const chipStyle = {
   display: 'inline-flex',
   alignItems: 'center',
@@ -62,20 +76,25 @@ const successStyle = {
 }
 
 const ProfilePage = () => {
-  const { user, token: ctxToken, login } = useAuth()
+  const { user, token: ctxToken } = useAuth()
 
   const token = ctxToken || localStorage.getItem('smartrip_token') || localStorage.getItem('token')
 
   const userId = useMemo(() => {
-    if (user?.id) return user.id
+    const fromUser = getNumericId(user?.id)
+    if (fromUser) return fromUser
+
     const stored = safeJsonParse(localStorage.getItem('userData') || '')
-    if (stored?.id) return stored.id
+    const fromStorage = getNumericId(stored?.id)
+    if (fromStorage) return fromStorage
+
     if (token) {
       const payload = decodeJwtPayload(token)
-      return payload?.userId || payload?.sub || payload?.id || null
+      return getNumericId(payload?.userId) ?? getNumericId(payload?.id) ?? null
     }
     return null
   }, [user?.id, token])
+  const [resolvedUserId, setResolvedUserId] = useState(userId)
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -92,13 +111,70 @@ const ProfilePage = () => {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
+    setResolvedUserId(userId)
+  }, [userId])
+
+  useEffect(() => {
+    const resolveFromIdentity = async () => {
+      if (resolvedUserId) return
+      if (!token) return
+
+      setLoading(true)
+      setError('')
+      try {
+        const payload = decodeJwtPayload(token) || {}
+        const username = payload?.username || payload?.preferred_username || payload?.sub || user?.username
+        const email = payload?.email || user?.email
+
+        let foundUser = null
+
+        if (username) {
+          try {
+            const byUsername = await usersService.getUserByUsername(username)
+            foundUser = pickUserObject(byUsername)
+          } catch {
+            // keep trying
+          }
+        }
+
+        if (!foundUser && email) {
+          try {
+            const byEmail = await usersService.getUserByEmail(email)
+            foundUser = pickUserObject(byEmail)
+          } catch {
+            // keep trying
+          }
+        }
+
+        const numericId = getNumericId(foundUser?.id)
+        if (!numericId) {
+          setError('No se pudo resolver tu userId para perfil. El backend debe incluir userId/id numérico en JWT o exponer endpoint para usuario actual.')
+          return
+        }
+
+        setResolvedUserId(numericId)
+        const mergedUser = { ...(user || {}), ...(foundUser || {}), id: numericId }
+        localStorage.setItem('userData', JSON.stringify(mergedUser))
+      } catch {
+        setError('No se pudo resolver tu userId para perfil. El backend debe incluir userId/id numérico en JWT o exponer endpoint para usuario actual.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    resolveFromIdentity()
+  }, [resolvedUserId, token, user?.username, user?.email])
+
+  useEffect(() => {
     const load = async () => {
-      if (!userId) return
+      if (!resolvedUserId) {
+        return
+      }
       setLoading(true)
       setError('')
       setSuccess('')
       try {
-        const res = await usersService.getUserById(userId)
+        const res = await usersService.getUserById(resolvedUserId)
         const data = res?.data || res
         setFormData({
           firstName: data?.firstName || '',
@@ -108,11 +184,8 @@ const ProfilePage = () => {
           interests: Array.isArray(data?.interests) ? data.interests : []
         })
 
-        if (token) {
-          const mergedUser = { ...(user || {}), ...(data || {}) }
-          localStorage.setItem('userData', JSON.stringify(mergedUser))
-          await login(mergedUser, token)
-        }
+        const mergedUser = { ...(user || {}), ...(data || {}), id: resolvedUserId }
+        localStorage.setItem('userData', JSON.stringify(mergedUser))
       } catch (err) {
         setError(err?.message || 'No se pudo cargar el perfil')
       } finally {
@@ -120,7 +193,7 @@ const ProfilePage = () => {
       }
     }
     load()
-  }, [userId, token, login, user])
+  }, [resolvedUserId])
 
   const setValue = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -155,7 +228,7 @@ const ProfilePage = () => {
 
   const handleSave = async (e) => {
     e.preventDefault()
-    if (!userId) {
+    if (!resolvedUserId) {
       setError('No se pudo determinar el usuario autenticado.')
       return
     }
@@ -172,15 +245,12 @@ const ProfilePage = () => {
         phoneNumber: formData.phoneNumber?.trim() || undefined,
         interests: formData.interests
       }
-      const res = await usersService.updateUserById(userId, payload)
+      const res = await usersService.updateUserById(resolvedUserId, payload)
       const data = res?.data || res
       setSuccess('Perfil guardado correctamente.')
 
-      if (token) {
-        const mergedUser = { ...(user || {}), ...(data || {}), ...payload, id: userId }
-        localStorage.setItem('userData', JSON.stringify(mergedUser))
-        await login(mergedUser, token)
-      }
+      const mergedUser = { ...(user || {}), ...(data || {}), ...payload, id: resolvedUserId }
+      localStorage.setItem('userData', JSON.stringify(mergedUser))
     } catch (err) {
       setError(err?.message || 'No se pudo guardar el perfil')
     } finally {

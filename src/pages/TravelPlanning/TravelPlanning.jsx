@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
+import { travelPlanService } from '../../services/travelPlanService'
 import { 
   MapPin, 
   Calendar, 
@@ -17,8 +18,24 @@ import {
 } from 'lucide-react'
 import './TravelPlanning.css'
 
+const getPlansStorageKey = () => {
+  try {
+    const raw = localStorage.getItem('userData')
+    const user = raw ? JSON.parse(raw) : null
+    const identity = user?.id || user?.username || user?.email || 'anonymous'
+    return `created_travel_plans_${identity}`
+  } catch {
+    return 'created_travel_plans_anonymous'
+  }
+}
+
 const TravelPlanning = () => {
   const [activeTab, setActiveTab] = useState('planner')
+  const [lastCreatedPlan, setLastCreatedPlan] = useState(null)
+  const [userPlans, setUserPlans] = useState([])
+  const [plansLoading, setPlansLoading] = useState(false)
+  const [plansError, setPlansError] = useState('')
+  const [editingPlanId, setEditingPlanId] = useState(null)
   const [tripData, setTripData] = useState({
     destination: '',
     startDate: '',
@@ -58,12 +75,83 @@ const TravelPlanning = () => {
     }))
   }
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('last_created_travel_plan')
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      if (parsed && typeof parsed === 'object') setLastCreatedPlan(parsed)
+    } catch {
+      // ignore malformed local storage values
+    }
+  }, [])
+
+  useEffect(() => {
+    const loadPlans = async () => {
+      setPlansLoading(true)
+      setPlansError('')
+      try {
+        const res = await travelPlanService.list()
+        const raw = res?.data || res
+        const plans = Array.isArray(raw) ? raw : (Array.isArray(raw?.content) ? raw.content : [])
+        if (plans.length > 0) {
+          setUserPlans(plans)
+        } else {
+          const localPlans = JSON.parse(localStorage.getItem(getPlansStorageKey()) || '[]')
+          setUserPlans(Array.isArray(localPlans) ? localPlans : [])
+        }
+      } catch (err) {
+        const localPlans = JSON.parse(localStorage.getItem(getPlansStorageKey()) || '[]')
+        if (Array.isArray(localPlans) && localPlans.length > 0) {
+          setUserPlans(localPlans)
+          setPlansError('')
+        } else {
+          setPlansError(err?.message || 'No se pudieron cargar los planes')
+        }
+      } finally {
+        setPlansLoading(false)
+      }
+    }
+    loadPlans()
+  }, [])
+
+  const updatePlanField = (planId, field, value) => {
+    setUserPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, [field]: value } : p)))
+  }
+
+  const savePlan = async (plan) => {
+    try {
+      await travelPlanService.update(plan.id, {
+        title: plan.title,
+        destinationLocation: plan.destinationLocation,
+        originLocation: plan.originLocation,
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        estimatedBudget: plan.estimatedBudget,
+        numberOfTravelers: plan.numberOfTravelers,
+        description: plan.description
+      })
+      setEditingPlanId(null)
+      setPlansError('')
+    } catch (err) {
+      setPlansError(err?.message || 'No se pudo actualizar el plan')
+    }
+  }
+
   return (
     <div className="travel-planning">
       <div className="planning-header">
         <h1>Travel Planning Studio</h1>
         <p>Plan your perfect trip with AI-powered recommendations</p>
       </div>
+
+      {lastCreatedPlan && (
+        <Card title="Ultimo plan creado">
+          <p>
+            {lastCreatedPlan.title || 'Plan sin titulo'} - {lastCreatedPlan.destinationLocation || 'Destino no especificado'}
+          </p>
+        </Card>
+      )}
 
       <div className="planning-tabs">
         <button 
@@ -223,18 +311,38 @@ const TravelPlanning = () => {
               </div>
             </Card>
 
-            <Card title="Saved Trips">
+            <Card title="Mis planes creados">
               <div className="saved-trips">
-                <div className="trip-card">
-                  <h4>European Adventure</h4>
-                  <p>Jun 15-30, 2024</p>
-                  <div className="trip-status">Planning</div>
-                </div>
-                <div className="trip-card">
-                  <h4>Beach Weekend</h4>
-                  <p>Aug 5-7, 2024</p>
-                  <div className="trip-status confirmed">Confirmed</div>
-                </div>
+                {plansLoading && <p>Cargando planes…</p>}
+                {plansError && <p style={{ color: '#dc3545' }}>{plansError}</p>}
+                {!plansLoading && userPlans.length === 0 && <p>Aun no tienes planes creados.</p>}
+
+                {userPlans.map((plan) => (
+                  <div key={plan.id} className="trip-card">
+                    {editingPlanId === plan.id ? (
+                      <>
+                        <input
+                          value={plan.title || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'title', e.target.value)}
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          value={plan.destinationLocation || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'destinationLocation', e.target.value)}
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <Button size="small" variant="primary" onClick={() => savePlan(plan)}>Guardar</Button>
+                      </>
+                    ) : (
+                      <>
+                        <h4>{plan.title || 'Plan sin titulo'}</h4>
+                        <p>{plan.destinationLocation || 'Destino no especificado'}</p>
+                        <div className="trip-status">{plan.status || 'Planning'}</div>
+                        <Button size="small" variant="outline" onClick={() => setEditingPlanId(plan.id)}>Editar</Button>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </Card>
           </div>

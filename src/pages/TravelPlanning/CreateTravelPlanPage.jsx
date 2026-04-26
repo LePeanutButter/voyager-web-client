@@ -4,6 +4,22 @@ import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import { travelPlanService } from '../../services/travelPlanService'
 
+const getPlansStorageKey = () => {
+  try {
+    const raw = localStorage.getItem('userData')
+    const user = raw ? JSON.parse(raw) : null
+    const identity = user?.id || user?.username || user?.email || 'anonymous'
+    return `created_travel_plans_${identity}`
+  } catch {
+    return 'created_travel_plans_anonymous'
+  }
+}
+
+const toLocalDateTime = (date, endOfDay = false) => {
+  if (!date) return undefined
+  return `${date}${endOfDay ? 'T23:59:59' : 'T00:00:00'}`
+}
+
 const inputStyle = {
   width: '100%',
   padding: '0.75rem 1rem',
@@ -87,16 +103,26 @@ const CreateTravelPlanPage = () => {
         title: formData.title.trim(),
         destinationLocation: formData.destinationLocation.trim(),
         originLocation: formData.originLocation?.trim() || undefined,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        startDate: toLocalDateTime(formData.startDate, false),
+        endDate: toLocalDateTime(formData.endDate, true),
         estimatedBudget: formData.estimatedBudget === '' ? undefined : Number(formData.estimatedBudget),
         numberOfTravelers: Number(formData.numberOfTravelers),
         description: formData.description?.trim() || undefined
       }
 
-      await travelPlanService.create(payload)
+      const created = await travelPlanService.create(payload)
+      const createdPlan = created?.data || created
+      localStorage.setItem('last_created_travel_plan', JSON.stringify(createdPlan))
+      try {
+        const plansKey = getPlansStorageKey()
+        const previous = JSON.parse(localStorage.getItem(plansKey) || '[]')
+        const next = Array.isArray(previous) ? [createdPlan, ...previous] : [createdPlan]
+        localStorage.setItem(plansKey, JSON.stringify(next))
+      } catch {
+        localStorage.setItem(getPlansStorageKey(), JSON.stringify([createdPlan]))
+      }
       setSuccess('Plan de viaje creado. Redirigiendo…')
-      setTimeout(() => navigate('/dashboard', { replace: true }), 900)
+      setTimeout(() => navigate('/travel-planning', { replace: true }), 900)
     } catch (err) {
       setError(err?.message || 'No se pudo crear el plan')
     } finally {
