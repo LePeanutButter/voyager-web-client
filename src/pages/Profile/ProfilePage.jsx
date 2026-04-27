@@ -50,6 +50,8 @@ const successStyle = {
   fontSize: '0.875rem'
 }
 
+const mergeDefined = (...objects) => Object.assign({}, ...objects.filter(Boolean))
+
 const ProfilePage = () => {
   const { user, token: ctxToken } = useAuth()
 
@@ -97,7 +99,7 @@ const ProfilePage = () => {
       setLoading(true)
       setError('')
       try {
-        const payload = decodeJwtPayload(token) || {}
+        const payload = decodeJwtPayload(token)
         const username = payload?.username || payload?.preferred_username || payload?.sub || user?.username
         const email = payload?.email || user?.email
 
@@ -128,7 +130,7 @@ const ProfilePage = () => {
         }
 
         setResolvedUserId(numericId)
-        const mergedUser = { ...(user || {}), ...(foundUser || {}), id: numericId }
+        const mergedUser = mergeDefined(user, foundUser, { id: numericId })
         localStorage.setItem('userData', JSON.stringify(mergedUser))
       } catch {
         setError('No se pudo resolver tu userId para perfil. El backend debe incluir userId/id numérico en JWT o exponer endpoint para usuario actual.')
@@ -159,7 +161,7 @@ const ProfilePage = () => {
           interests: Array.isArray(data?.interests) ? data.interests : []
         })
 
-        const mergedUser = { ...(user || {}), ...(data || {}), id: resolvedUserId }
+        const mergedUser = mergeDefined(user, data, { id: resolvedUserId })
         localStorage.setItem('userData', JSON.stringify(mergedUser))
       } catch (err) {
         setError(err?.message || 'No se pudo cargar el perfil')
@@ -224,7 +226,7 @@ const ProfilePage = () => {
       const data = res?.data || res
       setSuccess('Perfil guardado correctamente.')
 
-      const mergedUser = { ...(user || {}), ...(data || {}), ...payload, id: resolvedUserId }
+      const mergedUser = mergeDefined(user, data, payload, { id: resolvedUserId })
       localStorage.setItem('userData', JSON.stringify(mergedUser))
     } catch (err) {
       setError(err?.message || 'No se pudo guardar el perfil')

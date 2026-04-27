@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
-import { useAuth } from '../../contexts/AuthContext'
+import { getTravelStatusBadgeClass, getTravelStatusText } from '../../utils/travelStatus'
 import { 
   MapPin, 
   Calendar, 
@@ -13,7 +13,6 @@ import {
   Edit,
   Trash2,
   Share2,
-  Heart,
   Globe,
   Info,
   CheckCircle,
@@ -26,7 +25,6 @@ const TravelDetails = () => {
   const [travel, setTravel] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const { user } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -68,36 +66,6 @@ const TravelDetails = () => {
     })
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'PLANNING':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'COMPLETED':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800 border-red-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'Activo'
-      case 'PLANNING':
-        return 'Planificando'
-      case 'COMPLETED':
-        return 'Completado'
-      case 'CANCELLED':
-        return 'Cancelado'
-      default:
-        return status
-    }
-  }
-
   const getStatusIcon = (status) => {
     switch (status) {
       case 'ACTIVE':
@@ -114,7 +82,7 @@ const TravelDetails = () => {
   }
 
   const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este viaje? Esta acción no se puede deshacer.')) {
+    if (globalThis.confirm('¿Estás seguro de que quieres eliminar este viaje? Esta acción no se puede deshacer.')) {
       try {
         const token = localStorage.getItem('token')
         const response = await fetch(`http://localhost:8080/api/v1/travel-plans/${id}`, {
@@ -129,28 +97,41 @@ const TravelDetails = () => {
           throw new Error('Error al eliminar el viaje')
         }
 
-        alert('Viaje eliminado exitosamente')
+        globalThis.alert('Viaje eliminado exitosamente')
         navigate('/my-travels')
       } catch (error) {
         console.error('Error deleting travel:', error)
-        alert('No se pudo eliminar el viaje')
+        globalThis.alert('No se pudo eliminar el viaje')
       }
     }
   }
 
   const handleShare = () => {
-    const shareUrl = `${window.location.origin}/travel-plans/${id}`
-    if (navigator.share) {
-      navigator.share({
+    const shareUrl = `${globalThis.location.origin}/travel-plans/${id}`
+    if (globalThis.navigator.share) {
+      globalThis.navigator.share({
         title: travel.title,
         text: travel.description,
         url: shareUrl
       })
     } else {
-      navigator.clipboard.writeText(shareUrl)
-      alert('Enlace copiado al portapapeles')
+      globalThis.navigator.clipboard.writeText(shareUrl)
+      globalThis.alert('Enlace copiado al portapapeles')
     }
   }
+
+  const travelTypeText = (() => {
+    switch (travel?.travelType) {
+      case 'LEISURE':
+        return 'Ocio'
+      case 'BUSINESS':
+        return 'Negocios'
+      case 'ADVENTURE':
+        return 'Aventura'
+      default:
+        return travel?.travelType || 'No definido'
+    }
+  })()
 
   if (loading) {
     return (
@@ -204,9 +185,9 @@ const TravelDetails = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`status-badge ${getStatusColor(travel.status)}`}>
+              <span className={`status-badge ${getTravelStatusBadgeClass(travel.status)}`}>
                 {getStatusIcon(travel.status)}
-                <span className="ml-1">{getStatusText(travel.status)}</span>
+                <span className="ml-1">{getTravelStatusText(travel.status)}</span>
               </span>
             </div>
           </div>
@@ -295,10 +276,7 @@ const TravelDetails = () => {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">
-                    {travel.travelType === 'LEISURE' ? 'Ocio' : 
-                     travel.travelType === 'BUSINESS' ? 'Negocios' : 
-                     travel.travelType === 'ADVENTURE' ? 'Aventura' : 
-                     travel.travelType || 'No definido'}
+                    {travelTypeText}
                   </p>
                   <p className="text-sm text-gray-600">Categoría del viaje</p>
                 </div>

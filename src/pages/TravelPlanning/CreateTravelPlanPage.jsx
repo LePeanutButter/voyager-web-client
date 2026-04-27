@@ -137,14 +137,20 @@ const CreateTravelPlanPage = () => {
       <Card title="Nuevo plan">
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
           <div>
-            <label>Título *</label>
-            <input style={inputStyle} value={formData.title} onChange={(e) => setValue('title', e.target.value)} />
+            <label htmlFor="travel-plan-title">Título *</label>
+            <input
+              id="travel-plan-title"
+              style={inputStyle}
+              value={formData.title}
+              onChange={(e) => setValue('title', e.target.value)}
+            />
             {fieldErrors.title && <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.title}</div>}
           </div>
 
           <div>
-            <label>Destino *</label>
+            <label htmlFor="travel-plan-destination">Destino *</label>
             <input
+              id="travel-plan-destination"
               style={inputStyle}
               value={formData.destinationLocation}
               onChange={(e) => setValue('destinationLocation', e.target.value)}
@@ -155,8 +161,9 @@ const CreateTravelPlanPage = () => {
           </div>
 
           <div>
-            <label>Origen (opcional)</label>
+            <label htmlFor="travel-plan-origin">Origen (opcional)</label>
             <input
+              id="travel-plan-origin"
               style={inputStyle}
               value={formData.originLocation}
               onChange={(e) => setValue('originLocation', e.target.value)}
@@ -165,8 +172,9 @@ const CreateTravelPlanPage = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
-              <label>Fecha de inicio *</label>
+              <label htmlFor="travel-plan-start-date">Fecha de inicio *</label>
               <input
+                id="travel-plan-start-date"
                 style={inputStyle}
                 type="date"
                 value={formData.startDate}
@@ -175,16 +183,23 @@ const CreateTravelPlanPage = () => {
               {fieldErrors.startDate && <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.startDate}</div>}
             </div>
             <div>
-              <label>Fecha de fin *</label>
-              <input style={inputStyle} type="date" value={formData.endDate} onChange={(e) => setValue('endDate', e.target.value)} />
+              <label htmlFor="travel-plan-end-date">Fecha de fin *</label>
+              <input
+                id="travel-plan-end-date"
+                style={inputStyle}
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setValue('endDate', e.target.value)}
+              />
               {fieldErrors.endDate && <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.endDate}</div>}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
-              <label>Presupuesto estimado (opcional)</label>
+              <label htmlFor="travel-plan-estimated-budget">Presupuesto estimado (opcional)</label>
               <input
+                id="travel-plan-estimated-budget"
                 style={inputStyle}
                 type="number"
                 value={formData.estimatedBudget}
@@ -193,8 +208,9 @@ const CreateTravelPlanPage = () => {
               />
             </div>
             <div>
-              <label>Número de viajeros *</label>
+              <label htmlFor="travel-plan-travelers">Número de viajeros *</label>
               <input
+                id="travel-plan-travelers"
                 style={inputStyle}
                 type="number"
                 value={formData.numberOfTravelers}
@@ -208,8 +224,9 @@ const CreateTravelPlanPage = () => {
           </div>
 
           <div>
-            <label>Descripción (opcional)</label>
+            <label htmlFor="travel-plan-description">Descripción (opcional)</label>
             <textarea
+              id="travel-plan-description"
               style={{ ...inputStyle, minHeight: '120px' }}
               value={formData.description}
               onChange={(e) => setValue('description', e.target.value)}

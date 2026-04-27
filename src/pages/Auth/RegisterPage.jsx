@@ -8,6 +8,25 @@ import './Auth.css'
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const validateUsername = (username, errors) => {
+  const normalized = username.trim()
+  if (!normalized) {
+    errors.username = 'El username es requerido'
+    return
+  }
+  if (normalized.length < 3) errors.username = 'El username debe tener mínimo 3 caracteres'
+  if (normalized.length > 50) errors.username = 'El username no puede superar 50 caracteres'
+}
+
+const validatePasswordFields = (password, confirmPassword, errors) => {
+  if (!password) errors.password = 'La contraseña es requerida'
+  if (password && password.length < 8) errors.password = 'La contraseña debe tener mínimo 8 caracteres'
+  if (!confirmPassword) errors.confirmPassword = 'Confirma tu contraseña'
+  if (password && confirmPassword && password !== confirmPassword) {
+    errors.confirmPassword = 'Las contraseñas no coinciden'
+  }
+}
+
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -37,19 +56,12 @@ const RegisterPage = () => {
 
   const validate = () => {
     const next = {}
-    if (!formData.username.trim()) next.username = 'El username es requerido'
-    if (formData.username && formData.username.trim().length < 3) next.username = 'El username debe tener mínimo 3 caracteres'
-    if (formData.username && formData.username.trim().length > 50) next.username = 'El username no puede superar 50 caracteres'
+    validateUsername(formData.username, next)
     if (!formData.email.trim()) next.email = 'El email es requerido'
     if (formData.email && !emailRegex.test(formData.email)) next.email = 'Email inválido'
     if (!formData.firstName.trim()) next.firstName = 'El nombre es requerido'
     if (!formData.lastName.trim()) next.lastName = 'El apellido es requerido'
-    if (!formData.password) next.password = 'La contraseña es requerida'
-    if (formData.password && formData.password.length < 8) next.password = 'La contraseña debe tener mínimo 8 caracteres'
-    if (!formData.confirmPassword) next.confirmPassword = 'Confirma tu contraseña'
-    if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
-      next.confirmPassword = 'Las contraseñas no coinciden'
-    }
+    validatePasswordFields(formData.password, formData.confirmPassword, next)
     setFieldErrors(next)
     return Object.keys(next).length === 0
   }

@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
-import { useAuth } from '../../contexts/AuthContext'
 import { MapPin, Calendar, Users, DollarSign, Clock, Plus, Luggage } from 'lucide-react'
+import { getTravelStatusBadgeClass, getTravelStatusText } from '../../utils/travelStatus'
 
 const MyTravels = () => {
   const [travels, setTravels] = useState([])
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
 
   useEffect(() => {
     fetchMyTravels()
@@ -50,33 +49,8 @@ const MyTravels = () => {
   }
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-800'
-      case 'PLANNING':
-        return 'bg-blue-100 text-blue-800'
-      case 'COMPLETED':
-        return 'bg-gray-100 text-gray-800'
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'Activo'
-      case 'PLANNING':
-        return 'Planificando'
-      case 'COMPLETED':
-        return 'Completado'
-      case 'CANCELLED':
-        return 'Cancelado'
-      default:
-        return status
-    }
+    const fullClass = getTravelStatusBadgeClass(status)
+    return fullClass.replace(' border-green-200', '').replace(' border-blue-200', '').replace(' border-gray-200', '').replace(' border-red-200', '')
   }
 
   if (loading) {
@@ -150,7 +124,7 @@ const MyTravels = () => {
                   <div className="absolute inset-0 bg-black bg-opacity-20"></div>
                   <div className="absolute top-3 right-3">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(travel.status)}`}>
-                      {getStatusText(travel.status)}
+                      {getTravelStatusText(travel.status)}
                     </span>
                   </div>
                   <div className="absolute bottom-3 left-3 text-white">
