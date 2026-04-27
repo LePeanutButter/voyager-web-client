@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
+import { travelPlanService } from '../../services/travelPlanService'
 import { 
   MapPin, 
   Calendar, 
@@ -17,8 +18,58 @@ import {
 } from 'lucide-react'
 import './TravelPlanning.css'
 
+const getPlansStorageKey = () => {
+  try {
+    const raw = localStorage.getItem('userData')
+    const user = raw ? JSON.parse(raw) : null
+    const identity = user?.id || user?.username || user?.email || 'anonymous'
+    return `created_travel_plans_${identity}`
+  } catch {
+    return 'created_travel_plans_anonymous'
+  }
+}
+
+const toDateInputValue = (value) => {
+  if (!value) return ''
+  return String(value).split('T')[0]
+}
+
+const toLocalDateTimeString = (value, endOfDay = false) => {
+  if (!value) return null
+  const stringValue = String(value)
+  if (stringValue.includes('T')) return stringValue
+  return endOfDay ? `${stringValue}T23:59:59` : `${stringValue}T00:00:00`
+}
+
+const getStoredPlans = () => {
+  const localPlans = JSON.parse(localStorage.getItem(getPlansStorageKey()) || '[]')
+  return Array.isArray(localPlans) ? localPlans : []
+}
+
+const normalizePlansResponse = (raw) => {
+  if (Array.isArray(raw)) return raw
+  if (Array.isArray(raw?.content)) return raw.content
+  return []
+}
+
+const toUpdatablePlanFields = (plan) => {
+  const updatableFields = { ...plan }
+  delete updatableFields.id
+  delete updatableFields.createdAt
+  delete updatableFields.updatedAt
+  delete updatableFields.shareToken
+  return updatableFields
+}
+
 const TravelPlanning = () => {
   const [activeTab, setActiveTab] = useState('planner')
+  const [lastCreatedPlan, setLastCreatedPlan] = useState(null)
+  const [userPlans, setUserPlans] = useState([])
+  const [plansLoading, setPlansLoading] = useState(false)
+  const [plansError, setPlansError] = useState('')
+  const [editingPlanId, setEditingPlanId] = useState(null)
+  const [savingPlanId, setSavingPlanId] = useState(null)
+  const [deletingPlanId, setDeletingPlanId] = useState(null)
   const [tripData, setTripData] = useState({
     destination: '',
     startDate: '',
@@ -58,12 +109,99 @@ const TravelPlanning = () => {
     }))
   }
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('last_created_travel_plan')
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      if (parsed && typeof parsed === 'object') setLastCreatedPlan(parsed)
+    } catch {
+      // ignore malformed local storage values
+    }
+  }, [])
+
+  useEffect(() => {
+    const loadPlans = async () => {
+      setPlansLoading(true)
+      setPlansError('')
+      try {
+        const res = await travelPlanService.list()
+        const raw = res?.data || res
+        const plans = normalizePlansResponse(raw)
+        if (plans.length > 0) {
+          setUserPlans(plans)
+        } else {
+          setUserPlans(getStoredPlans())
+        }
+      } catch (err) {
+        const localPlans = getStoredPlans()
+        if (Array.isArray(localPlans) && localPlans.length > 0) {
+          setUserPlans(localPlans)
+          setPlansError('')
+        } else {
+          setPlansError(err?.message || 'No se pudieron cargar los planes')
+        }
+      } finally {
+        setPlansLoading(false)
+      }
+    }
+    loadPlans()
+  }, [])
+
+  const updatePlanField = (planId, field, value) => {
+    setUserPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, [field]: value } : p)))
+  }
+
+  const savePlan = async (plan) => {
+    try {
+      setSavingPlanId(plan.id)
+      const updatableFields = toUpdatablePlanFields(plan)
+      const payload = {
+        ...updatableFields,
+        startDate: toLocalDateTimeString(updatableFields.startDate, false),
+        endDate: toLocalDateTimeString(updatableFields.endDate, true)
+      }
+      await travelPlanService.update(plan.id, payload)
+      setEditingPlanId(null)
+      setPlansError('')
+    } catch (err) {
+      setPlansError(err?.message || 'No se pudo actualizar el plan')
+    } finally {
+      setSavingPlanId(null)
+    }
+  }
+
+  const deletePlan = async (planId) => {
+    const confirmed = globalThis.confirm('Quieres borrar este plan? Esta accion no se puede deshacer.')
+    if (!confirmed) return
+
+    try {
+      setDeletingPlanId(planId)
+      await travelPlanService.remove(planId)
+      setUserPlans((prev) => prev.filter((plan) => plan.id !== planId))
+      setPlansError('')
+      if (editingPlanId === planId) setEditingPlanId(null)
+    } catch (err) {
+      setPlansError(err?.message || 'No se pudo borrar el plan')
+    } finally {
+      setDeletingPlanId(null)
+    }
+  }
+
   return (
     <div className="travel-planning">
       <div className="planning-header">
         <h1>Travel Planning Studio</h1>
         <p>Plan your perfect trip with AI-powered recommendations</p>
       </div>
+
+      {lastCreatedPlan && (
+        <Card title="Ultimo plan creado">
+          <p>
+            {lastCreatedPlan.title || 'Plan sin titulo'} - {lastCreatedPlan.destinationLocation || 'Destino no especificado'}
+          </p>
+        </Card>
+      )}
 
       <div className="planning-tabs">
         <button 
@@ -93,10 +231,11 @@ const TravelPlanning = () => {
               <div className="trip-form">
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Destination</label>
+                    <label htmlFor="trip-destination">Destination</label>
                     <div className="input-with-icon">
                       <MapPin size={20} />
                       <input
+                        id="trip-destination"
                         type="text"
                         placeholder="Where do you want to go?"
                         value={tripData.destination}
@@ -108,10 +247,11 @@ const TravelPlanning = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Start Date</label>
+                    <label htmlFor="trip-start-date">Start Date</label>
                     <div className="input-with-icon">
                       <Calendar size={20} />
                       <input
+                        id="trip-start-date"
                         type="date"
                         value={tripData.startDate}
                         onChange={(e) => setTripData(prev => ({...prev, startDate: e.target.value}))}
@@ -119,10 +259,11 @@ const TravelPlanning = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>End Date</label>
+                    <label htmlFor="trip-end-date">End Date</label>
                     <div className="input-with-icon">
                       <Calendar size={20} />
                       <input
+                        id="trip-end-date"
                         type="date"
                         value={tripData.endDate}
                         onChange={(e) => setTripData(prev => ({...prev, endDate: e.target.value}))}
@@ -133,10 +274,11 @@ const TravelPlanning = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Travelers</label>
+                    <label htmlFor="trip-travelers">Travelers</label>
                     <div className="input-with-icon">
                       <Users size={20} />
                       <select
+                        id="trip-travelers"
                         value={tripData.travelers}
                         onChange={(e) => setTripData(prev => ({...prev, travelers: parseInt(e.target.value)}))}
                       >
@@ -149,10 +291,11 @@ const TravelPlanning = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Budget</label>
+                    <label htmlFor="trip-budget">Budget</label>
                     <div className="input-with-icon">
                       <DollarSign size={20} />
                       <select
+                        id="trip-budget"
                         value={tripData.budget}
                         onChange={(e) => setTripData(prev => ({...prev, budget: e.target.value}))}
                       >
@@ -166,10 +309,11 @@ const TravelPlanning = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Interests</label>
+                  <label htmlFor="trip-interest-adventure">Interests</label>
                   <div className="interests-grid">
                     {interests.map(interest => (
                       <button
+                        id={`trip-interest-${interest.toLowerCase().replaceAll(' ', '-')}`}
                         key={interest}
                         className={`interest-tag ${tripData.interests.includes(interest) ? 'active' : ''}`}
                         onClick={() => handleInterestToggle(interest)}
@@ -223,18 +367,112 @@ const TravelPlanning = () => {
               </div>
             </Card>
 
-            <Card title="Saved Trips">
+            <Card title="Mis planes creados">
               <div className="saved-trips">
-                <div className="trip-card">
-                  <h4>European Adventure</h4>
-                  <p>Jun 15-30, 2024</p>
-                  <div className="trip-status">Planning</div>
-                </div>
-                <div className="trip-card">
-                  <h4>Beach Weekend</h4>
-                  <p>Aug 5-7, 2024</p>
-                  <div className="trip-status confirmed">Confirmed</div>
-                </div>
+                {plansLoading && <p>Cargando planes…</p>}
+                {plansError && <p style={{ color: '#dc3545' }}>{plansError}</p>}
+                {!plansLoading && userPlans.length === 0 && <p>Aun no tienes planes creados.</p>}
+
+                {userPlans.map((plan) => (
+                  <div key={plan.id} className="trip-card">
+                    {editingPlanId === plan.id ? (
+                      <>
+                        <input
+                          id={`plan-title-${plan.id}`}
+                          value={plan.title || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'title', e.target.value)}
+                          placeholder="Titulo"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          id={`plan-destination-${plan.id}`}
+                          value={plan.destinationLocation || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'destinationLocation', e.target.value)}
+                          placeholder="Destino"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          id={`plan-origin-${plan.id}`}
+                          value={plan.originLocation || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'originLocation', e.target.value)}
+                          placeholder="Origen"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          id={`plan-start-date-${plan.id}`}
+                          type="date"
+                          value={toDateInputValue(plan.startDate)}
+                          onChange={(e) => updatePlanField(plan.id, 'startDate', e.target.value)}
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          id={`plan-end-date-${plan.id}`}
+                          type="date"
+                          value={toDateInputValue(plan.endDate)}
+                          onChange={(e) => updatePlanField(plan.id, 'endDate', e.target.value)}
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          id={`plan-estimated-budget-${plan.id}`}
+                          type="number"
+                          min="0"
+                          value={plan.estimatedBudget ?? ''}
+                          onChange={(e) => updatePlanField(plan.id, 'estimatedBudget', e.target.value === '' ? null : Number(e.target.value))}
+                          placeholder="Presupuesto estimado"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <input
+                          id={`plan-number-of-travelers-${plan.id}`}
+                          type="number"
+                          min="1"
+                          value={plan.numberOfTravelers ?? ''}
+                          onChange={(e) => updatePlanField(plan.id, 'numberOfTravelers', e.target.value === '' ? null : Number(e.target.value))}
+                          placeholder="Numero de viajeros"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <textarea
+                          id={`plan-description-${plan.id}`}
+                          value={plan.description || ''}
+                          onChange={(e) => updatePlanField(plan.id, 'description', e.target.value)}
+                          placeholder="Descripcion"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <Button
+                            size="small"
+                            variant="primary"
+                            onClick={() => savePlan(plan)}
+                            disabled={savingPlanId === plan.id}
+                          >
+                            {savingPlanId === plan.id ? 'Guardando...' : 'Guardar'}
+                          </Button>
+                          <Button size="small" variant="outline" onClick={() => setEditingPlanId(null)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h4>{plan.title || 'Plan sin titulo'}</h4>
+                        <p>{plan.destinationLocation || 'Destino no especificado'}</p>
+                        <div className="trip-status">{plan.status || 'Planning'}</div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <Button size="small" variant="outline" onClick={() => setEditingPlanId(plan.id)}>
+                            Editar
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outline"
+                            onClick={() => deletePlan(plan.id)}
+                            disabled={deletingPlanId === plan.id}
+                          >
+                            {deletingPlanId === plan.id ? 'Borrando...' : 'Borrar'}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </Card>
           </div>
