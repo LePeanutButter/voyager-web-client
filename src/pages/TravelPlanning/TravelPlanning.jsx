@@ -41,6 +41,26 @@ const toLocalDateTimeString = (value, endOfDay = false) => {
   return endOfDay ? `${stringValue}T23:59:59` : `${stringValue}T00:00:00`
 }
 
+const getStoredPlans = () => {
+  const localPlans = JSON.parse(localStorage.getItem(getPlansStorageKey()) || '[]')
+  return Array.isArray(localPlans) ? localPlans : []
+}
+
+const normalizePlansResponse = (raw) => {
+  if (Array.isArray(raw)) return raw
+  if (Array.isArray(raw?.content)) return raw.content
+  return []
+}
+
+const toUpdatablePlanFields = (plan) => {
+  const updatableFields = { ...plan }
+  delete updatableFields.id
+  delete updatableFields.createdAt
+  delete updatableFields.updatedAt
+  delete updatableFields.shareToken
+  return updatableFields
+}
+
 const TravelPlanning = () => {
   const [activeTab, setActiveTab] = useState('planner')
   const [lastCreatedPlan, setLastCreatedPlan] = useState(null)
@@ -107,15 +127,14 @@ const TravelPlanning = () => {
       try {
         const res = await travelPlanService.list()
         const raw = res?.data || res
-        const plans = Array.isArray(raw) ? raw : (Array.isArray(raw?.content) ? raw.content : [])
+        const plans = normalizePlansResponse(raw)
         if (plans.length > 0) {
           setUserPlans(plans)
         } else {
-          const localPlans = JSON.parse(localStorage.getItem(getPlansStorageKey()) || '[]')
-          setUserPlans(Array.isArray(localPlans) ? localPlans : [])
+          setUserPlans(getStoredPlans())
         }
       } catch (err) {
-        const localPlans = JSON.parse(localStorage.getItem(getPlansStorageKey()) || '[]')
+        const localPlans = getStoredPlans()
         if (Array.isArray(localPlans) && localPlans.length > 0) {
           setUserPlans(localPlans)
           setPlansError('')
@@ -136,13 +155,7 @@ const TravelPlanning = () => {
   const savePlan = async (plan) => {
     try {
       setSavingPlanId(plan.id)
-      const {
-        id,
-        createdAt,
-        updatedAt,
-        shareToken,
-        ...updatableFields
-      } = plan
+      const updatableFields = toUpdatablePlanFields(plan)
       const payload = {
         ...updatableFields,
         startDate: toLocalDateTimeString(updatableFields.startDate, false),
@@ -159,7 +172,7 @@ const TravelPlanning = () => {
   }
 
   const deletePlan = async (planId) => {
-    const confirmed = window.confirm('Quieres borrar este plan? Esta accion no se puede deshacer.')
+    const confirmed = globalThis.confirm('Quieres borrar este plan? Esta accion no se puede deshacer.')
     if (!confirmed) return
 
     try {
@@ -218,10 +231,11 @@ const TravelPlanning = () => {
               <div className="trip-form">
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Destination</label>
+                    <label htmlFor="trip-destination">Destination</label>
                     <div className="input-with-icon">
                       <MapPin size={20} />
                       <input
+                        id="trip-destination"
                         type="text"
                         placeholder="Where do you want to go?"
                         value={tripData.destination}
@@ -233,10 +247,11 @@ const TravelPlanning = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Start Date</label>
+                    <label htmlFor="trip-start-date">Start Date</label>
                     <div className="input-with-icon">
                       <Calendar size={20} />
                       <input
+                        id="trip-start-date"
                         type="date"
                         value={tripData.startDate}
                         onChange={(e) => setTripData(prev => ({...prev, startDate: e.target.value}))}
@@ -244,10 +259,11 @@ const TravelPlanning = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>End Date</label>
+                    <label htmlFor="trip-end-date">End Date</label>
                     <div className="input-with-icon">
                       <Calendar size={20} />
                       <input
+                        id="trip-end-date"
                         type="date"
                         value={tripData.endDate}
                         onChange={(e) => setTripData(prev => ({...prev, endDate: e.target.value}))}
@@ -258,10 +274,11 @@ const TravelPlanning = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Travelers</label>
+                    <label htmlFor="trip-travelers">Travelers</label>
                     <div className="input-with-icon">
                       <Users size={20} />
                       <select
+                        id="trip-travelers"
                         value={tripData.travelers}
                         onChange={(e) => setTripData(prev => ({...prev, travelers: parseInt(e.target.value)}))}
                       >
@@ -274,10 +291,11 @@ const TravelPlanning = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Budget</label>
+                    <label htmlFor="trip-budget">Budget</label>
                     <div className="input-with-icon">
                       <DollarSign size={20} />
                       <select
+                        id="trip-budget"
                         value={tripData.budget}
                         onChange={(e) => setTripData(prev => ({...prev, budget: e.target.value}))}
                       >
@@ -291,10 +309,11 @@ const TravelPlanning = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Interests</label>
+                  <label htmlFor="trip-interest-adventure">Interests</label>
                   <div className="interests-grid">
                     {interests.map(interest => (
                       <button
+                        id={`trip-interest-${interest.toLowerCase().replaceAll(' ', '-')}`}
                         key={interest}
                         className={`interest-tag ${tripData.interests.includes(interest) ? 'active' : ''}`}
                         onClick={() => handleInterestToggle(interest)}
@@ -359,36 +378,42 @@ const TravelPlanning = () => {
                     {editingPlanId === plan.id ? (
                       <>
                         <input
+                          id={`plan-title-${plan.id}`}
                           value={plan.title || ''}
                           onChange={(e) => updatePlanField(plan.id, 'title', e.target.value)}
                           placeholder="Titulo"
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <input
+                          id={`plan-destination-${plan.id}`}
                           value={plan.destinationLocation || ''}
                           onChange={(e) => updatePlanField(plan.id, 'destinationLocation', e.target.value)}
                           placeholder="Destino"
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <input
+                          id={`plan-origin-${plan.id}`}
                           value={plan.originLocation || ''}
                           onChange={(e) => updatePlanField(plan.id, 'originLocation', e.target.value)}
                           placeholder="Origen"
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <input
+                          id={`plan-start-date-${plan.id}`}
                           type="date"
                           value={toDateInputValue(plan.startDate)}
                           onChange={(e) => updatePlanField(plan.id, 'startDate', e.target.value)}
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <input
+                          id={`plan-end-date-${plan.id}`}
                           type="date"
                           value={toDateInputValue(plan.endDate)}
                           onChange={(e) => updatePlanField(plan.id, 'endDate', e.target.value)}
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <input
+                          id={`plan-estimated-budget-${plan.id}`}
                           type="number"
                           min="0"
                           value={plan.estimatedBudget ?? ''}
@@ -397,6 +422,7 @@ const TravelPlanning = () => {
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <input
+                          id={`plan-number-of-travelers-${plan.id}`}
                           type="number"
                           min="1"
                           value={plan.numberOfTravelers ?? ''}
@@ -405,6 +431,7 @@ const TravelPlanning = () => {
                           style={{ width: '100%', marginBottom: '0.5rem' }}
                         />
                         <textarea
+                          id={`plan-description-${plan.id}`}
                           value={plan.description || ''}
                           onChange={(e) => updatePlanField(plan.id, 'description', e.target.value)}
                           placeholder="Descripcion"

@@ -66,7 +66,7 @@ const LoginPage = () => {
   }
 
   const handleGoogle = () => {
-    window.location.href = googleLoginUrl
+    globalThis.location.href = googleLoginUrl
   }
 
   return (

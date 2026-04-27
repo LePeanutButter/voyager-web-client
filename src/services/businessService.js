@@ -77,8 +77,8 @@ export const businessService = {
     return response
   },
 
-  respondToReview: async (reviewId, response) => {
-    const response = await api.post(`/business/reviews/${reviewId}/respond`, { response })
+  respondToReview: async (reviewId, responseText) => {
+    const response = await api.post(`/business/reviews/${reviewId}/respond`, { response: responseText })
     return response
   },
 

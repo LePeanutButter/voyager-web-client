@@ -35,7 +35,7 @@ api.interceptors.response.use(
       localStorage.removeItem('smartrip_token')
       localStorage.removeItem('token')
       localStorage.removeItem('userData')
-      window.location.href = '/login'
+      globalThis.location.href = '/login'
     }
     
     // Extract error message

@@ -3,32 +3,7 @@ import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import { useAuth } from '../../hooks/useAuth'
 import { usersService } from '../../services/usersService'
-
-const safeJsonParse = (value) => {
-  try {
-    return JSON.parse(value)
-  } catch {
-    return null
-  }
-}
-
-const decodeJwtPayload = (token) => {
-  try {
-    const payloadPart = token.split('.')[1]
-    if (!payloadPart) return null
-    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
-    return safeJsonParse(atob(padded))
-  } catch {
-    return null
-  }
-}
-
-const getNumericId = (value) => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string' && /^\d+$/.test(value.trim())) return Number(value.trim())
-  return null
-}
+import { decodeJwtPayload, getNumericId, safeJsonParse } from '../../utils/jwt'
 
 const pickUserObject = (raw) => {
   if (!raw) return null
@@ -271,8 +246,9 @@ const ProfilePage = () => {
         ) : (
           <form onSubmit={handleSave} style={{ display: 'grid', gap: '1rem' }}>
             <div>
-              <label>Nombre *</label>
+              <label htmlFor="profile-first-name">Nombre *</label>
               <input
+                id="profile-first-name"
                 style={inputStyle}
                 value={formData.firstName}
                 onChange={(e) => setValue('firstName', e.target.value)}
@@ -281,8 +257,9 @@ const ProfilePage = () => {
             </div>
 
             <div>
-              <label>Apellido *</label>
+              <label htmlFor="profile-last-name">Apellido *</label>
               <input
+                id="profile-last-name"
                 style={inputStyle}
                 value={formData.lastName}
                 onChange={(e) => setValue('lastName', e.target.value)}
@@ -291,8 +268,9 @@ const ProfilePage = () => {
             </div>
 
             <div>
-              <label>Biografía *</label>
+              <label htmlFor="profile-bio">Biografía *</label>
               <textarea
+                id="profile-bio"
                 style={{ ...inputStyle, minHeight: '120px' }}
                 value={formData.bio}
                 onChange={(e) => setValue('bio', e.target.value)}
@@ -305,8 +283,9 @@ const ProfilePage = () => {
             </div>
 
             <div>
-              <label>Teléfono (opcional)</label>
+              <label htmlFor="profile-phone-number">Teléfono (opcional)</label>
               <input
+                id="profile-phone-number"
                 style={inputStyle}
                 value={formData.phoneNumber}
                 onChange={(e) => setValue('phoneNumber', e.target.value)}
@@ -314,9 +293,10 @@ const ProfilePage = () => {
             </div>
 
             <div>
-              <label>Intereses</label>
+              <label htmlFor="profile-interest-input">Intereses</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
+                  id="profile-interest-input"
                   style={inputStyle}
                   value={interestInput}
                   onChange={(e) => setInterestInput(e.target.value)}
