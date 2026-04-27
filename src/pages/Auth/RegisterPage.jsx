@@ -6,7 +6,7 @@ import { usersService } from '../../services/usersService'
 import { Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react'
 import './Auth.css'
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/
 
 const validateUsername = (username, errors) => {
   const normalized = username.trim()
