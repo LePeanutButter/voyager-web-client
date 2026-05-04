@@ -15,7 +15,9 @@ import {
   Plus,
   Search,
   Filter,
-  Star
+  Star,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react'
 import './TravelPlanning.css'
 
@@ -27,6 +29,8 @@ const TravelPlanning = () => {
   const [isSavingActivity, setIsSavingActivity] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState(null)
+  const [deletingActivity, setDeletingActivity] = useState(null)
+  const [isDeletingActivity, setIsDeletingActivity] = useState(false)
   const [activitiesError, setActivitiesError] = useState('')
   const [tripData, setTripData] = useState({
     destination: '',
@@ -54,7 +58,7 @@ const TravelPlanning = () => {
   ]
 
   const interests = [
-    'Adventure', 'Culture', 'Beach', 'Food & Wine', 'Shopping', 
+    'Adventure', 'Culture', 'Beach', 'Food & Wine', 'Shopping',
     'Nature', 'History', 'Nightlife', 'Photography', 'Relaxation'
   ]
 
@@ -106,6 +110,21 @@ const TravelPlanning = () => {
     }
   }
 
+  const handleDeleteActivity = async () => {
+    if (!deletingActivity) return
+    try {
+      setIsDeletingActivity(true)
+      await travelService.deleteActivity(tripId, deletingActivity.id)
+      setDeletingActivity(null)
+      await loadActivities()
+    } catch (error) {
+      setActivitiesError(error.message || 'No se pudo eliminar la actividad.')
+      setDeletingActivity(null)
+    } finally {
+      setIsDeletingActivity(false)
+    }
+  }
+
   return (
     <div className="travel-planning">
       <div className="planning-header">
@@ -114,19 +133,19 @@ const TravelPlanning = () => {
       </div>
 
       <div className="planning-tabs">
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'planner' ? 'active' : ''}`}
           onClick={() => setActiveTab('planner')}
         >
           Trip Planner
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'destinations' ? 'active' : ''}`}
           onClick={() => setActiveTab('destinations')}
         >
           Explore Destinations
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'itinerary' ? 'active' : ''}`}
           onClick={() => setActiveTab('itinerary')}
         >
@@ -353,6 +372,7 @@ const TravelPlanning = () => {
                         <div className="activity-content">
                           <h4>{activity.name}</h4>
                           <p>{activity.description}</p>
+                        <div className="activity-actions">
                           <Button
                             variant="outline"
                             size="small"
@@ -363,6 +383,15 @@ const TravelPlanning = () => {
                           >
                             Editar
                           </Button>
+                          <Button
+                            variant="danger"
+                            size="small"
+                            onClick={() => setDeletingActivity(activity)}
+                          >
+                            <Trash2 size={14} />
+                            Eliminar
+                          </Button>
+                        </div>
                         </div>
                       </div>
                     ))}
@@ -384,6 +413,40 @@ const TravelPlanning = () => {
         }}
         onSubmit={handleSaveActivity}
       />
+
+      {deletingActivity && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+          <div className="confirm-dialog">
+            <div className="confirm-icon">
+              <AlertTriangle size={28} />
+            </div>
+            <h3 id="confirm-title">Eliminar actividad</h3>
+            <p>
+              ¿Estás seguro de que deseas eliminar{' '}
+              <strong>"{deletingActivity.name}"</strong>?
+            </p>
+            <p className="confirm-warning">
+              Si esta actividad fue compartida con otro viajero, la referencia compartida también será eliminada y se notificará que el plan ya no está disponible.
+            </p>
+            <div className="confirm-actions">
+              <Button
+                variant="outline"
+                onClick={() => setDeletingActivity(null)}
+                disabled={isDeletingActivity}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleDeleteActivity}
+                disabled={isDeletingActivity}
+              >
+                {isDeletingActivity ? 'Eliminando...' : 'Sí, eliminar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

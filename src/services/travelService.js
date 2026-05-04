@@ -92,6 +92,11 @@ export const travelService = {
     return response
   },
 
+  deleteActivity: async (tripId, actId) => {
+    const response = await api.delete(`/travel-plans/${tripId}/activities/${actId}`)
+    return response
+  },
+
   getConnections: async (tripId) => {
     const response = await api.get(`/travel-plans/${tripId}/connections`, {
       params: { status: 'ACCEPTED' }
