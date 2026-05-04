@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import { useAuth } from '../../hooks/useAuth'
@@ -238,6 +239,10 @@ const ProfilePage = () => {
   return (
     <div style={{ padding: '1.5rem' }}>
       <h1 style={{ margin: '0 0 1rem 0' }}>Perfil</h1>
+
+      <p style={{ margin: '0 0 1rem 0' }}>
+        <Link to="/travel-preferences">Cuestionario de preferencias de viaje (IA)</Link>
+      </p>
 
       <Card title="Perfil de viajero">
         {loading ? (
