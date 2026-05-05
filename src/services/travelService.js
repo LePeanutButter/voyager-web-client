@@ -76,6 +76,39 @@ export const travelService = {
     return response
   },
 
+  // Travel plan activities
+  getPlanActivities: async (tripId) => {
+    const response = await api.get(`/travel-plans/${tripId}/activities`)
+    return response
+  },
+
+  createActivity: async (tripId, data) => {
+    const response = await api.post(`/travel-plans/${tripId}/activities`, data)
+    return response
+  },
+
+  updateActivity: async (tripId, actId, data) => {
+    const response = await api.put(`/travel-plans/${tripId}/activities/${actId}`, data)
+    return response
+  },
+
+  deleteActivity: async (tripId, actId) => {
+    const response = await api.delete(`/travel-plans/${tripId}/activities/${actId}`)
+    return response
+  },
+
+  getConnections: async (tripId) => {
+    const response = await api.get(`/travel-plans/${tripId}/connections`, {
+      params: { status: 'ACCEPTED' }
+    })
+    return response
+  },
+
+  getTravelerSummary: async (travelerId) => {
+    const response = await api.get(`/social/travelers/${travelerId}/summary`)
+    return response
+  },
+
   // Activities
   getActivities: async (destinationId) => {
     const response = await api.get(`/destinations/${destinationId}/activities`)

@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
+import ActivityModal from '../../components/Travel/ActivityModal'
+import { travelService } from '../../services/travelService'
 import { travelPlanService } from '../../services/travelPlanService'
-import { 
-  MapPin, 
-  Calendar, 
-  Users, 
-  DollarSign, 
+import {
+  MapPin,
+  Calendar,
+  Users,
+  DollarSign,
   Plane,
   Hotel,
   Car,
@@ -14,7 +16,9 @@ import {
   Plus,
   Search,
   Filter,
-  Star
+  Star,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react'
 import './TravelPlanning.css'
 
@@ -62,7 +66,20 @@ const toUpdatablePlanFields = (plan) => {
 }
 
 const TravelPlanning = () => {
+  const tripId = '1'
   const [activeTab, setActiveTab] = useState('planner')
+
+  // Activities state (feature/travel-intentions-scheduler)
+  const [activities, setActivities] = useState([])
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false)
+  const [isSavingActivity, setIsSavingActivity] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingActivity, setEditingActivity] = useState(null)
+  const [deletingActivity, setDeletingActivity] = useState(null)
+  const [isDeletingActivity, setIsDeletingActivity] = useState(false)
+  const [activitiesError, setActivitiesError] = useState('')
+
+  // Travel plans state (feature/frontend-backend-integration)
   const [lastCreatedPlan, setLastCreatedPlan] = useState(null)
   const [userPlans, setUserPlans] = useState([])
   const [plansLoading, setPlansLoading] = useState(false)
@@ -70,6 +87,7 @@ const TravelPlanning = () => {
   const [editingPlanId, setEditingPlanId] = useState(null)
   const [savingPlanId, setSavingPlanId] = useState(null)
   const [deletingPlanId, setDeletingPlanId] = useState(null)
+
   const [tripData, setTripData] = useState({
     destination: '',
     startDate: '',
@@ -96,7 +114,7 @@ const TravelPlanning = () => {
   ]
 
   const interests = [
-    'Adventure', 'Culture', 'Beach', 'Food & Wine', 'Shopping', 
+    'Adventure', 'Culture', 'Beach', 'Food & Wine', 'Shopping',
     'Nature', 'History', 'Nightlife', 'Photography', 'Relaxation'
   ]
 
@@ -108,6 +126,29 @@ const TravelPlanning = () => {
         : [...prev.interests, interest]
     }))
   }
+
+  const sortedActivities = useMemo(
+    () => [...activities].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)),
+    [activities]
+  )
+
+  const loadActivities = async () => {
+    try {
+      setIsLoadingActivities(true)
+      setActivitiesError('')
+      const response = await travelService.getPlanActivities(tripId)
+      setActivities(response?.data ?? [])
+    } catch (error) {
+      setActivities([])
+      setActivitiesError(error.message || 'No se pudieron cargar las actividades.')
+    } finally {
+      setIsLoadingActivities(false)
+    }
+  }
+
+  useEffect(() => {
+    loadActivities()
+  }, [])
 
   useEffect(() => {
     try {
@@ -148,6 +189,37 @@ const TravelPlanning = () => {
     loadPlans()
   }, [])
 
+  const handleSaveActivity = async (payload) => {
+    try {
+      setIsSavingActivity(true)
+      if (editingActivity) {
+        await travelService.updateActivity(tripId, editingActivity.id, payload)
+      } else {
+        await travelService.createActivity(tripId, payload)
+      }
+      setIsModalOpen(false)
+      setEditingActivity(null)
+      await loadActivities()
+    } finally {
+      setIsSavingActivity(false)
+    }
+  }
+
+  const handleDeleteActivity = async () => {
+    if (!deletingActivity) return
+    try {
+      setIsDeletingActivity(true)
+      await travelService.deleteActivity(tripId, deletingActivity.id)
+      setDeletingActivity(null)
+      await loadActivities()
+    } catch (error) {
+      setActivitiesError(error.message || 'No se pudo eliminar la actividad.')
+      setDeletingActivity(null)
+    } finally {
+      setIsDeletingActivity(false)
+    }
+  }
+
   const updatePlanField = (planId, field, value) => {
     setUserPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, [field]: value } : p)))
   }
@@ -174,7 +246,6 @@ const TravelPlanning = () => {
   const deletePlan = async (planId) => {
     const confirmed = globalThis.confirm('Quieres borrar este plan? Esta accion no se puede deshacer.')
     if (!confirmed) return
-
     try {
       setDeletingPlanId(planId)
       await travelPlanService.remove(planId)
@@ -204,19 +275,19 @@ const TravelPlanning = () => {
       )}
 
       <div className="planning-tabs">
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'planner' ? 'active' : ''}`}
           onClick={() => setActiveTab('planner')}
         >
           Trip Planner
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'destinations' ? 'active' : ''}`}
           onClick={() => setActiveTab('destinations')}
         >
           Explore Destinations
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'itinerary' ? 'active' : ''}`}
           onClick={() => setActiveTab('itinerary')}
         >
@@ -239,7 +310,7 @@ const TravelPlanning = () => {
                         type="text"
                         placeholder="Where do you want to go?"
                         value={tripData.destination}
-                        onChange={(e) => setTripData(prev => ({...prev, destination: e.target.value}))}
+                        onChange={(e) => setTripData(prev => ({ ...prev, destination: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -254,7 +325,7 @@ const TravelPlanning = () => {
                         id="trip-start-date"
                         type="date"
                         value={tripData.startDate}
-                        onChange={(e) => setTripData(prev => ({...prev, startDate: e.target.value}))}
+                        onChange={(e) => setTripData(prev => ({ ...prev, startDate: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -266,7 +337,7 @@ const TravelPlanning = () => {
                         id="trip-end-date"
                         type="date"
                         value={tripData.endDate}
-                        onChange={(e) => setTripData(prev => ({...prev, endDate: e.target.value}))}
+                        onChange={(e) => setTripData(prev => ({ ...prev, endDate: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -280,7 +351,7 @@ const TravelPlanning = () => {
                       <select
                         id="trip-travelers"
                         value={tripData.travelers}
-                        onChange={(e) => setTripData(prev => ({...prev, travelers: parseInt(e.target.value)}))}
+                        onChange={(e) => setTripData(prev => ({ ...prev, travelers: Number.parseInt(e.target.value, 10) }))}
                       >
                         <option value={1}>1 Person</option>
                         <option value={2}>2 People</option>
@@ -297,7 +368,7 @@ const TravelPlanning = () => {
                       <select
                         id="trip-budget"
                         value={tripData.budget}
-                        onChange={(e) => setTripData(prev => ({...prev, budget: e.target.value}))}
+                        onChange={(e) => setTripData(prev => ({ ...prev, budget: e.target.value }))}
                       >
                         <option value="budget">Budget ($0-500)</option>
                         <option value="medium">Medium ($500-1500)</option>
@@ -492,8 +563,8 @@ const TravelPlanning = () => {
           </div>
 
           <div className="destinations-grid">
-            {destinations.map((dest, index) => (
-              <Card key={index} hover className="destination-card">
+            {destinations.map((dest) => (
+              <Card key={dest.name} hover className="destination-card">
                 <div className="destination-image">
                   <img src={`/api/placeholder/300/200?text=${dest.image}`} alt={dest.name} />
                   <div className="destination-type">{dest.type}</div>
@@ -519,31 +590,112 @@ const TravelPlanning = () => {
             <div className="itinerary-builder">
               <div className="day-planner">
                 <div className="day-header">
-                  <h3>Day 1 - Arrival</h3>
-                  <Button variant="outline" size="small">
+                  <h3>Cronograma del viaje</h3>
+                  <Button variant="outline" size="small" onClick={() => setIsModalOpen(true)}>
                     <Plus size={16} />
                     Add Activity
                   </Button>
                 </div>
-                <div className="day-activities">
-                  <div className="activity-item">
-                    <div className="activity-time">9:00 AM</div>
-                    <div className="activity-content">
-                      <h4>Airport Arrival</h4>
-                      <p>Arrive at destination airport</p>
-                    </div>
+
+                {isLoadingActivities && <p>Loading activities...</p>}
+
+                {!isLoadingActivities && activitiesError && (
+                  <p>{activitiesError}</p>
+                )}
+
+                {!isLoadingActivities && sortedActivities.length === 0 && (
+                  <div className="day-activities">
+                    <p>No hay actividades aun. Agrega la primera actividad para iniciar el cronograma.</p>
+                    <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+                      Agregar primera actividad
+                    </Button>
                   </div>
-                  <div className="activity-item">
-                    <div className="activity-time">12:00 PM</div>
-                    <div className="activity-content">
-                      <h4>Hotel Check-in</h4>
-                      <p>Check into accommodation</p>
-                    </div>
+                )}
+
+                {!isLoadingActivities && sortedActivities.length > 0 && (
+                  <div className="day-activities">
+                    {sortedActivities.map((activity) => (
+                      <div className="activity-item" key={activity.id}>
+                        <div className="activity-time">
+                          {new Date(activity.startTime).toLocaleString()}
+                        </div>
+                        <div className="activity-content">
+                          <h4>{activity.name}</h4>
+                          <p>{activity.description}</p>
+                          <div className="activity-actions">
+                            <Button
+                              variant="outline"
+                              size="small"
+                              onClick={() => {
+                                setEditingActivity(activity)
+                                setIsModalOpen(true)
+                              }}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="small"
+                              onClick={() => setDeletingActivity(activity)}
+                            >
+                              <Trash2 size={14} />
+                              Eliminar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </Card>
+        </div>
+      )}
+
+      <ActivityModal
+        isOpen={isModalOpen}
+        mode={editingActivity ? 'edit' : 'create'}
+        initialData={editingActivity}
+        loading={isSavingActivity}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingActivity(null)
+        }}
+        onSubmit={handleSaveActivity}
+      />
+
+      {deletingActivity && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+          <div className="confirm-dialog">
+            <div className="confirm-icon">
+              <AlertTriangle size={28} />
+            </div>
+            <h3 id="confirm-title">Eliminar actividad</h3>
+            <p>
+              ¿Estás seguro de que deseas eliminar{' '}
+              <strong>"{deletingActivity.name}"</strong>?
+            </p>
+            <p className="confirm-warning">
+              Si esta actividad fue compartida con otro viajero, la referencia compartida también será eliminada y se notificará que el plan ya no está disponible.
+            </p>
+            <div className="confirm-actions">
+              <Button
+                variant="outline"
+                onClick={() => setDeletingActivity(null)}
+                disabled={isDeletingActivity}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleDeleteActivity}
+                disabled={isDeletingActivity}
+              >
+                {isDeletingActivity ? 'Eliminando...' : 'Sí, eliminar'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
