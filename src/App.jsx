@@ -18,6 +18,7 @@ import GoogleCallbackPage from './pages/Auth/GoogleCallbackPage'
 import ProfilePage from './pages/Profile/ProfilePage'
 import TravelPreferencesPage from './pages/TravelPreferences/TravelPreferencesPage'
 import Social from './pages/Social/Social'
+import TravelerChatPage from './pages/Social/TravelerChatPage'
 import CreateTravelPlanPage from './pages/TravelPlanning/CreateTravelPlanPage'
 import MyTravels from './pages/MyTravels/MyTravels'
 import TravelDetails from './pages/TravelDetails/TravelDetails'
@@ -41,6 +42,7 @@ function App() {
                 <Route path="travel-planning" element={<TravelPlanning />} />
                 <Route path="business-dashboard" element={<BusinessDashboard />} />
                 <Route path="social" element={<Social />} />
+                <Route path="social/chat/:connectionId" element={<TravelerChatPage />} />
               </Route>
 
               {/* Private Routes (JWT token required) */}

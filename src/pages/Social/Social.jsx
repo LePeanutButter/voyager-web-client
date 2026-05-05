@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
+import ActiveConnections from '../../components/ActiveConnections/ActiveConnections'
 import { SHARED_ACTIVITY_ACTIONS, SHARED_ACTIVITY_STATUSES } from '../../api/socialContracts'
 import { useSocialCollaboration } from '../../hooks/useSocialCollaboration'
 import { useAuth } from '../../contexts/AuthContext'
@@ -8,7 +9,8 @@ import './Social.css'
 
 const Social = () => {
   const { user } = useAuth()
-  const [userId, setUserId] = useState('')
+  const userId = user?.id ?? null
+
   const [travelPlanId, setTravelPlanId] = useState('')
   const [selectedActivityId, setSelectedActivityId] = useState('')
   const [selectedReceiverId, setSelectedReceiverId] = useState('')
@@ -38,16 +40,15 @@ const Social = () => {
 
   const handleLoadConnections = (event) => {
     event.preventDefault()
-    const parsedUserId = Number(userId || user?.id)
-    if (Number.isNaN(parsedUserId) || parsedUserId <= 0) return
-    loadConnections(parsedUserId)
+    if (!userId) return
+    loadConnections(userId)
   }
 
   const handleLoadActivities = (event) => {
     event.preventDefault()
-    const parsedTravelPlanId = Number(travelPlanId)
-    if (Number.isNaN(parsedTravelPlanId) || parsedTravelPlanId <= 0) return
-    loadActivities(parsedTravelPlanId)
+    const id = Number(travelPlanId)
+    if (Number.isNaN(id) || id <= 0) return
+    loadActivities(id)
   }
 
   const handleShareActivity = (event) => {
@@ -72,12 +73,17 @@ const Social = () => {
       {success && <div className="alert success">{success}</div>}
       {error && <div className="alert error">{error}</div>}
 
+      {/* 🔹 ESTA PARTE VIENE DE LA OTRA RAMA (IMPORTANTE) */}
+      <Card title="Tus relaciones en la plataforma">
+        <ActiveConnections userId={userId} />
+      </Card>
+
       <div className="social-grid">
         <Card title="Shared Activities">
           <form className="form-stack" onSubmit={handleLoadConnections}>
-            <label htmlFor="userId">Your user ID</label>
-            <input id="userId" value={userId} onChange={(event) => setUserId(event.target.value)} />
-            <Button type="submit" loading={loading.connections}>Load Connections</Button>
+            <Button type="submit" loading={loading.connections}>
+              Load Connections
+            </Button>
           </form>
 
           <div className="chip-list">
@@ -94,9 +100,11 @@ const Social = () => {
           </div>
 
           <form className="form-stack" onSubmit={handleLoadActivities}>
-            <label htmlFor="travelPlanId">Travel plan ID</label>
-            <input id="travelPlanId" value={travelPlanId} onChange={(event) => setTravelPlanId(event.target.value)} />
-            <Button type="submit" loading={loading.activities}>Load Activities</Button>
+            <label>Travel plan ID</label>
+            <input value={travelPlanId} onChange={(e) => setTravelPlanId(e.target.value)} />
+            <Button type="submit" loading={loading.activities}>
+              Load Activities
+            </Button>
           </form>
 
           <div className="chip-list">
@@ -113,11 +121,9 @@ const Social = () => {
           </div>
 
           <form className="form-stack" onSubmit={handleShareActivity}>
-            <label htmlFor="activityId">Activity ID</label>
-            <input id="activityId" value={selectedActivityId} onChange={(event) => setSelectedActivityId(event.target.value)} />
-            <label htmlFor="receiverId">Receiver ID</label>
-            <input id="receiverId" value={selectedReceiverId} onChange={(event) => setSelectedReceiverId(event.target.value)} />
-            <Button type="submit" loading={loading.share}>Share Activity</Button>
+            <Button type="submit" loading={loading.share}>
+              Share Selected Activity
+            </Button>
           </form>
 
           <form
@@ -129,14 +135,16 @@ const Social = () => {
               resolveSharedActivity(id, SHARED_ACTIVITY_ACTIONS.ACCEPT)
             }}
           >
-            <label htmlFor="sharedActivityId">Shared activity ID (incoming)</label>
-            <input id="sharedActivityId" value={sharedActivityId} onChange={(event) => setSharedActivityId(event.target.value)} />
+            <label>Shared activity ID</label>
+            <input value={sharedActivityId} onChange={(e) => setSharedActivityId(e.target.value)} />
+
             <div className="button-row">
-              <Button type="submit" variant="primary" loading={loading.resolve}>Accept</Button>
+              <Button type="submit" loading={loading.resolve}>
+                Accept
+              </Button>
               <Button
                 type="button"
                 variant="outline"
-                disabled={loading.resolve}
                 onClick={() => {
                   const id = Number(sharedActivityId)
                   if (Number.isNaN(id) || id <= 0) return
@@ -150,81 +158,45 @@ const Social = () => {
         </Card>
 
         <Card title="Shared Activity Results">
-          {!sharedActivities.length && <p className="empty-text">No shared activity responses yet.</p>}
-          <div className="result-list">
-            {sharedActivities.map((item) => (
-              <div key={item.id} className="result-item">
-                <div>
-                  <strong>Shared #{item.id}</strong> | Activity #{item.activityId}
-                </div>
-                <span className={`status-badge ${item.status?.toLowerCase()}`}>
-                  {item.status || SHARED_ACTIVITY_STATUSES.PENDING}
-                </span>
-                <small>
-                  sender: {item.senderId} | receiver: {item.receiverId} | sharedPlan: {String(item.sharedPlan)}
-                </small>
-              </div>
-            ))}
-          </div>
+          {!sharedActivities.length && <p>No results yet.</p>}
+
+          {sharedActivities.map((item) => (
+            <div key={item.id}>
+              <strong>#{item.id}</strong> - {item.status || SHARED_ACTIVITY_STATUSES.PENDING}
+            </div>
+          ))}
         </Card>
       </div>
 
       <Card title="Compatibility Suggestions">
-        <form className="compatibility-form" onSubmit={handleCompatibilitySubmit}>
-          <div className="grid-2">
-            <div className="form-stack compact">
-              <label htmlFor="destination">Destination</label>
-              <input id="destination" value={destination} onChange={(event) => setDestination(event.target.value)} />
-            </div>
-            <div className="form-stack compact">
-              <label htmlFor="interests">Interests (comma separated)</label>
-              <input id="interests" value={interestsRaw} onChange={(event) => setInterestsRaw(event.target.value)} />
-            </div>
-            <div className="form-stack compact">
-              <label htmlFor="startDate">Start date</label>
-              <input id="startDate" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-            </div>
-            <div className="form-stack compact">
-              <label htmlFor="endDate">End date</label>
-              <input id="endDate" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
-            </div>
-          </div>
-          <Button type="submit" loading={loading.matches}>Find Matches</Button>
+        <form onSubmit={handleCompatibilitySubmit}>
+          <input placeholder="Destination" value={destination} onChange={(e) => setDestination(e.target.value)} />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <input placeholder="Interests" value={interestsRaw} onChange={(e) => setInterestsRaw(e.target.value)} />
+
+          <Button type="submit" loading={loading.matches}>
+            Find Matches
+          </Button>
         </form>
 
-        {!!availableInterests.length && (
-          <div className="chip-list">
-            {availableInterests.map((interest) => (
-              <button
-                key={interest}
-                type="button"
-                className={`chip ${selectedInterests.includes(interest) ? 'active' : ''}`}
-                onClick={() => toggleInterest(interest)}
-              >
-                {interest}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {!loading.matches && !filteredMatches.length && (
-          <p className="empty-text">No compatibility matches found for the selected criteria.</p>
-        )}
-
-        <div className="result-list">
-          {filteredMatches.map((match) => (
-            <div key={`${match.userId}-${match.totalScore}`} className="result-item">
-              <div className="result-heading">
-                <strong>Traveler #{match.userId}</strong>
-                <span className="score">{match.totalScore.toFixed(2)}</span>
-              </div>
-              <small>
-                destination: {match.destinationScore.toFixed(2)} | date: {match.dateProximityScore.toFixed(2)} | interests: {match.interestScore.toFixed(2)}
-              </small>
-              <small>matched interests: {match.matchedInterests.join(', ') || 'none'}</small>
-            </div>
+        <div className="chip-list">
+          {availableInterests.map((i) => (
+            <button
+              key={i}
+              className={selectedInterests.includes(i) ? 'active chip' : 'chip'}
+              onClick={() => toggleInterest(i)}
+            >
+              {i}
+            </button>
           ))}
         </div>
+
+        {filteredMatches.map((m) => (
+          <div key={m.userId}>
+            User {m.userId} - Score {m.totalScore.toFixed(2)}
+          </div>
+        ))}
       </Card>
     </div>
   )
