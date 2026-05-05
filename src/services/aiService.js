@@ -2,62 +2,49 @@ import aiMicroservice from './aiMicroservice'
 
 /**
  * AI service — wraps all voyager-ai-service (FastAPI) endpoints.
- *
- * Key contracts:
- *   POST   /chat                               { userId, message } → ChatResponse
- *   GET    /chat/{userId}/history              → ConversationHistoryResponse
- *   DELETE /chat/{userId}/history              → ClearHistoryResponse
- *   POST   /recommendations/personalized       { user_id, ... } → RecommendationResponse
- *   GET    /recommendations/popular/{location} → { activities, total_results }
- *   GET    /recommendations/trending           → { activities, total_results }
- *   POST   /recommendations/feedback           → confirmation
- *   GET    /recommendations/categories         → { categories }
- *   GET    /matching/recommendations/{userId}  → { recommendations }
- *   POST   /matching/compatibility/{uid}/{tid} → compatibility score
- *   POST   /preferences/questionnaire/step     → QuestionnaireStepResponse
- *   POST   /preferences/questionnaire/submit   → QuestionnaireSubmitResponse
+ * Ensures consistent camelCase for the frontend while sending snake_case to backend.
  */
 export const aiService = {
-  // ── Chat ─────────────────────────────────────────────────────────────────
+  // ─── Chat ──────────────────────────────────────────────────────────────────
 
   /**
    * Send a message to the AI travel chatbot.
    * @param {string} userId
    * @param {string} message
-   * @returns {Promise<ChatResponse>} — { reply, suggestions, ... }
+   * @returns {Promise<any>}
    */
   chat: (userId, message) =>
-    aiMicroservice.post('/chat', { userId, message }),
+    aiMicroservice.post('/chat', { user_id: userId, message }),
 
   /**
    * Retrieve conversation history for a user.
    * @param {string} userId
-   * @returns {Promise<ConversationHistoryResponse>}
+   * @returns {Promise<any>}
    */
   getHistory: (userId) => aiMicroservice.get(`/chat/${userId}/history`),
 
   /**
    * Clear a user's conversation history.
    * @param {string} userId
-   * @returns {Promise<ClearHistoryResponse>}
+   * @returns {Promise<any>}
    */
   clearHistory: (userId) => aiMicroservice.delete(`/chat/${userId}/history`),
 
-  // ── Recommendations ───────────────────────────────────────────────────────
+  // ─── Recommendations ───────────────────────────────────────────────────────
 
   /**
    * Get personalized recommendations for a user.
-   * @param {{ user_id: string, [key: string]: any }} request
-   * @returns {Promise<RecommendationResponse>}
+   * @param {{ userId: string, [key: string]: any }} request
+   * @returns {Promise<any>}
    */
-  getPersonalizedRecommendations: (request) =>
-    aiMicroservice.post('/recommendations/personalized', request),
+  getPersonalizedRecommendations: ({ userId, ...rest }) =>
+    aiMicroservice.post('/recommendations/personalized', { user_id: userId, ...rest }),
 
   /**
    * Get popular activities for a location.
    * @param {string} location
    * @param {number} limit
-   * @returns {Promise<{ location, activities, total_results }>}
+   * @returns {Promise<any>}
    */
   getPopularActivities: (location, limit = 10) =>
     aiMicroservice.get(`/recommendations/popular/${encodeURIComponent(location)}`, {
@@ -68,7 +55,7 @@ export const aiService = {
    * Get trending activities, optionally filtered by category.
    * @param {string|null} category
    * @param {number} limit
-   * @returns {Promise<{ category, activities, total_results }>}
+   * @returns {Promise<any>}
    */
   getTrendingActivities: (category = null, limit = 10) =>
     aiMicroservice.get('/recommendations/trending', {
@@ -79,7 +66,7 @@ export const aiService = {
    * Get similar activities to a reference activity.
    * @param {string} activityId
    * @param {number} limit
-   * @returns {Promise<{ similar_activities, total_results }>}
+   * @returns {Promise<any>}
    */
   getSimilarActivities: (activityId, limit = 5) =>
     aiMicroservice.get(`/recommendations/similar/${activityId}`, {
@@ -88,7 +75,7 @@ export const aiService = {
 
   /**
    * Get all activity categories.
-   * @returns {Promise<{ categories, total_count }>}
+   * @returns {Promise<any>}
    */
   getCategories: () => aiMicroservice.get('/recommendations/categories'),
 
@@ -110,14 +97,14 @@ export const aiService = {
       },
     }),
 
-  // ── Matching ─────────────────────────────────────────────────────────────
+  // ─── Matching ──────────────────────────────────────────────────────────────
 
   /**
    * Get travel buddy recommendations for a user.
    * @param {string} userId
    * @param {string|null} location
    * @param {number} limit
-   * @returns {Promise<{ recommendations, total_count }>}
+   * @returns {Promise<any>}
    */
   getBuddyRecommendations: (userId, location = null, limit = 10) =>
     aiMicroservice.get(`/matching/recommendations/${userId}`, {
@@ -149,21 +136,45 @@ export const aiService = {
       },
     }),
 
-  // ── Preferences ───────────────────────────────────────────────────────────
+  // ─── Preferences ───────────────────────────────────────────────────────────
+
+  /**
+   * Get travel preferences for a user.
+   * @param {string} userId
+   * @returns {Promise<any>}
+   */
+  getTravelPreferences: (userId) => 
+    aiMicroservice.get(`/preferences/${userId}`),
+
+  /**
+   * Start a new questionnaire session for a user.
+   * @param {string} userId 
+   * @returns {Promise<any>}
+   */
+  startQuestionnaire: (userId) => 
+    aiMicroservice.post('/preferences/questionnaire/start', { user_id: userId }),
 
   /**
    * Process one step of the adaptive preference questionnaire.
-   * @param {{ user_id: string, session_id?: string, answers?: object }} body
-   * @returns {Promise<QuestionnaireStepResponse>}
+   * @param {{ userId: string, sessionId?: string, answers?: object }} payload
+   * @returns {Promise<any>}
    */
-  questionnaireStep: (body) =>
-    aiMicroservice.post('/preferences/questionnaire/step', body),
+  submitQuestionnaireStep: ({ userId, sessionId, answers }) =>
+    aiMicroservice.post('/preferences/questionnaire/step', { 
+      user_id: userId, 
+      session_id: sessionId, 
+      answers 
+    }),
 
   /**
-   * Submit the completed questionnaire.
-   * @param {{ user_id: string, session_id: string, answers: object }} body
-   * @returns {Promise<QuestionnaireSubmitResponse>}
+   * Submit all answers for a questionnaire.
+   * @param {string} sessionId 
+   * @param {Array} formattedAnswers 
+   * @returns {Promise<any>}
    */
-  questionnaireSubmit: (body) =>
-    aiMicroservice.post('/preferences/questionnaire/submit', body),
+  submitQuestionnaire: (sessionId, formattedAnswers) => 
+    aiMicroservice.post('/preferences/questionnaire/submit', { 
+      session_id: sessionId, 
+      answers: formattedAnswers 
+    })
 }

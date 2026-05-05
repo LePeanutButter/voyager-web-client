@@ -30,19 +30,21 @@ api.interceptors.request.use(
 // ─── Response Interceptor ────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => {
-    // Unwrap Spring Boot ApiResponse wrapper: return .data field when present
-    const body = response.data
-    if (body && typeof body === 'object' && 'data' in body) {
-      return body.data
+    // Safely unwrap Spring Boot ApiResponse wrapper
+    if (response && response.data && typeof response.data === 'object') {
+      // If it has a top-level 'data' field, return that
+      if ('data' in response.data) {
+        return response.data.data
+      }
+      return response.data
     }
-    return body
+    return response?.data
   },
   (error) => {
     const status = error.response?.status
 
     if (status === 401) {
       localStorage.removeItem(TOKEN_KEY)
-      // Avoid redirect loops on the login page itself
       if (!globalThis.location?.pathname?.includes('/login')) {
         globalThis.location.href = '/login'
       }

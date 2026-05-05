@@ -1,203 +1,251 @@
-import React, { useState } from 'react'
-import Card from '../../components/UI/Card'
-import Button from '../../components/UI/Button'
-import ActiveConnections from '../../components/ActiveConnections/ActiveConnections'
-import { SHARED_ACTIVITY_ACTIONS, SHARED_ACTIVITY_STATUSES } from '../../api/socialContracts'
-import { useSocialCollaboration } from '../../hooks/useSocialCollaboration'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { socialService, travelService } from '../../services/socialService' // actually socialService has the methods
+import ErrorBanner from '../../components/UI/ErrorBanner'
+import SkeletonLoader from '../../components/UI/SkeletonLoader'
+import { Users, Search, MapPin, Calendar, MessageCircle, UserPlus, Check, X } from 'lucide-react'
 import './Social.css'
 
 const Social = () => {
   const { user } = useAuth()
-  const userId = user?.id ?? null
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState('connections') // 'connections', 'requests', 'discover'
+  
+  const [connections, setConnections] = useState([])
+  const [pendingRequests, setPendingRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const [travelPlanId, setTravelPlanId] = useState('')
-  const [selectedActivityId, setSelectedActivityId] = useState('')
-  const [selectedReceiverId, setSelectedReceiverId] = useState('')
-  const [sharedActivityId, setSharedActivityId] = useState('')
-  const [destination, setDestination] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [interestsRaw, setInterestsRaw] = useState('')
+  // Discover state
+  const [discoverPlanId, setDiscoverPlanId] = useState('')
+  const [matches, setMatches] = useState([])
+  const [discoverLoading, setDiscoverLoading] = useState(false)
 
-  const {
-    connections,
-    activities,
-    sharedActivities,
-    filteredMatches,
-    availableInterests,
-    selectedInterests,
-    loading,
-    error,
-    success,
-    loadConnections,
-    loadActivities,
-    shareActivity,
-    resolveSharedActivity,
-    loadCompatibilityMatches,
-    toggleInterest
-  } = useSocialCollaboration()
+  useEffect(() => {
+    if (!user?.id) return
+    loadSocialData()
+  }, [user?.id])
 
-  const handleLoadConnections = (event) => {
-    event.preventDefault()
-    if (!userId) return
-    loadConnections(userId)
+  const loadSocialData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [conns, reqs] = await Promise.all([
+        socialService.getUserConnections(user.id),
+        socialService.getPendingRequests()
+      ])
+      setConnections(conns || [])
+      setPendingRequests(reqs || [])
+    } catch (err) {
+      setError(err?.message || 'Failed to load social data')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleLoadActivities = (event) => {
-    event.preventDefault()
-    const id = Number(travelPlanId)
-    if (Number.isNaN(id) || id <= 0) return
-    loadActivities(id)
+  const handleDiscover = async (e) => {
+    e.preventDefault()
+    if (!discoverPlanId) return
+    setDiscoverLoading(true)
+    setError(null)
+    try {
+      const results = await socialService.getCompatibleTravelers(discoverPlanId)
+      setMatches(results || [])
+    } catch (err) {
+      setError(err?.message || 'Failed to find matches. Make sure the Plan ID is valid.')
+    } finally {
+      setDiscoverLoading(false)
+    }
   }
 
-  const handleShareActivity = (event) => {
-    event.preventDefault()
-    const activityId = Number(selectedActivityId)
-    const receiverId = Number(selectedReceiverId)
-    if (Number.isNaN(activityId) || Number.isNaN(receiverId) || activityId <= 0 || receiverId <= 0) return
-    shareActivity(activityId, receiverId)
+  const handleSendRequest = async (recipientId) => {
+    try {
+      await socialService.sendConnectionRequest({ recipientId, message: 'Hi! Let\'s connect.' })
+      alert('Connection request sent!')
+      loadSocialData()
+    } catch (err) {
+      alert(err?.message || 'Failed to send request')
+    }
   }
 
-  const handleCompatibilitySubmit = (event) => {
-    event.preventDefault()
-    if (!destination.trim() || !startDate || !endDate) return
-    loadCompatibilityMatches({ destination, startDate, endDate, interestsRaw })
+  const handleAccept = async (requestId) => {
+    try {
+      await socialService.acceptConnectionRequest(requestId)
+      loadSocialData()
+    } catch (err) {
+      alert(err?.message || 'Failed to accept')
+    }
+  }
+
+  const handleReject = async (requestId) => {
+    try {
+      await socialService.rejectConnectionRequest(requestId)
+      loadSocialData()
+    } catch (err) {
+      alert(err?.message || 'Failed to reject')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="page-container" style={{ maxWidth: 800 }}>
+        <SkeletonLoader variant="title" width="40%" />
+        <SkeletonLoader variant="card" height="400px" style={{ marginTop: '2rem' }} />
+      </div>
+    )
   }
 
   return (
-    <div className="social-page">
-      <h1>Social Collaboration</h1>
-      <p className="social-subtitle">Shared activities and compatibility suggestions</p>
-
-      {success && <div className="alert success">{success}</div>}
-      {error && <div className="alert error">{error}</div>}
-
-      {/* 🔹 ESTA PARTE VIENE DE LA OTRA RAMA (IMPORTANTE) */}
-      <Card title="Tus relaciones en la plataforma">
-        <ActiveConnections userId={userId} />
-      </Card>
-
-      <div className="social-grid">
-        <Card title="Shared Activities">
-          <form className="form-stack" onSubmit={handleLoadConnections}>
-            <Button type="submit" loading={loading.connections}>
-              Load Connections
-            </Button>
-          </form>
-
-          <div className="chip-list">
-            {connections.map((connection) => (
-              <button
-                key={connection.id}
-                type="button"
-                className={`chip ${String(connection.id) === selectedReceiverId ? 'active' : ''}`}
-                onClick={() => setSelectedReceiverId(String(connection.id))}
-              >
-                {connection.username} ({connection.status})
-              </button>
-            ))}
-          </div>
-
-          <form className="form-stack" onSubmit={handleLoadActivities}>
-            <label>Travel plan ID</label>
-            <input value={travelPlanId} onChange={(e) => setTravelPlanId(e.target.value)} />
-            <Button type="submit" loading={loading.activities}>
-              Load Activities
-            </Button>
-          </form>
-
-          <div className="chip-list">
-            {activities.map((activity) => (
-              <button
-                key={activity.id}
-                type="button"
-                className={`chip ${String(activity.id) === selectedActivityId ? 'active' : ''}`}
-                onClick={() => setSelectedActivityId(String(activity.id))}
-              >
-                {activity.name}
-              </button>
-            ))}
-          </div>
-
-          <form className="form-stack" onSubmit={handleShareActivity}>
-            <Button type="submit" loading={loading.share}>
-              Share Selected Activity
-            </Button>
-          </form>
-
-          <form
-            className="form-stack compact"
-            onSubmit={(event) => {
-              event.preventDefault()
-              const id = Number(sharedActivityId)
-              if (Number.isNaN(id) || id <= 0) return
-              resolveSharedActivity(id, SHARED_ACTIVITY_ACTIONS.ACCEPT)
-            }}
-          >
-            <label>Shared activity ID</label>
-            <input value={sharedActivityId} onChange={(e) => setSharedActivityId(e.target.value)} />
-
-            <div className="button-row">
-              <Button type="submit" loading={loading.resolve}>
-                Accept
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  const id = Number(sharedActivityId)
-                  if (Number.isNaN(id) || id <= 0) return
-                  resolveSharedActivity(id, SHARED_ACTIVITY_ACTIONS.REJECT)
-                }}
-              >
-                Reject
-              </Button>
-            </div>
-          </form>
-        </Card>
-
-        <Card title="Shared Activity Results">
-          {!sharedActivities.length && <p>No results yet.</p>}
-
-          {sharedActivities.map((item) => (
-            <div key={item.id}>
-              <strong>#{item.id}</strong> - {item.status || SHARED_ACTIVITY_STATUSES.PENDING}
-            </div>
-          ))}
-        </Card>
+    <div className="page-container" style={{ maxWidth: 800 }}>
+      <div className="page-header" style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>Traveler Network</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Connect with fellow travelers and find travel buddies.</p>
       </div>
 
-      <Card title="Compatibility Suggestions">
-        <form onSubmit={handleCompatibilitySubmit}>
-          <input placeholder="Destination" value={destination} onChange={(e) => setDestination(e.target.value)} />
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          <input placeholder="Interests" value={interestsRaw} onChange={(e) => setInterestsRaw(e.target.value)} />
+      <ErrorBanner variant="error" message={error} onDismiss={() => setError(null)} />
 
-          <Button type="submit" loading={loading.matches}>
-            Find Matches
-          </Button>
-        </form>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)' }}>
+        <button 
+          className={`social-tab ${activeTab === 'connections' ? 'active' : ''}`}
+          onClick={() => setActiveTab('connections')}
+        >
+          <Users size={18} /> My Connections ({connections.length})
+        </button>
+        <button 
+          className={`social-tab ${activeTab === 'requests' ? 'active' : ''}`}
+          onClick={() => setActiveTab('requests')}
+        >
+          <UserPlus size={18} /> Requests {pendingRequests.length > 0 && <span className="badge-count">{pendingRequests.length}</span>}
+        </button>
+        <button 
+          className={`social-tab ${activeTab === 'discover' ? 'active' : ''}`}
+          onClick={() => setActiveTab('discover')}
+        >
+          <Search size={18} /> Discover
+        </button>
+      </div>
 
-        <div className="chip-list">
-          {availableInterests.map((i) => (
-            <button
-              key={i}
-              className={selectedInterests.includes(i) ? 'active chip' : 'chip'}
-              onClick={() => toggleInterest(i)}
-            >
-              {i}
-            </button>
-          ))}
-        </div>
-
-        {filteredMatches.map((m) => (
-          <div key={m.userId}>
-            User {m.userId} - Score {m.totalScore.toFixed(2)}
+      {/* Content */}
+      <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--border-radius-xl)', padding: '2rem', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+        
+        {/* Connections Tab */}
+        {activeTab === 'connections' && (
+          <div>
+            {connections.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                <Users size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
+                <h3>No connections yet</h3>
+                <p>Go to the Discover tab to find travelers with similar plans!</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {connections.map(conn => {
+                  const otherUser = conn.senderId === user.id ? conn.recipient : conn.sender
+                  return (
+                    <div key={conn.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--gradient-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.25rem' }}>
+                          {(otherUser?.firstName?.[0] || otherUser?.username?.[0] || '?').toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>{otherUser?.firstName} {otherUser?.lastName}</h4>
+                          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>@{otherUser?.username}</p>
+                        </div>
+                      </div>
+                      <button className="btn-primary" onClick={() => navigate(`/social/chat/${conn.id}`)}>
+                        <MessageCircle size={16} /> Chat
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-        ))}
-      </Card>
+        )}
+
+        {/* Requests Tab */}
+        {activeTab === 'requests' && (
+          <div>
+            {pendingRequests.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                <UserPlus size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
+                <h3>No pending requests</h3>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {pendingRequests.map(req => (
+                  <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--gradient-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.25rem' }}>
+                        {(req.sender?.firstName?.[0] || req.sender?.username?.[0] || '?').toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>{req.sender?.firstName} {req.sender?.lastName}</h4>
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>@{req.sender?.username}</p>
+                        {req.message && <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', fontStyle: 'italic' }}>"{req.message}"</p>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn-primary" onClick={() => handleAccept(req.id)} style={{ padding: '0.5rem' }}>
+                        <Check size={18} />
+                      </button>
+                      <button className="btn-ghost" onClick={() => handleReject(req.id)} style={{ padding: '0.5rem', color: 'var(--color-danger)' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Discover Tab */}
+        {activeTab === 'discover' && (
+          <div>
+            <form onSubmit={handleDiscover} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+              <input 
+                type="text"
+                placeholder="Enter a Travel Plan ID to find matches"
+                value={discoverPlanId}
+                onChange={(e) => setDiscoverPlanId(e.target.value)}
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+                required
+              />
+              <button type="submit" className="btn-primary" disabled={discoverLoading}>
+                {discoverLoading ? 'Searching...' : 'Find Matches'}
+              </button>
+            </form>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {matches.map(match => (
+                <div key={match.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)', background: 'var(--surface-bg)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--color-info-light)', color: 'var(--voyager-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem' }}>
+                      {(match.firstName?.[0] || match.username?.[0] || '?').toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.25rem', fontSize: '1.1rem' }}>{match.firstName} {match.lastName}</h4>
+                      <p style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>@{match.username}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'var(--color-success-light)', color: 'var(--color-success)', padding: '2px 8px', borderRadius: '12px' }}>
+                          {Math.round(match.compatibilityScore * 100)}% Match
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button className="btn-outline-sm" onClick={() => handleSendRequest(match.id)}>
+                    <UserPlus size={16} /> Connect
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   )
 }

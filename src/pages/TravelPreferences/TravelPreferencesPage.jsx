@@ -1,239 +1,225 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
-import { travelPreferencesService } from '../../services/travelPreferencesService'
-import { decodeJwtPayload, getNumericId, safeJsonParse } from '../../utils/jwt'
-import Button from '../../components/UI/Button'
-import Card from '../../components/UI/Card'
+import { aiService } from '../../services/aiService'
+import { useAuth } from '../../contexts/AuthContext'
+import ErrorBanner from '../../components/UI/ErrorBanner'
+import SkeletonLoader from '../../components/UI/SkeletonLoader'
+import { Compass, CheckCircle, ChevronRight, ArrowLeft } from 'lucide-react'
 import './TravelPreferencesPage.css'
 
-function TravelPreferencesPage() {
+const TravelPreferencesPage = () => {
   const navigate = useNavigate()
-  const { user, isAuthenticated, token: ctxToken } = useAuth()
+  const { user } = useAuth()
+  const userId = user?.id ?? null
 
-  const token = ctxToken || localStorage.getItem('smartrip_token') || localStorage.getItem('token')
-
-  const userId = useMemo(() => {
-    const fromUser = getNumericId(user?.id) ?? user?.id?.toString()
-    if (fromUser) return String(fromUser)
-
-    const stored = safeJsonParse(localStorage.getItem('userData') || '')
-    const fromStorage = getNumericId(stored?.id)
-    if (fromStorage) return String(fromStorage)
-
-    if (token) {
-      const payload = decodeJwtPayload(token)
-      const fromJwt =
-        getNumericId(payload?.userId) ?? getNumericId(payload?.id)
-      if (fromJwt) return String(fromJwt)
-    }
-
-    return user?.email || ''
-  }, [user?.id, user?.email, token])
-
-  const [sessionId, setSessionId] = useState(null)
-  const [stepIndex, setStepIndex] = useState(0)
-  const [questions, setQuestions] = useState([])
-  const [selections, setSelections] = useState({})
-  const [derivedCategory, setDerivedCategory] = useState(null)
-  const [awaitingFinal, setAwaitingFinal] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  const [submitResult, setSubmitResult] = useState(null)
+  
+  // Data models
+  const [preferences, setPreferences] = useState(null)
+  const [sessionId, setSessionId] = useState(null)
+  const [questions, setQuestions] = useState([])
+  const [answers, setAnswers] = useState({})
+  const [stepIndex, setStepIndex] = useState(0)
+  const [isCompleted, setIsCompleted] = useState(false)
 
-  const canProceed = useMemo(() => {
-    if (!questions.length) return false
-    return questions.every((q) => {
-      const selection = selections[q.id]
-      return selection && (
-        Array.isArray(selection) ? selection.length > 0 : true
-      )
-    })
-  }, [questions, selections])
-
-  const bootstrap = useCallback(async () => {
+  // Initialization
+  useEffect(() => {
     if (!userId) return
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await travelPreferencesService.postQuestionnaireStep({
-        user_id: userId,
-        session_id: null,
-        answers: []
-      })
-      setSessionId(data.session_id)
-      setStepIndex(data.step_index)
-      setQuestions(data.questions || [])
-      setDerivedCategory(data.derived_primary_category)
-      setAwaitingFinal(!!data.is_complete)
-    } catch (e) {
-      setError(e.message || 'No se pudo iniciar el cuestionario')
-    } finally {
-      setLoading(false)
+
+    const init = async () => {
+      try {
+        setLoading(true)
+        // 1. Try fetching existing preferences
+        let existingPrefs = null
+        try {
+          existingPrefs = await aiService.getTravelPreferences(userId)
+        } catch (e) {
+          // It's ok if they don't exist yet (404)
+        }
+
+        if (existingPrefs && existingPrefs.isCompleted) {
+          setPreferences(existingPrefs)
+          setIsCompleted(true)
+          setLoading(false)
+          return
+        }
+
+        // 2. Start questionnaire
+        const session = await aiService.startQuestionnaire(userId)
+        setSessionId(session.sessionId)
+        setQuestions(session.questions || [])
+        
+      } catch (err) {
+        setError(err?.message || 'Failed to initialize preferences.')
+      } finally {
+        setLoading(false)
+      }
     }
+
+    init()
   }, [userId])
 
-  useEffect(() => {
-    if (isAuthenticated && userId) bootstrap()
-  }, [isAuthenticated, userId, bootstrap])
+  const handleOptionSelect = (questionId, optionId, allowMultiple) => {
+    setAnswers(prev => {
+      const current = prev[questionId] || []
+      
+      if (!allowMultiple) {
+        return { ...prev, [questionId]: [optionId] }
+      }
+
+      // Toggle selection for multiple
+      const isSelected = current.includes(optionId)
+      const next = isSelected 
+        ? current.filter(id => id !== optionId)
+        : [...current, optionId]
+        
+      return { ...prev, [questionId]: next }
+    })
+  }
 
   const handleNext = async () => {
-    if (!canProceed || !sessionId) return
-    const answers = questions.map((q) => ({
-      question_id: q.id,
-      selected_option_ids: Array.isArray(selections[q.id]) 
-        ? selections[q.id] 
-        : [selections[q.id]]
-    }))
-    setLoading(true)
+    if (stepIndex < questions.length - 1) {
+      setStepIndex(step => step + 1)
+      return
+    }
+
+    // Submit all answers
+    setSaving(true)
     setError(null)
+    
     try {
-      const data = await travelPreferencesService.postQuestionnaireStep({
-        user_id: userId,
-        session_id: sessionId,
-        answers
-      })
-      setSessionId(data.session_id)
-      setStepIndex(data.step_index)
-      setQuestions(data.questions || [])
-      setDerivedCategory(data.derived_primary_category)
-      setAwaitingFinal(!!data.is_complete)
-      setSelections({})
-    } catch (e) {
-      setError(e.message || 'Error al enviar respuestas')
+      const formattedAnswers = Object.entries(answers).map(([qId, oIds]) => ({
+        questionId: qId,
+        selectedOptionIds: oIds
+      }))
+
+      await aiService.submitQuestionnaire(sessionId, formattedAnswers)
+      const finalPrefs = await aiService.getTravelPreferences(userId)
+      
+      setPreferences(finalPrefs)
+      setIsCompleted(true)
+    } catch (err) {
+      setError(err?.message || 'Failed to submit preferences.')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  const handleFinalize = async () => {
-    if (!sessionId) return
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await travelPreferencesService.submitQuestionnaire({
-        user_id: userId,
-        session_id: sessionId,
-        answers: []
-      })
-      setSubmitResult(data)
-    } catch (e) {
-      setError(e.message || 'Error al guardar')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const currentQuestion = questions[stepIndex]
+  const currentAnswers = answers[currentQuestion?.id] || []
+  const canProceed = currentAnswers.length > 0
 
-  if (!isAuthenticated) {
+  if (loading) {
     return (
-      <div className="travel-prefs-page">
-        <p>Inicia sesión para configurar tus preferencias.</p>
-        <Button onClick={() => navigate('/login')}>Ir a login</Button>
+      <div className="page-container" style={{ maxWidth: 600 }}>
+        <SkeletonLoader variant="title" width="60%" />
+        <SkeletonLoader variant="card" height="300px" style={{ marginTop: '2rem' }} />
       </div>
     )
   }
 
+  if (isCompleted) {
+    return (
+      <div className="page-container animate-fadeIn" style={{ maxWidth: 600, textAlign: 'center', paddingTop: '4rem' }}>
+        <div style={{ display: 'inline-flex', padding: '1.5rem', background: 'var(--color-success-light)', color: 'var(--color-success)', borderRadius: '50%', marginBottom: '1.5rem' }}>
+          <CheckCircle size={48} />
+        </div>
+        <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Preferences Saved!</h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '1.1rem' }}>
+          Your travel profile has been analyzed. You are categorized as a 
+          <strong style={{ color: 'var(--text-primary)', margin: '0 0.25rem' }}>{preferences?.travelerCategory || 'Explorer'}</strong>.
+        </p>
+        <button className="btn-primary" onClick={() => navigate('/dashboard')}>
+          Go to Dashboard
+        </button>
+      </div>
+    )
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="page-container" style={{ maxWidth: 600 }}>
+        <ErrorBanner variant="error" message={error || 'No questions available.'} />
+      </div>
+    )
+  }
+
+  const progress = ((stepIndex + 1) / questions.length) * 100
+
   return (
-    <div className="travel-prefs-page">
-      <header className="travel-prefs-header">
-        <h1>Preferencias de viaje</h1>
-        <p className="travel-prefs-sub">
-          Cuestionario inteligente que alimenta el motor de IA — paso{' '}
-          {stepIndex + 1}
-        </p>
-      </header>
+    <div className="page-container" style={{ maxWidth: 600 }}>
+      <button className="btn-back" onClick={() => navigate(-1)} style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+        <ArrowLeft size={16} /> Back
+      </button>
 
-      {derivedCategory && (
-        <p className="travel-prefs-derived">
-          Estilo seleccionado: <strong>{derivedCategory}</strong>
-        </p>
-      )}
-
-      {error && <div className="travel-prefs-error">{error}</div>}
-
-      {loading && <div className="travel-prefs-loading">Cargando…</div>}
-
-      {submitResult && (
-        <Card className="travel-prefs-result">
-          <h2>Preferencias guardadas</h2>
-          <p>
-            <strong>Categoría principal:</strong> {submitResult.primary_category}
-          </p>
-          <p className="travel-prefs-summary">{submitResult.ai_context_summary}</p>
-          <Button onClick={() => navigate('/profile')}>Volver al perfil</Button>
-        </Card>
-      )}
-
-      {!submitResult && awaitingFinal && (
-        <Card className="travel-prefs-card">
-          <p>
-            Has completado el cuestionario. Guarda para enviar el perfil al motor
-            de recomendaciones.
-          </p>
-          <div className="travel-prefs-actions">
-            <Button onClick={handleFinalize} disabled={loading}>
-              Guardar preferencias
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/profile')}>
-              Cancelar
-            </Button>
+      <div style={{ background: 'var(--surface-card)', padding: '2.5rem', borderRadius: 'var(--border-radius-xl)', boxShadow: 'var(--shadow-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--voyager-blue)' }}>
+            <Compass size={24} />
+            <span style={{ fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Travel Profile</span>
           </div>
-        </Card>
-      )}
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Step {stepIndex + 1} of {questions.length}
+          </span>
+        </div>
 
-      {!submitResult && !awaitingFinal && questions.length > 0 && (
-        <>
-          {questions.map((q) => (
-            <Card key={q.id} className="travel-prefs-card">
-              <h3>{q.prompt}</h3>
-              <div className="travel-prefs-options" role={q.allow_multiple ? "group" : "radiogroup"}>
-                {q.options.map((opt) => (
-                  <label key={opt.id} className="travel-prefs-option">
-                    <input
-                      type={q.allow_multiple ? "checkbox" : "radio"}
-                      name={q.id}
-                      checked={
-                        q.allow_multiple
-                          ? Array.isArray(selections[q.id]) && selections[q.id].includes(opt.id)
-                          : selections[q.id] === opt.id
-                      }
-                      onChange={() => {
-                        if (q.allow_multiple) {
-                          setSelections((prev) => {
-                            const current = prev[q.id] || []
-                            const isSelected = current.includes(opt.id)
-                            return {
-                              ...prev,
-                              [q.id]: isSelected
-                                ? current.filter(id => id !== opt.id)
-                                : [...current, opt.id]
-                            }
-                          })
-                        } else {
-                          setSelections((prev) => ({ ...prev, [q.id]: opt.id }))
-                        }
-                      }}
-                    />
-                    <span>{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            </Card>
-          ))}
-          <div className="travel-prefs-actions">
-            <Button onClick={handleNext} disabled={loading || !canProceed}>
-              Siguiente
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/profile')}>
-              Volver
-            </Button>
-          </div>
-        </>
-      )}
+        <div style={{ height: 6, background: 'var(--gray-100)', borderRadius: 3, marginBottom: '2.5rem', overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: 'var(--gradient-primary)', width: `${progress}%`, transition: 'width 0.3s ease' }} />
+        </div>
 
-      {!submitResult && !awaitingFinal && !questions.length && !loading && (
-        <Button onClick={bootstrap}>Reintentar</Button>
-      )}
+        <ErrorBanner variant="error" message={error} onDismiss={() => setError(null)} />
+
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', lineHeight: 1.4 }}>
+          {currentQuestion.text}
+        </h2>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
+          {currentQuestion.options?.map((opt) => {
+            const isSelected = currentAnswers.includes(opt.id)
+            return (
+              <button
+                key={opt.id}
+                onClick={() => handleOptionSelect(currentQuestion.id, opt.id, currentQuestion.allowMultiple)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1.25rem 1.5rem',
+                  background: isSelected ? 'var(--color-info-light)' : 'var(--surface-bg)',
+                  border: `2px solid ${isSelected ? 'var(--voyager-blue)' : 'var(--border-color)'}`,
+                  borderRadius: 'var(--border-radius-lg)',
+                  color: isSelected ? 'var(--voyager-blue-dark)' : 'var(--text-primary)',
+                  fontWeight: isSelected ? 700 : 500,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)',
+                  textAlign: 'left'
+                }}
+              >
+                <span>{opt.text}</span>
+                {isSelected && <CheckCircle size={18} color="var(--voyager-blue)" />}
+              </button>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button 
+            className="btn-primary" 
+            onClick={handleNext}
+            disabled={!canProceed || saving}
+            style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}
+          >
+            {saving ? 'Saving...' : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {stepIndex < questions.length - 1 ? 'Next' : 'Finish'} <ChevronRight size={18} />
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

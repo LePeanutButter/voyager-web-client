@@ -8,7 +8,7 @@ const initialState = {
   user: null,
   token: null,
   isAuthenticated: false,
-  loading: true,    // true on mount until session is restored
+  loading: true,
   error: null,
 }
 
@@ -69,35 +69,20 @@ const AuthContext = createContext(null)
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  // Restore session from localStorage on mount
   useEffect(() => {
     const restoreSession = async () => {
       const token = localStorage.getItem(TOKEN_KEY)
-      const cached = localStorage.getItem('voyager_user')
-
+      
       if (!token) {
         dispatch({ type: ACTIONS.AUTH_FAILURE, payload: null })
         return
       }
 
-      // Use cached user data immediately, then refresh from server
-      if (cached) {
-        try {
-          const user = JSON.parse(cached)
-          dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
-        } catch {
-          // cached data corrupt — clear it
-          localStorage.removeItem('voyager_user')
-        }
-      }
-
-      // Always validate the token against /users/me
       try {
         const user = await authService.getCurrentUser()
         localStorage.setItem('voyager_user', JSON.stringify(user))
         dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
       } catch {
-        // Token invalid or expired
         localStorage.removeItem(TOKEN_KEY)
         localStorage.removeItem('voyager_user')
         dispatch({ type: ACTIONS.AUTH_FAILURE, payload: null })
@@ -107,14 +92,9 @@ export const AuthProvider = ({ children }) => {
     restoreSession()
   }, [])
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ─── Actions ───────────────────────────────────────────────────────────────
 
-  /**
-   * Login with credentials (usernameOrEmail + password).
-   * Also supports direct session injection: login(userData, token).
-   */
   const login = useCallback(async (arg1, arg2) => {
-    // Direct injection path (e.g. Google OAuth callback)
     if (typeof arg2 === 'string' && arg2.length > 0) {
       const token = arg2
       const user = arg1 || null
@@ -124,14 +104,12 @@ export const AuthProvider = ({ children }) => {
       return { user, token }
     }
 
-    // Standard credential login
     const credentials = arg1
     dispatch({ type: ACTIONS.SET_LOADING, payload: true })
     try {
-      // loginResponseDto: { token, tokenType, expiresIn, user }
       const loginResponse = await authService.login(credentials)
       const token = loginResponse?.token
-      const user = loginResponse?.user || loginResponse
+      const user = loginResponse?.user
 
       if (!token) throw new Error('No token received from server')
 
@@ -145,49 +123,29 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  /**
-   * Register a new user and auto-login on success.
-   */
   const register = useCallback(async (userData) => {
     dispatch({ type: ACTIONS.SET_LOADING, payload: true })
     try {
-      const registered = await authService.register(userData)
-      // Auto-login after successful registration
-      const token = registered?.token
-      const user = registered?.user || registered
-
-      if (token) {
-        localStorage.setItem(TOKEN_KEY, token)
-        localStorage.setItem('voyager_user', JSON.stringify(user))
-        dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
-        return { user, token }
-      }
-
-      // No token returned — backend requires separate login step
-      dispatch({ type: ACTIONS.AUTH_FAILURE, payload: null })
-      return registered
+      await authService.register(userData)
+      return await login({
+        usernameOrEmail: userData.username || userData.email,
+        password: userData.password
+      })
     } catch (error) {
       dispatch({ type: ACTIONS.AUTH_FAILURE, payload: error.message })
       throw error
     }
-  }, [])
+  }, [login])
 
-  /**
-   * Update the current user's data in context (after profile update).
-   */
   const updateUser = useCallback((partial) => {
     dispatch({ type: ACTIONS.UPDATE_USER, payload: partial })
     const updated = { ...state.user, ...partial }
     localStorage.setItem('voyager_user', JSON.stringify(updated))
   }, [state.user])
 
-  /**
-   * Clear authentication state and stored tokens.
-   */
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem('voyager_user')
-    // Legacy keys cleanup
     localStorage.removeItem('smartrip_token')
     localStorage.removeItem('token')
     localStorage.removeItem('userData')
@@ -210,7 +168,7 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// ─── Hook ────────────────────────────────────────────────────────────────────
 
 export const useAuth = () => {
   const context = useContext(AuthContext)

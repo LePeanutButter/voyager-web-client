@@ -2,30 +2,29 @@ import api from './api'
 
 /**
  * Travel service — wraps /travel-plans/* and /matching/* endpoints.
- *
- * Key contracts (voyager-backend-core):
- *   GET    /travel-plans                        → PagedResponse<TravelPlanDto>
- *   POST   /travel-plans                        → TravelPlanDto
- *   GET    /travel-plans/{id}                   → TravelPlanDto
- *   PUT    /travel-plans/{id}                   → TravelPlanDto
- *   DELETE /travel-plans/{id}                   → void
- *   PUT    /travel-plans/{id}/status?status=X   → TravelPlanDto
- *   POST   /travel-plans/{id}/activities        → TravelPlanActivityDto
- *   PUT    /travel-plans/{id}/activities/{aId}  → TravelPlanActivityDto
- *   DELETE /travel-plans/{id}/activities/{aId}  → void
- *   GET    /travel-plans/{id}/compatible-travelers → List<TravelerMatchDto>
- *   GET    /matching/matches?destination=&startDate=&endDate=&interests=&limit= → List<MatchResponseDto>
- *   POST   /compatibility/matches               → List<CompatibilityMatchResponse>
  */
 export const travelService = {
-  // ── Travel Plans ─────────────────────────────────────────────────────────
+  // ─── Travel Plans ──────────────────────────────────────────────────────────
 
   /**
-   * List authenticated user's travel plans (paginated).
+   * List authenticated user's travel plans.
    * @param {{ page?, size? }} params
    * @returns {Promise<TravelPlanDto[]>}
    */
-  list: (params = {}) => api.get('/travel-plans', { params }),
+  list: async (params = {}) => {
+    const response = await api.get('/travel-plans', { params })
+    // Normalize paginated structure
+    if (response && Array.isArray(response.content)) {
+      return response.content
+    }
+    if (response && Array.isArray(response.records)) {
+      return response.records
+    }
+    if (Array.isArray(response)) {
+      return response
+    }
+    return []
+  },
 
   /**
    * Get a single travel plan by id.
@@ -65,7 +64,7 @@ export const travelService = {
   updateStatus: (id, status) =>
     api.put(`/travel-plans/${id}/status`, null, { params: { status } }),
 
-  // ── Activities ───────────────────────────────────────────────────────────
+  // ─── Activities ────────────────────────────────────────────────────────────
 
   /**
    * Add an activity to a travel plan.
@@ -95,7 +94,7 @@ export const travelService = {
   deleteActivity: (planId, activityId) =>
     api.delete(`/travel-plans/${planId}/activities/${activityId}`),
 
-  // ── Matching ─────────────────────────────────────────────────────────────
+  // ─── Matching ──────────────────────────────────────────────────────────────
 
   /**
    * Find compatible travelers for a specific plan.

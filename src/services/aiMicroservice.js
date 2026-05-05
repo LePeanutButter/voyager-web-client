@@ -29,12 +29,33 @@ aiMicroservice.interceptors.request.use(
 // ─── Response Interceptor ────────────────────────────────────────────────────
 aiMicroservice.interceptors.response.use(
   (response) => {
-    // FastAPI returns data directly (no wrapper), pass through as-is
-    return response.data
+    // Safely unwrap FastAPI response, aligning with api.js
+    if (response && response.data && typeof response.data === 'object') {
+      if ('data' in response.data) {
+        return response.data.data
+      }
+      return response.data
+    }
+    return response?.data
   },
   (error) => {
     const status = error.response?.status
     const message = extractErrorMessage(error)
+    
+    console.error('[AI SERVICE ERROR]', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status,
+      message
+    })
+
+    if (status === 401) {
+      localStorage.removeItem(TOKEN_KEY)
+      if (!globalThis.location?.pathname?.includes('/login')) {
+        globalThis.location.href = '/login'
+      }
+    }
+
     const enhanced = new Error(message)
     enhanced.response = error.response
     enhanced.status = status
