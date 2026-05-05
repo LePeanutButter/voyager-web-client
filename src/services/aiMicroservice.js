@@ -1,14 +1,14 @@
 import axios from 'axios'
 import { extractErrorMessage } from '../utils/errorUtils'
+import { keysToCamelCase, keysToSnakeCase } from '../utils/caseMapper'
 import { TOKEN_KEY } from './api'
 
 /**
  * Axios instance for voyager-ai-service (FastAPI).
- * Base URL: VITE_AI_SERVICE_BASE_URL (default: http://localhost:8000/api/v1)
  */
 const aiMicroservice = axios.create({
   baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || 'http://localhost:8000/api/v1',
-  timeout: 30000, // AI responses can take longer
+  timeout: 30000, 
   headers: {
     'Content-Type': 'application/json',
   },
@@ -21,6 +21,17 @@ aiMicroservice.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
+    // Convert camelCase request bodies to snake_case for backend
+    if (config.data && !(config.data instanceof FormData)) {
+      config.data = keysToSnakeCase(config.data)
+    }
+    
+    // Convert camelCase query params to snake_case for backend
+    if (config.params) {
+      config.params = keysToSnakeCase(config.params)
+    }
+
     return config
   },
   (error) => Promise.reject(error)
@@ -29,24 +40,42 @@ aiMicroservice.interceptors.request.use(
 // ─── Response Interceptor ────────────────────────────────────────────────────
 aiMicroservice.interceptors.response.use(
   (response) => {
-    // Safely unwrap FastAPI response, aligning with api.js
-    if (response && response.data && typeof response.data === 'object') {
-      if ('data' in response.data) {
-        return response.data.data
-      }
-      return response.data
+    if (!response) return null
+    
+    let unwrappedData = response.data
+    if (unwrappedData && typeof unwrappedData === 'object' && 'data' in unwrappedData) {
+      unwrappedData = unwrappedData.data
     }
-    return response?.data
+    
+    // Normalize snake_case response to camelCase for frontend
+    return keysToCamelCase(unwrappedData)
   },
-  (error) => {
+  async (error) => {
+    const config = error.config
+    
+    // Lightweight retry logic (max 2 retries) for transient/timeout errors
+    if (config && !config._retryCount) {
+      config._retryCount = 0
+    }
+    
+    if (
+      config &&
+      config._retryCount < 2 &&
+      (error.code === 'ECONNABORTED' || (error.response && error.response.status >= 500))
+    ) {
+      config._retryCount += 1
+      return aiMicroservice(config)
+    }
+
     const status = error.response?.status
-    const message = extractErrorMessage(error)
+    const message = extractErrorMessage(error) || 'An unexpected error occurred'
     
     console.error('[AI SERVICE ERROR]', {
-      url: error.config?.url,
-      method: error.config?.method,
+      url: config?.url,
+      method: config?.method,
       status,
-      message
+      message,
+      retryCount: config?._retryCount || 0
     })
 
     if (status === 401) {

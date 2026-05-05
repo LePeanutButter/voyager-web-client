@@ -1,11 +1,10 @@
 import axios from 'axios'
 import { extractErrorMessage } from '../utils/errorUtils'
 
-const TOKEN_KEY = 'voyager_token'
+export const TOKEN_KEY = 'voyager_token'
 
 /**
  * Primary Axios instance for voyager-backend-core (Spring Boot).
- * Base URL: VITE_API_BASE_URL (default: http://localhost:8080/api/v1)
  */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
@@ -30,18 +29,43 @@ api.interceptors.request.use(
 // ─── Response Interceptor ────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => {
+    if (!response) return null
+
     // Safely unwrap Spring Boot ApiResponse wrapper
-    if (response && response.data && typeof response.data === 'object') {
-      // If it has a top-level 'data' field, return that
-      if ('data' in response.data) {
-        return response.data.data
-      }
-      return response.data
+    let unwrappedData = response.data
+    if (unwrappedData && typeof unwrappedData === 'object' && 'data' in unwrappedData) {
+      unwrappedData = unwrappedData.data
     }
-    return response?.data
+    
+    return unwrappedData
   },
-  (error) => {
+  async (error) => {
+    const config = error.config
+    
+    // Lightweight retry logic (max 2 retries) for transient/timeout errors
+    if (config && !config._retryCount) {
+      config._retryCount = 0
+    }
+    
+    if (
+      config &&
+      config._retryCount < 2 &&
+      (error.code === 'ECONNABORTED' || (error.response && error.response.status >= 500))
+    ) {
+      config._retryCount += 1
+      return api(config)
+    }
+
     const status = error.response?.status
+    const message = extractErrorMessage(error) || 'An unexpected error occurred'
+
+    console.error('[API SERVICE ERROR]', {
+      url: config?.url,
+      method: config?.method,
+      status,
+      message,
+      retryCount: config?._retryCount || 0
+    })
 
     if (status === 401) {
       localStorage.removeItem(TOKEN_KEY)
@@ -50,7 +74,6 @@ api.interceptors.response.use(
       }
     }
 
-    const message = extractErrorMessage(error)
     const enhanced = new Error(message)
     enhanced.response = error.response
     enhanced.status = status
@@ -58,5 +81,4 @@ api.interceptors.response.use(
   }
 )
 
-export { TOKEN_KEY }
 export default api
