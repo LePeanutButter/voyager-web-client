@@ -1,6 +1,8 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
+import { useAuth } from '../../hooks/useAuth'
 import { 
   MapPin, 
   Calendar, 
@@ -14,6 +16,16 @@ import {
 import './Dashboard.css'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  const hasToken = Boolean(localStorage.getItem('smartrip_token') || localStorage.getItem('token'))
+  const canCreateTrip = isAuthenticated && hasToken
+
+  const handlePlanNewTrip = () => {
+    if (!canCreateTrip) return
+    navigate('/travel-plans/create')
+  }
+
   const stats = [
     { label: 'Trips Planned', value: '12', icon: MapPin, trend: '+2 this month' },
     { label: 'Upcoming Trips', value: '3', icon: Calendar, trend: 'Next: Paris' },
@@ -90,9 +102,13 @@ const Dashboard = () => {
 
           <Card title="Quick Actions">
             <div className="quick-actions-grid">
-              <Button variant="primary" className="action-btn">
+              <Button variant="primary" className="action-btn" onClick={handlePlanNewTrip} disabled={!canCreateTrip}>
                 <Plane size={20} />
                 Plan New Trip
+              </Button>
+              <Button variant="outline" className="action-btn" onClick={() => navigate('/profile')}>
+                <Users size={20} />
+                Ver perfil
               </Button>
               <Button variant="outline" className="action-btn">
                 <Hotel size={20} />

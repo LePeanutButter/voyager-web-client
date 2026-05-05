@@ -1,11 +1,12 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 import { Search, Bell, User, Menu, Globe } from 'lucide-react'
 import './Header.css'
 
 const Header = () => {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   return (
     <header className="header">
@@ -33,17 +34,24 @@ const Header = () => {
           </button>
           
           {user ? (
-            <div className="user-menu">
-              <button className="user-avatar">
+            <>
+              <button className="icon-button" onClick={logout} title="Cerrar sesión">
+                Logout
+              </button>
+              <div className="user-menu">
+                <button className="user-avatar" onClick={() => navigate('/profile')}>
                 <User size={20} />
-                <span>{user.name}</span>
+                <span>{user.name || user.firstName || user.username || 'Perfil'}</span>
               </button>
               <div className="user-dropdown">
                 <Link to="/profile">Profile</Link>
+                <Link to="/my-travels">Mis Viajes</Link>
+                <Link to="/travel-plans/create">Create Travel Plan</Link>
                 <Link to="/settings">Settings</Link>
                 <button onClick={logout}>Logout</button>
               </div>
-            </div>
+              </div>
+            </>
           ) : (
             <div className="auth-buttons">
               <Link to="/login" className="btn btn-outline">Login</Link>

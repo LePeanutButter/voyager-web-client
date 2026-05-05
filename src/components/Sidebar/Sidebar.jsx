@@ -9,7 +9,8 @@ import {
   Users, 
   Settings,
   Calendar,
-  Heart
+  Heart,
+  Luggage
 } from 'lucide-react'
 import './Sidebar.css'
 
@@ -18,6 +19,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
+    { path: '/my-travels', icon: Luggage, label: 'Mis Viajes' },
     { path: '/travel-planning', icon: MapPin, label: 'Travel Planning' },
     { path: '/ai-assistant', icon: Bot, label: 'AI Assistant' },
     { path: '/business-dashboard', icon: Briefcase, label: 'Business' },

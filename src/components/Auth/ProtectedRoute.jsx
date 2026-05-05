@@ -1,5 +1,5 @@
 import React from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
 const ProtectedRoute = ({ children }) => {
@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />
   }
 
-  return children
+  return children || <Outlet />
 }
 
 export default ProtectedRoute

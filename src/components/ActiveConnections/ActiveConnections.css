@@ -1,0 +1,240 @@
+.active-connections {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 8px 0 24px;
+}
+
+.active-connections__header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.active-connections__header h2 {
+  color: #2c3e50;
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.active-connections__header p {
+  color: #7f8c8d;
+  margin: 0;
+  font-size: 15px;
+}
+
+.active-connections--loading,
+.active-connections--notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: #5d6d7e;
+}
+
+.active-connections__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #ecf0f1;
+  border-top-color: #3498db;
+  border-radius: 50%;
+  animation: active-connections-spin 0.9s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes active-connections-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.active-connections__banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.active-connections__banner p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.active-connections__banner--error {
+  background: #fdedec;
+  border: 1px solid #f5b7b1;
+  color: #922b21;
+}
+
+.active-connections__banner--success {
+  background: #eafaf1;
+  border: 1px solid #abebc6;
+  color: #1e8449;
+}
+
+.active-connections__dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  padding: 0 4px;
+}
+
+.active-connections__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.active-connections__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #e0e6ed;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.active-connections__card-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.active-connections__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ecf0f1;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  overflow: hidden;
+}
+
+.active-connections__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.active-connections__name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 17px;
+}
+
+.active-connections__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.active-connections__btn-chat {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #2980b9;
+  background: #2980b9;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.active-connections__btn-chat:hover {
+  background: #2471a3;
+  border-color: #2471a3;
+}
+
+.active-connections__btn-remove {
+  align-self: flex-start;
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #d5d8dc;
+  background: #fff;
+  color: #566573;
+  cursor: pointer;
+}
+
+.active-connections__btn-remove:hover:not(:disabled) {
+  border-color: #aeb6bf;
+  color: #2c3e50;
+}
+
+.active-connections__btn-remove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.active-connections__confirm {
+  padding-top: 4px;
+  border-top: 1px solid #ecf0f1;
+}
+
+.active-connections__confirm-text {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #5d6d7e;
+}
+
+.active-connections__confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.active-connections__btn-cancel {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #d5d8dc;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.active-connections__btn-danger {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #c0392b;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.active-connections__btn-danger:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.active-connections__empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: #7f8c8d;
+}
+
+.active-connections__empty p {
+  margin: 0 0 8px;
+}
+
+.active-connections__empty-hint {
+  font-size: 14px;
+  margin: 0 !important;
+}
