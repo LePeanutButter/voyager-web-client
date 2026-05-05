@@ -1,37 +1,44 @@
 import axios from 'axios'
+import { extractErrorMessage } from '../utils/errorUtils'
+import { TOKEN_KEY } from './api'
 
 /**
- * HTTP client for the Voyager AI microservice (FastAPI).
- * Configure via VITE_AI_SERVICE_BASE_URL (must include /api/v1/ suffix).
+ * Axios instance for voyager-ai-service (FastAPI).
+ * Base URL: VITE_AI_SERVICE_BASE_URL (default: http://localhost:8000/api/v1)
  */
 const aiMicroservice = axios.create({
-  baseURL:
-    import.meta.env.VITE_AI_SERVICE_BASE_URL || 'http://localhost:8000/api/v1',
-  timeout: 15000,
+  baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || 'http://localhost:8000/api/v1',
+  timeout: 30000, // AI responses can take longer
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
-aiMicroservice.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem('smartrip_token') || localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// ─── Request Interceptor ─────────────────────────────────────────────────────
+aiMicroservice.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
+// ─── Response Interceptor ────────────────────────────────────────────────────
 aiMicroservice.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // FastAPI returns data directly (no wrapper), pass through as-is
+    return response.data
+  },
   (error) => {
-    const data = error.response?.data
-    const msg =
-      (typeof data?.detail === 'string' && data.detail) ||
-      data?.message ||
-      error.message ||
-      'Request failed'
-    return Promise.reject(new Error(msg))
+    const status = error.response?.status
+    const message = extractErrorMessage(error)
+    const enhanced = new Error(message)
+    enhanced.response = error.response
+    enhanced.status = status
+    return Promise.reject(enhanced)
   }
 )
 

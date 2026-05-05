@@ -1,49 +1,26 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Card from '../../components/UI/Card'
-import Button from '../../components/UI/Button'
-import { usersService } from '../../services/usersService'
-import { Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react'
+import { Lock, Eye, EyeOff, User, Mail, Phone, Plane } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
+import { extractFieldErrors } from '../../utils/errorUtils'
+import ErrorBanner from '../../components/UI/ErrorBanner'
 import './Auth.css'
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/
-
-const validateUsername = (username, errors) => {
-  const normalized = username.trim()
-  if (!normalized) {
-    errors.username = 'El username es requerido'
-    return
-  }
-  if (normalized.length < 3) errors.username = 'El username debe tener mínimo 3 caracteres'
-  if (normalized.length > 50) errors.username = 'El username no puede superar 50 caracteres'
-}
-
-const validatePasswordFields = (password, confirmPassword, errors) => {
-  if (!password) errors.password = 'La contraseña es requerida'
-  if (password && password.length < 8) errors.password = 'La contraseña debe tener mínimo 8 caracteres'
-  if (!confirmPassword) errors.confirmPassword = 'Confirma tu contraseña'
-  if (password && confirmPassword && password !== confirmPassword) {
-    errors.confirmPassword = 'Las contraseñas no coinciden'
-  }
-}
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     username: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    phoneNumber: ''
+    phoneNumber: '',
   })
-
   const [showPassword, setShowPassword] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
+  const { register } = useAuth()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -51,202 +28,170 @@ const RegisterPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }))
     if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: '' }))
     if (error) setError('')
-    if (success) setSuccess('')
   }
 
   const validate = () => {
-    const next = {}
-    validateUsername(formData.username, next)
-    if (!formData.email.trim()) next.email = 'El email es requerido'
-    if (formData.email && !emailRegex.test(formData.email)) next.email = 'Email inválido'
-    if (!formData.firstName.trim()) next.firstName = 'El nombre es requerido'
-    if (!formData.lastName.trim()) next.lastName = 'El apellido es requerido'
-    validatePasswordFields(formData.password, formData.confirmPassword, next)
-    setFieldErrors(next)
-    return Object.keys(next).length === 0
+    const errs = {}
+    if (!formData.firstName.trim()) errs.firstName = 'First name is required'
+    if (!formData.lastName.trim()) errs.lastName = 'Last name is required'
+    if (!formData.username.trim()) errs.username = 'Username is required'
+    else if (formData.username.length < 3) errs.username = 'Username must be at least 3 characters'
+    if (!formData.email.trim()) errs.email = 'Email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = 'Enter a valid email address'
+    if (!formData.password) errs.password = 'Password is required'
+    else if (formData.password.length < 8) errs.password = 'Password must be at least 8 characters'
+    setFieldErrors(errs)
+    return Object.keys(errs).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
-
     setLoading(true)
     setError('')
     try {
-      const payload = {
-        username: formData.username.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
+      await register({
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
-        phoneNumber: formData.phoneNumber?.trim() || undefined
-      }
-
-      await usersService.register(payload)
-      setSuccess('Registro exitoso. Redirigiendo al login…')
-      setTimeout(() => navigate('/login', { replace: true }), 900)
+        username: formData.username.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        ...(formData.phoneNumber ? { phoneNumber: formData.phoneNumber.trim() } : {}),
+      })
+      navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err?.message || 'No se pudo registrar')
+      const fieldErrs = extractFieldErrors(err)
+      if (Object.keys(fieldErrs).length > 0) {
+        setFieldErrors(fieldErrs)
+      } else {
+        setError(err?.message || 'Registration failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
   }
 
+  const Field = ({ id, name, label, type = 'text', placeholder, icon: Icon, autoComplete }) => (
+    <div className="form-group">
+      <label htmlFor={id}>{label}</label>
+      <div className="input-wrapper">
+        {Icon && <Icon size={17} className="input-icon" />}
+        <input
+          id={id}
+          name={name}
+          type={type}
+          value={formData[name]}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={fieldErrors[name] ? 'error' : ''}
+          autoComplete={autoComplete}
+          style={Icon ? undefined : { paddingLeft: '1rem' }}
+        />
+        {name === 'password' && (
+          <button
+            type="button"
+            className="input-action-btn"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        )}
+      </div>
+      {fieldErrors[name] && <span className="field-error">{fieldErrors[name]}</span>}
+    </div>
+  )
+
   return (
     <div className="auth-page">
-      <div className="auth-container">
-        <Card className="auth-card">
-          <div className="auth-header">
-            <h1>Crear cuenta</h1>
-            <p>Completa tus datos para registrarte</p>
+      {/* Hero */}
+      <div className="auth-hero">
+        <div className="auth-hero-content">
+          <div className="auth-logo">
+            <Plane size={28} />
+            <span>Voyager</span>
+          </div>
+          <h1>Join the<br />travel community</h1>
+          <p>Create your free account and start planning unforgettable journeys powered by AI.</p>
+          <div className="auth-features">
+            {[
+              'Personalized AI travel recommendations',
+              'Connect with like-minded travelers',
+              'Smart itinerary builder & planning tools',
+              'Real-time compatibility scoring',
+            ].map((f) => (
+              <div key={f} className="auth-feature-item">
+                <div className="auth-feature-dot" />
+                <span>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="auth-hero-bg" />
+      </div>
+
+      {/* Form */}
+      <div className="auth-form-panel">
+        <div className="auth-form-container animate-fadeIn">
+          <div className="auth-form-header">
+            <h2>Create account</h2>
+            <p>Start your adventure — it&apos;s free</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <div className="input-with-icon">
-                <User size={20} />
-                <input
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="tu_usuario"
-                  className={fieldErrors.username ? 'error' : ''}
-                  autoComplete="username"
-                />
-              </div>
-              {fieldErrors.username && <span className="error-message">{fieldErrors.username}</span>}
+          <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />
+
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
+            <div className="form-row">
+              <Field id="reg-firstName" name="firstName" label="First name" placeholder="John" icon={User} autoComplete="given-name" />
+              <Field id="reg-lastName" name="lastName" label="Last name" placeholder="Doe" autoComplete="family-name" />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
-              <div className="input-with-icon">
-                <Mail size={20} />
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="tu@email.com"
-                  className={fieldErrors.email ? 'error' : ''}
-                  autoComplete="email"
-                />
-              </div>
-              {fieldErrors.email && <span className="error-message">{fieldErrors.email}</span>}
-            </div>
+            <Field id="reg-username" name="username" label="Username" placeholder="john_doe" icon={User} autoComplete="username" />
+            <Field id="reg-email" name="email" label="Email address" type="email" placeholder="john@example.com" icon={Mail} autoComplete="email" />
+            <Field
+              id="reg-password"
+              name="password"
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Minimum 8 characters"
+              icon={Lock}
+              autoComplete="new-password"
+            />
+            <Field id="reg-phone" name="phoneNumber" label="Phone (optional)" type="tel" placeholder="+1 555 000 0000" icon={Phone} autoComplete="tel" />
 
-            <div className="form-group">
-              <label htmlFor="firstName">Nombre</label>
-              <div className="input-with-icon">
-                <User size={20} />
-                <input
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="Tu nombre"
-                  className={fieldErrors.firstName ? 'error' : ''}
-                  autoComplete="given-name"
-                />
-              </div>
-              {fieldErrors.firstName && <span className="error-message">{fieldErrors.firstName}</span>}
-            </div>
+            <button
+              id="register-submit-btn"
+              type="submit"
+              className="btn-primary w-full"
+              disabled={loading}
+              style={{ marginTop: '0.25rem' }}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+                  Creating account…
+                </span>
+              ) : (
+                'Create Account'
+              )}
+            </button>
 
-            <div className="form-group">
-              <label htmlFor="lastName">Apellido</label>
-              <div className="input-with-icon">
-                <User size={20} />
-                <input
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Tu apellido"
-                  className={fieldErrors.lastName ? 'error' : ''}
-                  autoComplete="family-name"
-                />
-              </div>
-              {fieldErrors.lastName && <span className="error-message">{fieldErrors.lastName}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="phoneNumber">Teléfono (opcional)</label>
-              <div className="input-with-icon">
-                <Phone size={20} />
-                <input
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  placeholder="+54 11 5555 5555"
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">Contraseña</label>
-              <div className="input-with-icon">
-                <Lock size={20} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Mínimo 8 caracteres"
-                  className={fieldErrors.password ? 'error' : ''}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="password-toggle"
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-              {fieldErrors.password && <span className="error-message">{fieldErrors.password}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirmar contraseña</label>
-              <div className="input-with-icon">
-                <Lock size={20} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Repite tu contraseña"
-                  className={fieldErrors.confirmPassword ? 'error' : ''}
-                  autoComplete="new-password"
-                />
-              </div>
-              {fieldErrors.confirmPassword && <span className="error-message">{fieldErrors.confirmPassword}</span>}
-            </div>
-
-            {error && <div className="auth-error">{error}</div>}
-            {success && <div className="auth-error" style={{ background: '#d1e7dd', color: '#0f5132', borderColor: '#badbcc' }}>{success}</div>}
-
-            <Button type="submit" variant="primary" size="large" loading={loading} className="auth-submit">
-              Registrarme
-            </Button>
+            <p className="auth-terms">
+              By creating an account you agree to our{' '}
+              <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+            </p>
           </form>
 
           <div className="auth-footer">
             <p>
-              ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+              Already have an account?{' '}
+              <Link to="/login" className="auth-link">Sign in</Link>
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   )
 }
 
 export default RegisterPage
-

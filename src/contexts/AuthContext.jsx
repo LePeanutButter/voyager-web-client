@@ -1,200 +1,217 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
+import { authService } from '../services/authService'
+import { TOKEN_KEY } from '../services/api'
 
-// Initial state
+// ─── State & Actions ─────────────────────────────────────────────────────────
+
 const initialState = {
   user: null,
   token: null,
   isAuthenticated: false,
-  loading: true,
-  error: null
+  loading: true,    // true on mount until session is restored
+  error: null,
 }
 
-// Action types
-const AUTH_ACTIONS = {
-  LOGIN_START: 'LOGIN_START',
-  LOGIN_SUCCESS: 'LOGIN_SUCCESS',
-  LOGIN_FAILURE: 'LOGIN_FAILURE',
+const ACTIONS = {
+  SET_LOADING: 'SET_LOADING',
+  AUTH_SUCCESS: 'AUTH_SUCCESS',
+  AUTH_FAILURE: 'AUTH_FAILURE',
   LOGOUT: 'LOGOUT',
-  REGISTER_START: 'REGISTER_START',
-  REGISTER_SUCCESS: 'REGISTER_SUCCESS',
-  REGISTER_FAILURE: 'REGISTER_FAILURE',
-  LOAD_USER_START: 'LOAD_USER_START',
-  LOAD_USER_SUCCESS: 'LOAD_USER_SUCCESS',
-  LOAD_USER_FAILURE: 'LOAD_USER_FAILURE',
-  CLEAR_ERROR: 'CLEAR_ERROR'
+  UPDATE_USER: 'UPDATE_USER',
+  CLEAR_ERROR: 'CLEAR_ERROR',
 }
 
-// Reducer
-const authReducer = (state, action) => {
+function authReducer(state, action) {
   switch (action.type) {
-    case AUTH_ACTIONS.LOGIN_START:
-    case AUTH_ACTIONS.REGISTER_START:
-    case AUTH_ACTIONS.LOAD_USER_START:
+    case ACTIONS.SET_LOADING:
+      return { ...state, loading: action.payload, error: null }
+
+    case ACTIONS.AUTH_SUCCESS:
       return {
         ...state,
-        loading: true,
-        error: null
-      }
-    
-    case AUTH_ACTIONS.LOGIN_SUCCESS:
-    case AUTH_ACTIONS.REGISTER_SUCCESS:
-    case AUTH_ACTIONS.LOAD_USER_SUCCESS:
-      return {
-        ...state,
-        user: action.payload,
-        token: action.token || state.token,
+        user: action.user,
+        token: action.token,
         isAuthenticated: true,
         loading: false,
-        error: null
+        error: null,
       }
-    
-    case AUTH_ACTIONS.LOGIN_FAILURE:
-    case AUTH_ACTIONS.REGISTER_FAILURE:
-    case AUTH_ACTIONS.LOAD_USER_FAILURE:
+
+    case ACTIONS.AUTH_FAILURE:
       return {
         ...state,
         user: null,
         token: null,
         isAuthenticated: false,
         loading: false,
-        error: action.payload
+        error: action.payload,
       }
-    
-    case AUTH_ACTIONS.LOGOUT:
-      return {
-        ...state,
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        loading: false,
-        error: null
-      }
-    
-    case AUTH_ACTIONS.CLEAR_ERROR:
-      return {
-        ...state,
-        error: null
-      }
-    
+
+    case ACTIONS.LOGOUT:
+      return { ...initialState, loading: false }
+
+    case ACTIONS.UPDATE_USER:
+      return { ...state, user: { ...state.user, ...action.payload } }
+
+    case ACTIONS.CLEAR_ERROR:
+      return { ...state, error: null }
+
     default:
       return state
   }
 }
 
-// Create context
-const AuthContext = createContext()
+// ─── Context ─────────────────────────────────────────────────────────────────
 
-// Provider component
+const AuthContext = createContext(null)
+
+// ─── Provider ────────────────────────────────────────────────────────────────
+
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  // Load user from localStorage on mount
+  // Restore session from localStorage on mount
   useEffect(() => {
-    const loadUser = async () => {
-      const token = localStorage.getItem('smartrip_token') || localStorage.getItem('token')
-      const userData = localStorage.getItem('userData')
-      
-      if (token && userData) {
+    const restoreSession = async () => {
+      const token = localStorage.getItem(TOKEN_KEY)
+      const cached = localStorage.getItem('voyager_user')
+
+      if (!token) {
+        dispatch({ type: ACTIONS.AUTH_FAILURE, payload: null })
+        return
+      }
+
+      // Use cached user data immediately, then refresh from server
+      if (cached) {
         try {
-          const user = JSON.parse(userData)
-          dispatch({ type: AUTH_ACTIONS.LOAD_USER_SUCCESS, payload: user, token })
-        } catch (error) {
-          localStorage.removeItem('smartrip_token')
-          localStorage.removeItem('token')
-          localStorage.removeItem('userData')
-          dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'Failed to load user data' })
+          const user = JSON.parse(cached)
+          dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
+        } catch {
+          // cached data corrupt — clear it
+          localStorage.removeItem('voyager_user')
         }
-      } else if (token) {
-        dispatch({ type: AUTH_ACTIONS.LOAD_USER_SUCCESS, payload: null, token })
-      } else {
-        dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: null })
+      }
+
+      // Always validate the token against /users/me
+      try {
+        const user = await authService.getCurrentUser()
+        localStorage.setItem('voyager_user', JSON.stringify(user))
+        dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
+      } catch {
+        // Token invalid or expired
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem('voyager_user')
+        dispatch({ type: ACTIONS.AUTH_FAILURE, payload: null })
       }
     }
 
-    loadUser()
+    restoreSession()
   }, [])
 
-  // Login action (supports both: login(credentials) and login(userData, token))
-  const login = async (arg1, arg2) => {
-    // If token is provided, treat as "set session"
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  /**
+   * Login with credentials (usernameOrEmail + password).
+   * Also supports direct session injection: login(userData, token).
+   */
+  const login = useCallback(async (arg1, arg2) => {
+    // Direct injection path (e.g. Google OAuth callback)
     if (typeof arg2 === 'string' && arg2.length > 0) {
-      const userData = arg1 || null
       const token = arg2
-      localStorage.setItem('smartrip_token', token)
-      localStorage.setItem('token', token)
-      localStorage.setItem('userData', JSON.stringify(userData || {}))
-      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: userData, token })
-      return { token, user: userData }
+      const user = arg1 || null
+      localStorage.setItem(TOKEN_KEY, token)
+      if (user) localStorage.setItem('voyager_user', JSON.stringify(user))
+      dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
+      return { user, token }
     }
 
+    // Standard credential login
     const credentials = arg1
-    dispatch({ type: AUTH_ACTIONS.LOGIN_START })
-    
+    dispatch({ type: ACTIONS.SET_LOADING, payload: true })
     try {
-      // Simulate API call
-      const response = await mockLogin(credentials)
-      
-      localStorage.setItem('smartrip_token', response.token)
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('userData', JSON.stringify(response.user))
-      
-      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: response.user, token: response.token })
-      return response
+      // loginResponseDto: { token, tokenType, expiresIn, user }
+      const loginResponse = await authService.login(credentials)
+      const token = loginResponse?.token
+      const user = loginResponse?.user || loginResponse
+
+      if (!token) throw new Error('No token received from server')
+
+      localStorage.setItem(TOKEN_KEY, token)
+      localStorage.setItem('voyager_user', JSON.stringify(user))
+      dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
+      return { user, token }
     } catch (error) {
-      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message })
+      dispatch({ type: ACTIONS.AUTH_FAILURE, payload: error.message })
       throw error
     }
-  }
+  }, [])
 
-  // Register action
-  const register = async (userData) => {
-    dispatch({ type: AUTH_ACTIONS.REGISTER_START })
-    
+  /**
+   * Register a new user and auto-login on success.
+   */
+  const register = useCallback(async (userData) => {
+    dispatch({ type: ACTIONS.SET_LOADING, payload: true })
     try {
-      // Simulate API call
-      const response = await mockRegister(userData)
-      
-      localStorage.setItem('smartrip_token', response.token)
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('userData', JSON.stringify(response.user))
-      
-      dispatch({ type: AUTH_ACTIONS.REGISTER_SUCCESS, payload: response.user, token: response.token })
-      return response
+      const registered = await authService.register(userData)
+      // Auto-login after successful registration
+      const token = registered?.token
+      const user = registered?.user || registered
+
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token)
+        localStorage.setItem('voyager_user', JSON.stringify(user))
+        dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
+        return { user, token }
+      }
+
+      // No token returned — backend requires separate login step
+      dispatch({ type: ACTIONS.AUTH_FAILURE, payload: null })
+      return registered
     } catch (error) {
-      dispatch({ type: AUTH_ACTIONS.REGISTER_FAILURE, payload: error.message })
+      dispatch({ type: ACTIONS.AUTH_FAILURE, payload: error.message })
       throw error
     }
-  }
+  }, [])
 
-  // Logout action
-  const logout = () => {
+  /**
+   * Update the current user's data in context (after profile update).
+   */
+  const updateUser = useCallback((partial) => {
+    dispatch({ type: ACTIONS.UPDATE_USER, payload: partial })
+    const updated = { ...state.user, ...partial }
+    localStorage.setItem('voyager_user', JSON.stringify(updated))
+  }, [state.user])
+
+  /**
+   * Clear authentication state and stored tokens.
+   */
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem('voyager_user')
+    // Legacy keys cleanup
     localStorage.removeItem('smartrip_token')
     localStorage.removeItem('token')
     localStorage.removeItem('userData')
-    dispatch({ type: AUTH_ACTIONS.LOGOUT })
-  }
+    dispatch({ type: ACTIONS.LOGOUT })
+  }, [])
 
-  // Clear error
-  const clearError = () => {
-    dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR })
-  }
+  const clearError = useCallback(() => {
+    dispatch({ type: ACTIONS.CLEAR_ERROR })
+  }, [])
 
   const value = {
     ...state,
     login,
     register,
     logout,
-    clearError
+    updateUser,
+    clearError,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-// Custom hook
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
@@ -203,43 +220,4 @@ export const useAuth = () => {
   return context
 }
 
-// Mock API functions (replace with real API calls)
-const mockLogin = async (credentials) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (credentials.email === 'demo@tourismai.com' && credentials.password === 'password') {
-        resolve({
-          token: 'mock-jwt-token',
-          user: {
-            id: 1,
-            name: 'Demo User',
-            email: 'demo@tourismai.com',
-            role: 'user'
-          }
-        })
-      } else {
-        reject(new Error('Invalid credentials'))
-      }
-    }, 1000)
-  })
-}
-
-const mockRegister = async (userData) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (userData.email && userData.password) {
-        resolve({
-          token: 'mock-jwt-token',
-          user: {
-            id: 2,
-            name: userData.name || userData.email.split('@')[0],
-            email: userData.email,
-            role: 'user'
-          }
-        })
-      } else {
-        reject(new Error('Invalid registration data'))
-      }
-    }, 1000)
-  })
-}
+export default AuthContext

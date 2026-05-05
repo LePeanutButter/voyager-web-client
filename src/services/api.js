@@ -1,49 +1,60 @@
 import axios from 'axios'
+import { extractErrorMessage } from '../utils/errorUtils'
 
-// Create base axios instance
+const TOKEN_KEY = 'voyager_token'
+
+/**
+ * Primary Axios instance for voyager-backend-core (Spring Boot).
+ * Base URL: VITE_API_BASE_URL (default: http://localhost:8080/api/v1)
+ */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
+  timeout: 15000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
-// Request interceptor to add auth token
+// ─── Request Interceptor ─────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('smartrip_token') || localStorage.getItem('token')
+    const token = localStorage.getItem(TOKEN_KEY)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor for error handling
+// ─── Response Interceptor ────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => {
-    return response.data
+    // Unwrap Spring Boot ApiResponse wrapper: return .data field when present
+    const body = response.data
+    if (body && typeof body === 'object' && 'data' in body) {
+      return body.data
+    }
+    return body
   },
   (error) => {
-    // Handle common error cases
-    if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('smartrip_token')
-      localStorage.removeItem('token')
-      localStorage.removeItem('userData')
-      globalThis.location.href = '/login'
+    const status = error.response?.status
+
+    if (status === 401) {
+      localStorage.removeItem(TOKEN_KEY)
+      // Avoid redirect loops on the login page itself
+      if (!globalThis.location?.pathname?.includes('/login')) {
+        globalThis.location.href = '/login'
+      }
     }
-    
-    // Extract error message
-    const errorMessage = error.response?.data?.message || error.message || 'An error occurred'
-    
-    // Return a more user-friendly error
-    return Promise.reject(new Error(errorMessage))
+
+    const message = extractErrorMessage(error)
+    const enhanced = new Error(message)
+    enhanced.response = error.response
+    enhanced.status = status
+    return Promise.reject(enhanced)
   }
 )
 
+export { TOKEN_KEY }
 export default api

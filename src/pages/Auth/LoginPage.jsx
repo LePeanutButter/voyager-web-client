@@ -1,10 +1,9 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Card from '../../components/UI/Card'
-import Button from '../../components/UI/Button'
-import { usersService } from '../../services/usersService'
-import { useAuth } from '../../hooks/useAuth'
-import { Lock, Eye, EyeOff, User } from 'lucide-react'
+import { Lock, Eye, EyeOff, User, Globe, Plane } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
+import { extractFieldErrors } from '../../utils/errorUtils'
+import ErrorBanner from '../../components/UI/ErrorBanner'
 import './Auth.css'
 
 const LoginPage = () => {
@@ -18,8 +17,8 @@ const LoginPage = () => {
   const navigate = useNavigate()
 
   const googleLoginUrl = useMemo(() => {
-    const base = import.meta.env.VITE_API_BASE_URL || ''
-    return `${base.replace(/\/$/, '')}/auth/google/login`
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+    return `${base.replace(/\/api\/v1\/?$/, '')}/api/v1/auth/google/login`
   }, [])
 
   const handleChange = (e) => {
@@ -30,126 +29,159 @@ const LoginPage = () => {
   }
 
   const validate = () => {
-    const next = {}
-    if (!formData.usernameOrEmail?.trim()) next.usernameOrEmail = 'El usuario o email es requerido'
-    if (!formData.password) next.password = 'La contraseña es requerida'
-    setFieldErrors(next)
-    return Object.keys(next).length === 0
+    const errs = {}
+    if (!formData.usernameOrEmail?.trim()) errs.usernameOrEmail = 'Username or email is required'
+    if (!formData.password) errs.password = 'Password is required'
+    setFieldErrors(errs)
+    return Object.keys(errs).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
-
     setLoading(true)
     setError('')
     try {
-      const res = await usersService.login({
+      await login({
         usernameOrEmail: formData.usernameOrEmail.trim(),
-        password: formData.password
+        password: formData.password,
       })
-
-      const payload = res?.data || res
-      const token = payload?.token
-      if (!token) throw new Error('El backend no retornó token')
-
-      localStorage.setItem('smartrip_token', token)
-      localStorage.setItem('userData', JSON.stringify(payload))
-      await login(payload, token)
-
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err?.message || 'Credenciales inválidas')
+      const fieldErrs = extractFieldErrors(err)
+      if (Object.keys(fieldErrs).length > 0) {
+        setFieldErrors(fieldErrs)
+      } else {
+        setError(err?.message || 'Invalid credentials. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleGoogle = () => {
-    globalThis.location.href = googleLoginUrl
-  }
-
   return (
     <div className="auth-page">
-      <div className="auth-container">
-        <Card className="auth-card">
-          <div className="auth-header">
-            <h1>Iniciar sesión</h1>
-            <p>Accede a tu cuenta</p>
+      {/* Left hero panel */}
+      <div className="auth-hero">
+        <div className="auth-hero-content">
+          <div className="auth-logo">
+            <Plane size={28} />
+            <span>Voyager</span>
+          </div>
+          <h1>Your journey<br />starts here</h1>
+          <p>Plan smarter trips, connect with fellow travelers, and let AI guide your adventures.</p>
+          <div className="auth-features">
+            {['AI-powered travel planning', 'Real-time traveler matching', 'Smart itinerary builder'].map((f) => (
+              <div key={f} className="auth-feature-item">
+                <div className="auth-feature-dot" />
+                <span>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="auth-hero-bg" />
+      </div>
+
+      {/* Right form panel */}
+      <div className="auth-form-panel">
+        <div className="auth-form-container animate-fadeIn">
+          <div className="auth-form-header">
+            <h2>Welcome back</h2>
+            <p>Sign in to your Voyager account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />
+
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className="form-group">
-              <label htmlFor="usernameOrEmail">Usuario o Email</label>
-              <div className="input-with-icon">
-                <User size={20} />
+              <label htmlFor="usernameOrEmail">Username or Email</label>
+              <div className="input-wrapper">
+                <User size={17} className="input-icon" />
                 <input
                   id="usernameOrEmail"
                   name="usernameOrEmail"
+                  type="text"
                   value={formData.usernameOrEmail}
                   onChange={handleChange}
-                  placeholder="Tu usuario o email"
+                  placeholder="your_username or email@example.com"
                   className={fieldErrors.usernameOrEmail ? 'error' : ''}
                   autoComplete="username"
+                  autoFocus
                 />
               </div>
-              {fieldErrors.usernameOrEmail && <span className="error-message">{fieldErrors.usernameOrEmail}</span>}
+              {fieldErrors.usernameOrEmail && (
+                <span className="field-error">{fieldErrors.usernameOrEmail}</span>
+              )}
             </div>
 
             <div className="form-group">
-              <label htmlFor="password">Contraseña</label>
-              <div className="input-with-icon">
-                <Lock size={20} />
+              <label htmlFor="login-password">Password</label>
+              <div className="input-wrapper">
+                <Lock size={17} className="input-icon" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
+                  id="login-password"
                   name="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Tu contraseña"
+                  placeholder="••••••••"
                   className={fieldErrors.password ? 'error' : ''}
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
+                  className="input-action-btn"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="password-toggle"
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
-              {fieldErrors.password && <span className="error-message">{fieldErrors.password}</span>}
+              {fieldErrors.password && (
+                <span className="field-error">{fieldErrors.password}</span>
+              )}
             </div>
 
-            {error && <div className="auth-error">{error}</div>}
-
-            <Button type="submit" variant="primary" size="large" loading={loading} className="auth-submit">
-              Iniciar sesión
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="large"
-              onClick={handleGoogle}
+            <button
+              id="login-submit-btn"
+              type="submit"
+              className="btn-primary w-full"
               disabled={loading}
-              className="auth-submit"
             >
-              Continuar con Google
-            </Button>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+                  Signing in…
+                </span>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+
+            <div className="divider-text">or</div>
+
+            <button
+              id="google-login-btn"
+              type="button"
+              className="btn-google w-full"
+              onClick={() => { globalThis.location.href = googleLoginUrl }}
+              disabled={loading}
+            >
+              <Globe size={18} />
+              Continue with Google
+            </button>
           </form>
 
           <div className="auth-footer">
             <p>
-              ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>
+              Don&apos;t have an account?{' '}
+              <Link to="/register" className="auth-link">Create one free</Link>
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   )
 }
 
 export default LoginPage
-

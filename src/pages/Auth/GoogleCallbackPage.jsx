@@ -1,95 +1,110 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import Card from '../../components/UI/Card'
-import Button from '../../components/UI/Button'
-import { useAuth } from '../../hooks/useAuth'
-import { decodeJwtPayload, getNumericId } from '../../utils/jwt'
-import './Auth.css'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { Plane } from 'lucide-react'
 
+/**
+ * GoogleCallbackPage
+ * Backend redirects to /auth/google/callback?token=<JWT> on success,
+ * or /auth/google/callback?error=<code>&message=<desc> on failure.
+ */
 const GoogleCallbackPage = () => {
-  const { search } = useLocation()
-  const navigate = useNavigate()
+  const [status, setStatus] = useState('loading') // 'loading' | 'error'
+  const [errorMessage, setErrorMessage] = useState('')
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  const token = useMemo(() => {
-    const params = new URLSearchParams(search)
-    return params.get('token') || ''
-  }, [search])
+  const navigate = useNavigate()
 
   useEffect(() => {
-    const run = async () => {
-      setLoading(true)
-      setError('')
+    const processCallback = async () => {
+      const token = searchParams.get('token')
+      const error = searchParams.get('error')
+      const message = searchParams.get('message')
+
+      if (error) {
+        setErrorMessage(message || 'Google authentication failed. Please try again.')
+        setStatus('error')
+        return
+      }
 
       if (!token) {
-        setError('No se recibió token en la URL. Para este frontend, el backend debe redirigir a /auth/google/callback?token=...')
-        setLoading(false)
+        setErrorMessage('No authentication token received.')
+        setStatus('error')
         return
       }
 
       try {
-        localStorage.setItem('smartrip_token', token)
-        localStorage.setItem('token', token)
-
-        const payload = decodeJwtPayload(token) || {}
-        const userData = {
-          id: getNumericId(payload.userId) ?? getNumericId(payload.id) ?? null,
-          email: payload.email,
-          firstName: payload.firstName,
-          lastName: payload.lastName,
-          username: payload.username || payload.sub,
-          provider: 'google'
-        }
-
-        localStorage.setItem('userData', JSON.stringify(userData))
-        await login(userData, token)
+        // Inject the Google-issued JWT into the auth context
+        // The user object will be fetched from /users/me automatically
+        await login(null, token)
         navigate('/dashboard', { replace: true })
       } catch (err) {
-        setError(err?.message || 'No se pudo completar el login con Google.')
-      } finally {
-        setLoading(false)
+        setErrorMessage(err?.message || 'Authentication failed. Please try again.')
+        setStatus('error')
       }
     }
 
-    run()
-  }, [token, login, navigate])
-
-  if (loading) {
-    return (
-      <div className="auth-page">
-        <div className="auth-container">
-          <Card className="auth-card">
-            <div className="loading-container">
-              <div className="loading-spinner"></div>
-              <p>Validando sesión con Google…</p>
-            </div>
-          </Card>
-        </div>
-      </div>
-    )
-  }
+    processCallback()
+  }, [searchParams, login, navigate])
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <Card className="auth-card">
-          <div className="auth-header">
-            <h1>Google Login</h1>
-            <p>No se pudo completar automáticamente</p>
-          </div>
-
-          {error && <div className="auth-error">{error}</div>}
-
-          <Button type="button" variant="primary" size="large" onClick={() => navigate('/login')} className="auth-submit">
-            Volver al login
-          </Button>
-        </Card>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--surface-bg)',
+        gap: '1.5rem',
+        padding: '2rem',
+      }}
+    >
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          background: 'var(--gradient-primary)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          boxShadow: 'var(--shadow-blue)',
+        }}
+      >
+        <Plane size={28} />
       </div>
+
+      {status === 'loading' ? (
+        <>
+          <div className="spinner" />
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ marginBottom: '0.5rem' }}>Signing you in…</h2>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Completing Google authentication, please wait.
+            </p>
+          </div>
+        </>
+      ) : (
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <h2 style={{ color: 'var(--color-danger)', marginBottom: '0.75rem' }}>
+            Authentication Failed
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            {errorMessage}
+          </p>
+          <button
+            className="btn-primary"
+            onClick={() => navigate('/login')}
+            style={{ display: 'inline-flex' }}
+          >
+            Return to Login
+          </button>
+        </div>
+      )}
     </div>
   )
 }
 
 export default GoogleCallbackPage
-

@@ -1,57 +1,66 @@
 import api from './api'
 
+/**
+ * Auth service — wraps /users/* endpoints in voyager-backend-core.
+ *
+ * Contracts:
+ *   POST /users/register  { username, email, password, firstName, lastName, phoneNumber? }
+ *   POST /users/login     { usernameOrEmail, password } → LoginResponseDto
+ *   GET  /users/me        → UserDto
+ *   PUT  /users/{id}      { firstName, lastName, phoneNumber?, bio?, interests? } → UserDto
+ *   GET  /users/{id}      → UserDto
+ *   GET  /users/check-username?username=…  → Boolean
+ *   GET  /users/check-email?email=…        → Boolean
+ */
 export const authService = {
-  // Login user
-  login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials)
-    return response
-  },
+  /**
+   * Register a new user.
+   * @param {{ username, email, password, firstName, lastName, phoneNumber? }} payload
+   * @returns {Promise<UserDto>}
+   */
+  register: (payload) => api.post('/users/register', payload),
 
-  // Register user
-  register: async (userData) => {
-    const response = await api.post('/auth/register', userData)
-    return response
-  },
+  /**
+   * Authenticate and receive a JWT token.
+   * @param {{ usernameOrEmail: string, password: string }} credentials
+   * @returns {Promise<LoginResponseDto>} — { token, tokenType, expiresIn, user }
+   */
+  login: (credentials) => api.post('/users/login', credentials),
 
-  // Logout user
-  logout: async () => {
-    const response = await api.post('/auth/logout')
-    return response
-  },
+  /**
+   * Fetch the currently authenticated user's profile.
+   * @returns {Promise<UserDto>}
+   */
+  getCurrentUser: () => api.get('/users/me'),
 
-  // Get current user profile
-  getCurrentUser: async () => {
-    const response = await api.get('/auth/me')
-    return response
-  },
+  /**
+   * Update a user's profile fields.
+   * @param {number|string} userId
+   * @param {{ firstName?, lastName?, phoneNumber?, bio?, interests? }} payload
+   * @returns {Promise<UserDto>}
+   */
+  updateProfile: (userId, payload) => api.put(`/users/${userId}`, payload),
 
-  // Update user profile
-  updateProfile: async (userData) => {
-    const response = await api.put('/auth/profile', userData)
-    return response
-  },
+  /**
+   * Fetch any user by id.
+   * @param {number|string} userId
+   * @returns {Promise<UserDto>}
+   */
+  getUserById: (userId) => api.get(`/users/${userId}`),
 
-  // Change password
-  changePassword: async (passwordData) => {
-    const response = await api.put('/auth/password', passwordData)
-    return response
-  },
+  /**
+   * Check if a username is available.
+   * @param {string} username
+   * @returns {Promise<boolean>}
+   */
+  checkUsername: (username) =>
+    api.get('/users/check-username', { params: { username } }),
 
-  // Request password reset
-  requestPasswordReset: async (email) => {
-    const response = await api.post('/auth/forgot-password', { email })
-    return response
-  },
-
-  // Reset password
-  resetPassword: async (token, newPassword) => {
-    const response = await api.post('/auth/reset-password', { token, newPassword })
-    return response
-  },
-
-  // Refresh token
-  refreshToken: async () => {
-    const response = await api.post('/auth/refresh')
-    return response
-  }
+  /**
+   * Check if an email is available.
+   * @param {string} email
+   * @returns {Promise<boolean>}
+   */
+  checkEmail: (email) =>
+    api.get('/users/check-email', { params: { email } }),
 }

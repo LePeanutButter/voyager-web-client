@@ -1,103 +1,169 @@
-import api from './api'
+import aiMicroservice from './aiMicroservice'
 
+/**
+ * AI service — wraps all voyager-ai-service (FastAPI) endpoints.
+ *
+ * Key contracts:
+ *   POST   /chat                               { userId, message } → ChatResponse
+ *   GET    /chat/{userId}/history              → ConversationHistoryResponse
+ *   DELETE /chat/{userId}/history              → ClearHistoryResponse
+ *   POST   /recommendations/personalized       { user_id, ... } → RecommendationResponse
+ *   GET    /recommendations/popular/{location} → { activities, total_results }
+ *   GET    /recommendations/trending           → { activities, total_results }
+ *   POST   /recommendations/feedback           → confirmation
+ *   GET    /recommendations/categories         → { categories }
+ *   GET    /matching/recommendations/{userId}  → { recommendations }
+ *   POST   /matching/compatibility/{uid}/{tid} → compatibility score
+ *   POST   /preferences/questionnaire/step     → QuestionnaireStepResponse
+ *   POST   /preferences/questionnaire/submit   → QuestionnaireSubmitResponse
+ */
 export const aiService = {
-  // Chat with AI assistant
-  sendMessage: async (message, conversationHistory = []) => {
-    const response = await api.post('/ai/chat', {
-      message,
-      conversationHistory
-    })
-    return response
-  },
+  // ── Chat ─────────────────────────────────────────────────────────────────
 
-  // Get travel recommendations
-  getRecommendations: async (preferences, tripType = 'general') => {
-    const response = await api.post('/ai/recommendations', {
-      preferences,
-      tripType
-    })
-    return response
-  },
+  /**
+   * Send a message to the AI travel chatbot.
+   * @param {string} userId
+   * @param {string} message
+   * @returns {Promise<ChatResponse>} — { reply, suggestions, ... }
+   */
+  chat: (userId, message) =>
+    aiMicroservice.post('/chat', { userId, message }),
 
-  // Generate itinerary
-  generateItinerary: async (tripData) => {
-    const response = await api.post('/ai/itinerary/generate', tripData)
-    return response
-  },
+  /**
+   * Retrieve conversation history for a user.
+   * @param {string} userId
+   * @returns {Promise<ConversationHistoryResponse>}
+   */
+  getHistory: (userId) => aiMicroservice.get(`/chat/${userId}/history`),
 
-  // Optimize existing itinerary
-  optimizeItinerary: async (itineraryData, constraints = {}) => {
-    const response = await api.post('/ai/itinerary/optimize', {
-      itinerary: itineraryData,
-      constraints
-    })
-    return response
-  },
+  /**
+   * Clear a user's conversation history.
+   * @param {string} userId
+   * @returns {Promise<ClearHistoryResponse>}
+   */
+  clearHistory: (userId) => aiMicroservice.delete(`/chat/${userId}/history`),
 
-  // Get destination insights
-  getDestinationInsights: async (destinationId) => {
-    const response = await api.get(`/ai/destinations/${destinationId}/insights`)
-    return response
-  },
+  // ── Recommendations ───────────────────────────────────────────────────────
 
-  // Get travel tips
-  getTravelTips: async (destination, travelStyle = 'general') => {
-    const response = await api.post('/ai/tips', {
-      destination,
-      travelStyle
-    })
-    return response
-  },
+  /**
+   * Get personalized recommendations for a user.
+   * @param {{ user_id: string, [key: string]: any }} request
+   * @returns {Promise<RecommendationResponse>}
+   */
+  getPersonalizedRecommendations: (request) =>
+    aiMicroservice.post('/recommendations/personalized', request),
 
-  // Budget estimation
-  estimateBudget: async (tripData) => {
-    const response = await api.post('/ai/budget/estimate', tripData)
-    return response
-  },
+  /**
+   * Get popular activities for a location.
+   * @param {string} location
+   * @param {number} limit
+   * @returns {Promise<{ location, activities, total_results }>}
+   */
+  getPopularActivities: (location, limit = 10) =>
+    aiMicroservice.get(`/recommendations/popular/${encodeURIComponent(location)}`, {
+      params: { limit },
+    }),
 
-  // Best time to visit
-  getBestTimeToVisit: async (destinationId, preferences = {}) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/best-time`, preferences)
-    return response
-  },
+  /**
+   * Get trending activities, optionally filtered by category.
+   * @param {string|null} category
+   * @param {number} limit
+   * @returns {Promise<{ category, activities, total_results }>}
+   */
+  getTrendingActivities: (category = null, limit = 10) =>
+    aiMicroservice.get('/recommendations/trending', {
+      params: { ...(category ? { category } : {}), limit },
+    }),
 
-  // Weather forecast
-  getWeatherForecast: async (destinationId, dates) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/weather`, { dates })
-    return response
-  },
+  /**
+   * Get similar activities to a reference activity.
+   * @param {string} activityId
+   * @param {number} limit
+   * @returns {Promise<{ similar_activities, total_results }>}
+   */
+  getSimilarActivities: (activityId, limit = 5) =>
+    aiMicroservice.get(`/recommendations/similar/${activityId}`, {
+      params: { limit },
+    }),
 
-  // Local events and festivals
-  getLocalEvents: async (destinationId, dateRange) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/events`, { dateRange })
-    return response
-  },
+  /**
+   * Get all activity categories.
+   * @returns {Promise<{ categories, total_count }>}
+   */
+  getCategories: () => aiMicroservice.get('/recommendations/categories'),
 
-  // Language and culture tips
-  getCulturalTips: async (destinationId) => {
-    const response = await api.get(`/ai/destinations/${destinationId}/culture`)
-    return response
-  },
+  /**
+   * Submit feedback for a recommendation.
+   * @param {string} userId
+   * @param {string} activityId
+   * @param {number} rating  (1-5)
+   * @param {string|null} feedbackText
+   * @returns {Promise<any>}
+   */
+  submitRecommendationFeedback: (userId, activityId, rating, feedbackText = null) =>
+    aiMicroservice.post('/recommendations/feedback', null, {
+      params: {
+        user_id: userId,
+        activity_id: activityId,
+        rating,
+        ...(feedbackText ? { feedback_text: feedbackText } : {}),
+      },
+    }),
 
-  // Safety information
-  getSafetyInfo: async (destinationId) => {
-    const response = await api.get(`/ai/destinations/${destinationId}/safety`)
-    return response
-  },
+  // ── Matching ─────────────────────────────────────────────────────────────
 
-  // Transportation recommendations
-  getTransportationOptions: async (origin, destination, preferences = {}) => {
-    const response = await api.post('/ai/transportation', {
-      origin,
-      destination,
-      preferences
-    })
-    return response
-  },
+  /**
+   * Get travel buddy recommendations for a user.
+   * @param {string} userId
+   * @param {string|null} location
+   * @param {number} limit
+   * @returns {Promise<{ recommendations, total_count }>}
+   */
+  getBuddyRecommendations: (userId, location = null, limit = 10) =>
+    aiMicroservice.get(`/matching/recommendations/${userId}`, {
+      params: { limit, ...(location ? { location } : {}) },
+    }),
 
-  // Accommodation recommendations
-  getAccommodationRecommendations: async (destinationId, preferences = {}) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/accommodations`, preferences)
-    return response
-  }
+  /**
+   * Get AI compatibility score between two users.
+   * @param {string} userId
+   * @param {string} targetUserId
+   * @returns {Promise<any>}
+   */
+  getCompatibilityScore: (userId, targetUserId) =>
+    aiMicroservice.post(`/matching/compatibility/${userId}/${targetUserId}`),
+
+  /**
+   * Submit feedback for a match.
+   * @param {string} userId
+   * @param {string} targetUserId
+   * @param {number} rating  (1-5)
+   * @param {string|null} feedbackText
+   * @returns {Promise<any>}
+   */
+  submitMatchFeedback: (userId, targetUserId, rating, feedbackText = null) =>
+    aiMicroservice.post(`/matching/feedback/${userId}/${targetUserId}`, null, {
+      params: {
+        rating,
+        ...(feedbackText ? { feedback_text: feedbackText } : {}),
+      },
+    }),
+
+  // ── Preferences ───────────────────────────────────────────────────────────
+
+  /**
+   * Process one step of the adaptive preference questionnaire.
+   * @param {{ user_id: string, session_id?: string, answers?: object }} body
+   * @returns {Promise<QuestionnaireStepResponse>}
+   */
+  questionnaireStep: (body) =>
+    aiMicroservice.post('/preferences/questionnaire/step', body),
+
+  /**
+   * Submit the completed questionnaire.
+   * @param {{ user_id: string, session_id: string, answers: object }} body
+   * @returns {Promise<QuestionnaireSubmitResponse>}
+   */
+  questionnaireSubmit: (body) =>
+    aiMicroservice.post('/preferences/questionnaire/submit', body),
 }
