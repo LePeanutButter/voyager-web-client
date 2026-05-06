@@ -49,8 +49,8 @@ const TravelerChat = ({ connectionId, userId, peerName = 'Viajero' }) => {
       for (const raw of list) {
         const n = normalizeIncoming(raw)
         if (n.type === 'ERROR') continue
-        if (n.id != null) map.set(n.id, n)
-        else map.set(`tmp-${Math.random()}`, n)
+        if (n.id == null) map.set(`tmp-${Math.random()}`, n)
+        else map.set(n.id, n)
       }
       return Array.from(map.values()).sort(sortByTime)
     })
@@ -176,7 +176,7 @@ const TravelerChat = ({ connectionId, userId, peerName = 'Viajero' }) => {
             <p>Cargando historial…</p>
           </div>
         )}
-        {!loadingHistory && messages.length === 0 && !loadError && (
+        {loadingHistory === false && messages.length === 0 && loadError === null && (
           <p className="traveler-chat__empty">
             Aún no hay mensajes en esta conversación. Escribe abajo para empezar a coordinar tu viaje.
           </p>

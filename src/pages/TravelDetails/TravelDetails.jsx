@@ -58,7 +58,7 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
         description: form.description?.trim() || undefined,
         type: form.type?.trim() || undefined,
         location: form.location?.trim() || undefined,
-        estimatedCost: form.estimatedCost !== '' ? Number(form.estimatedCost) : undefined,
+        estimatedCost: form.estimatedCost === '' ? undefined : Number(form.estimatedCost),
         notes: form.notes?.trim() || undefined,
       }
       let result
@@ -75,9 +75,14 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
     }
   }
 
+  let btnText = 'Add Activity';
+  if (loading) btnText = 'Saving…';
+  else if (isEdit) btnText = 'Save Changes';
+
   return (
-    <div className="modal-overlay" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') onClose() }}>
-      <div className="modal-box animate-scaleIn" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }} role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
+    <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button type="button" onClick={onClose} aria-label="Close modal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 'none', cursor: 'default' }} />
+      <dialog open className="modal-box animate-scaleIn" style={{ maxWidth: 500, position: 'relative', zIndex: 1, margin: 0 }} aria-labelledby="activity-modal-title">
         <h3 id="activity-modal-title">{isEdit ? 'Edit Activity' : 'Add Activity'}</h3>
         {error && <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
@@ -110,11 +115,11 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Activity'}
+              {btnText}
             </button>
           </div>
         </form>
-      </div>
+      </dialog>
     </div>
   )
 }

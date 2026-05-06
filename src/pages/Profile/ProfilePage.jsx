@@ -180,8 +180,8 @@ const ProfilePage = () => {
                   <textarea id="profile-bio" name="bio" value={form.bio} onChange={handleChange} rows={3} placeholder="Tell other travelers about yourself…" />
                 </div>
 
-                <div className="form-group">
-                  <label>Travel Interests</label>
+                <div className="form-group" role="group" aria-labelledby="interests-label">
+                  <span id="interests-label" style={{ fontWeight: 500, color: '#495057', fontSize: '0.875rem' }}>Travel Interests</span>
                   <div className="interests-grid">
                     {INTERESTS_OPTIONS.map((interest) => (
                       <button
@@ -201,11 +201,10 @@ const ProfilePage = () => {
                   <button type="button" className="btn-primary" onClick={handleSave} disabled={saving}>
                     {saving ? (
                       <span className="flex items-center gap-2">
-                        <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                        {'Saving…'}
+                        <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />{' '}{'Saving…'}
                       </span>
                     ) : (
-                      <><Save size={15} /> Save Changes</>
+                      <span className="flex items-center gap-2"><Save size={15} /> Save Changes</span>
                     )}
                   </button>
                 </div>

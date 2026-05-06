@@ -2,6 +2,20 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback } 
 import { authService } from '../services/authService'
 import { TOKEN_KEY } from '../services/api'
 
+const sanitizeUser = (user) => {
+  if (!user || typeof user !== "object") return null;
+
+  return {
+    id: String(user.id ?? ""),
+    name: String(user.name ?? ""),
+    email: String(user.email ?? ""),
+    firstName: String(user.firstName ?? ""),
+    lastName: String(user.lastName ?? ""),
+    username: String(user.username ?? ""),
+    role: String(user.role ?? "USER")
+  };
+};
+
 // ─── State & Actions ─────────────────────────────────────────────────────────
 
 const initialState = {
@@ -79,7 +93,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const user = await authService.getCurrentUser()
+        const rawUser = await authService.getCurrentUser()
+        const user = sanitizeUser(rawUser)
         localStorage.setItem('voyager_user', JSON.stringify(user))
         dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
       } catch {
@@ -97,7 +112,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (arg1, arg2) => {
     if (typeof arg2 === 'string' && arg2.length > 0) {
       const token = arg2
-      const user = arg1 || null
+      const user = sanitizeUser(arg1)
       localStorage.setItem(TOKEN_KEY, token)
       if (user) localStorage.setItem('voyager_user', JSON.stringify(user))
       dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
@@ -109,12 +124,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const loginResponse = await authService.login(credentials)
       const token = loginResponse?.token
-      const user = loginResponse?.user
+      const rawUser = loginResponse?.user
 
       if (!token) throw new Error('No token received from server')
 
+      const user = sanitizeUser(rawUser)
       localStorage.setItem(TOKEN_KEY, token)
-      localStorage.setItem('voyager_user', JSON.stringify(user))
+      if (user) localStorage.setItem('voyager_user', JSON.stringify(user))
       dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
       return { user, token }
     } catch (error) {

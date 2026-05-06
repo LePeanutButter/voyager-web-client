@@ -88,6 +88,7 @@ const TravelerChatPage = () => {
       setInputValue('')
       loadMessages()
     } catch (err) {
+      console.error(err)
       setError('Failed to send message')
     } finally {
       setSending(false)

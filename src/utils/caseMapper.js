@@ -3,13 +3,13 @@
  */
 
 const toCamelCase = (str) => {
-  return str.replace(/([-_][a-z])/g, (group) =>
+  return str.replaceAll(/([-_][a-z])/g, (group) =>
     group.toUpperCase().replaceAll('-', '').replaceAll('_', '')
   )
 }
 
 const toSnakeCase = (str) => {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+  return str.replaceAll(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
 }
 
 const isObject = (obj) => {

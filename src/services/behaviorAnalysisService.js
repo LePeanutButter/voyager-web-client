@@ -24,7 +24,7 @@ aiApi.interceptors.request.use(
     return config
   },
   (error) => {
-    return Promise.reject(error)
+    throw error
   }
 );
 
@@ -60,7 +60,7 @@ aiApi.interceptors.response.use(
     }
     
     // Return a more user-friendly error
-    return Promise.reject(new Error(errorMessage))
+    throw new Error(errorMessage)
   }
 );
 

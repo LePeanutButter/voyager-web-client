@@ -11,7 +11,7 @@ export function useTravelerChatSocket(connectionId, { enabled = true, onMessage 
   const onMessageRef = useRef(onMessage)
   onMessageRef.current = onMessage
 
-  const brokerURL = import.meta !== undefined ? import.meta.env?.VITE_WS_BROKER_URL : undefined
+  const brokerURL = import.meta === undefined ? undefined : import.meta.env?.VITE_WS_BROKER_URL
 
   useEffect(() => {
     if (!enabled || !connectionId || !brokerURL) {

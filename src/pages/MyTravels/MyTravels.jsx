@@ -44,6 +44,35 @@ const MyTravels = () => {
     }
   }
 
+  let emptyStateContent
+  if (plans.length === 0) {
+    emptyStateContent = (
+      <>
+        <div className="empty-state-icon">
+          <Plane size={32} />
+        </div>
+        <h3>No travel plans yet</h3>
+        <p>Start planning your first adventure and let AI guide you to the perfect destination!</p>
+        <Link to="/travel-plans/create" className="btn-primary" style={{ display: 'inline-flex' }}>
+          <Plus size={16} /> Create My First Plan
+        </Link>
+      </>
+    )
+  } else {
+    emptyStateContent = (
+      <>
+        <div className="empty-state-icon">
+          <Filter size={28} />
+        </div>
+        <h3>No {activeFilter.toLowerCase()} plans</h3>
+        <p>Try selecting a different filter.</p>
+        <button className="btn-primary" onClick={() => setActiveFilter('ALL')} style={{ display: 'inline-flex' }}>
+          View All Plans
+        </button>
+      </>
+    )
+  }
+
   let content
   if (loading) {
     content = (
@@ -131,35 +160,6 @@ const MyTravels = () => {
     )
   }
 
-  let emptyStateContent
-  if (plans.length === 0) {
-    emptyStateContent = (
-      <>
-        <div className="empty-state-icon">
-          <Plane size={32} />
-        </div>
-        <h3>No travel plans yet</h3>
-        <p>Start planning your first adventure and let AI guide you to the perfect destination!</p>
-        <Link to="/travel-plans/create" className="btn-primary" style={{ display: 'inline-flex' }}>
-          <Plus size={16} /> Create My First Plan
-        </Link>
-      </>
-    )
-  } else {
-    emptyStateContent = (
-      <>
-        <div className="empty-state-icon">
-          <Filter size={28} />
-        </div>
-        <h3>No {activeFilter.toLowerCase()} plans</h3>
-        <p>Try selecting a different filter.</p>
-        <button className="btn-primary" onClick={() => setActiveFilter('ALL')} style={{ display: 'inline-flex' }}>
-          View All Plans
-        </button>
-      </>
-    )
-  }
-
   return (
     <div className="my-travels-page page-container">
       {/* Header */}
@@ -196,16 +196,10 @@ const MyTravels = () => {
       {/* Content */}
       {content}
 
-      {/* Delete confirmation modal */}
       {confirmDelete && (
-        <div 
-          className="modal-overlay" 
-          onClick={() => setConfirmDelete(null)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setConfirmDelete(null) }}
-        >
-          <div className="modal-box animate-scaleIn" onClick={(e) => e.stopPropagation()} role="dialog">
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button type="button" onClick={() => setConfirmDelete(null)} aria-label="Close modal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 'none', cursor: 'default' }} />
+          <dialog open className="modal-box animate-scaleIn" style={{ maxWidth: 500, position: 'relative', zIndex: 1, margin: 0 }}>
             <h3>Delete Travel Plan?</h3>
             <p>This action cannot be undone. The plan and all its activities will be permanently deleted.</p>
             <div className="modal-actions">
@@ -218,7 +212,7 @@ const MyTravels = () => {
                 {deletingId === confirmDelete ? 'Deleting…' : 'Delete Plan'}
               </button>
             </div>
-          </div>
+          </dialog>
         </div>
       )}
     </div>

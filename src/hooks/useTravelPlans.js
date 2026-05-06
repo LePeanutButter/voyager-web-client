@@ -21,11 +21,12 @@ export function useTravelPlans(autoLoad = false) {
     try {
       const result = await travelService.list()
       // Handle both paged and direct array responses
-      const list = Array.isArray(result)
-        ? result
-        : Array.isArray(result?.content)
-        ? result.content
-        : []
+      let list = []
+      if (Array.isArray(result)) {
+        list = result
+      } else if (Array.isArray(result?.content)) {
+        list = result.content
+      }
       setPlans(list)
       return list
     } catch (err) {

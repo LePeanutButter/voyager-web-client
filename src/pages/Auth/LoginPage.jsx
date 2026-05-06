@@ -150,8 +150,7 @@ const LoginPage = () => {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-                  Signing in…
+                  <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />{' '}Signing in…
                 </span>
               ) : (
                 'Sign In'

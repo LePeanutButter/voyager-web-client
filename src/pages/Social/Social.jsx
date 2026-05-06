@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { socialService } from '../../services/socialService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
-import { Users, Search, MapPin, MessageCircle, UserPlus, Check, X } from 'lucide-react'
+import { Users, Search, MessageCircle, UserPlus, Check, X } from 'lucide-react'
 import './Social.css'
 
 const Social = () => {

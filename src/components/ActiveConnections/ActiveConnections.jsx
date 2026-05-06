@@ -140,24 +140,7 @@ const ActiveConnections = ({ userId }) => {
                 </div>
               </div>
 
-              {!isConfirming ? (
-                <div className="active-connections__actions">
-                  <Link
-                    className="active-connections__btn-chat"
-                    to={`/social/chat/${cid}?name=${encodeURIComponent(name)}`}
-                  >
-                    Abrir chat
-                  </Link>
-                  <button
-                    type="button"
-                    className="active-connections__btn-remove"
-                    onClick={() => setConfirmingId(cid)}
-                    disabled={isRemoving}
-                  >
-                    Eliminar conexión
-                  </button>
-                </div>
-              ) : (
+              {isConfirming ? (
                 <fieldset className="active-connections__confirm">
                   <legend className="active-connections__confirm-legend">Confirmar eliminación</legend>
                   <p className="active-connections__confirm-text">
@@ -182,6 +165,23 @@ const ActiveConnections = ({ userId }) => {
                     </button>
                   </div>
                 </fieldset>
+              ) : (
+                <div className="active-connections__actions">
+                  <Link
+                    className="active-connections__btn-chat"
+                    to={`/social/chat/${cid}?name=${encodeURIComponent(name)}`}
+                  >
+                    Abrir chat
+                  </Link>
+                  <button
+                    type="button"
+                    className="active-connections__btn-remove"
+                    onClick={() => setConfirmingId(cid)}
+                    disabled={isRemoving}
+                  >
+                    Eliminar conexión
+                  </button>
+                </div>
               )}
             </li>
           )
