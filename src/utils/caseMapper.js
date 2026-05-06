@@ -4,7 +4,7 @@
 
 const toCamelCase = (str) => {
   return str.replace(/([-_][a-z])/g, (group) =>
-    group.toUpperCase().replace('-', '').replace('_', '')
+    group.toUpperCase().replaceAll('-', '').replaceAll('_', '')
   )
 }
 

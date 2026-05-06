@@ -131,7 +131,7 @@ const MyTravels = () => {
     )
   }
 
-  let emptyStateContent = null
+  let emptyStateContent
   if (plans.length === 0) {
     emptyStateContent = (
       <>
@@ -198,8 +198,14 @@ const MyTravels = () => {
 
       {/* Delete confirmation modal */}
       {confirmDelete && (
-        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="modal-box animate-scaleIn" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="modal-overlay" 
+          onClick={() => setConfirmDelete(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setConfirmDelete(null) }}
+        >
+          <div className="modal-box animate-scaleIn" onClick={(e) => e.stopPropagation()} role="dialog">
             <h3>Delete Travel Plan?</h3>
             <p>This action cannot be undone. The plan and all its activities will be permanently deleted.</p>
             <div className="modal-actions">

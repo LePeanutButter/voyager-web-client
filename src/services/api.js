@@ -77,7 +77,7 @@ api.interceptors.response.use(
     const enhanced = new Error(message)
     enhanced.response = error.response
     enhanced.status = status
-    return Promise.reject(enhanced)
+    throw enhanced
   }
 )
 

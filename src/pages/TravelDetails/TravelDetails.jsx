@@ -76,9 +76,9 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box animate-scaleIn" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
-        <h3>{isEdit ? 'Edit Activity' : 'Add Activity'}</h3>
+    <div className="modal-overlay" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') onClose() }}>
+      <div className="modal-box animate-scaleIn" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }} role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
+        <h3 id="activity-modal-title">{isEdit ? 'Edit Activity' : 'Add Activity'}</h3>
         {error && <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
           <div className="form-group">
@@ -132,6 +132,107 @@ ActivityModal.propTypes = {
   }),
   onClose: PropTypes.func.isRequired,
   onSaved: PropTypes.func.isRequired,
+}
+
+const ActivityList = ({ activities, onEdit, onDelete }) => {
+  if (activities.length === 0) {
+    return (
+      <div className="activities-empty">
+        <Activity size={28} />
+        <p>No activities yet — click Add to plan your days!</p>
+      </div>
+    )
+  }
+  return (
+    <div className="activities-list">
+      {activities.map((act) => (
+        <div key={act.id} className="activity-item">
+          <div className="activity-item-left">
+            <div className="activity-icon"><Activity size={15} /></div>
+            <div>
+              <h4>{act.name}</h4>
+              {act.type && <span className="activity-type">{act.type}</span>}
+              {act.location && (
+                <div className="meta-row" style={{ marginTop: '0.25rem' }}>
+                  <MapPin size={12} /><span>{act.location}</span>
+                </div>
+              )}
+              {act.description && <p className="activity-desc">{act.description}</p>}
+            </div>
+          </div>
+          <div className="activity-item-right">
+            {act.estimatedCost != null && (
+              <span className="activity-cost">${Number(act.estimatedCost).toLocaleString()}</span>
+            )}
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <button className="icon-btn" onClick={() => onEdit(act)} title="Edit">
+                <Edit size={14} />
+              </button>
+              <button className="icon-btn danger" onClick={() => onDelete(act.id)} title="Delete">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+ActivityList.propTypes = {
+  activities: PropTypes.array.isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+}
+
+const CompatibleTravelersList = ({ loading, travelers }) => {
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {['first', 'second', 'third'].map((item) => (
+          <div key={item} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div className="skeleton skeleton-avatar" style={{ width: 40, height: 40 }} />
+            <div style={{ flex: 1 }}>
+              <SkeletonLoader variant="text" width="60%" />
+              <SkeletonLoader variant="text" width="40%" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  
+  if (travelers.length === 0) {
+    return (
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>
+        Click "Find" to discover travelers with similar plans
+      </p>
+    )
+  }
+
+  return (
+    <div className="compat-list">
+      {travelers.map((t) => (
+        <div key={t.id ?? t.username ?? `${t.firstName}-${t.lastName}`} className="compat-item">
+          <div className="compat-avatar">
+            {(t.firstName || t.username || '?')[0].toUpperCase()}
+          </div>
+          <div>
+            <h4>{t.firstName} {t.lastName}</h4>
+            <p>@{t.username}</p>
+          </div>
+          {t.compatibilityScore != null && (
+            <span className="compat-score">{Math.round(t.compatibilityScore * 100)}%</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+CompatibleTravelersList.propTypes = {
+  loading: PropTypes.bool.isRequired,
+  travelers: PropTypes.array.isRequired,
 }
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
@@ -327,45 +428,11 @@ const TravelDetails = () => {
                 <Plus size={15} /> Add
               </button>
             </div>
-            {activities.length === 0 ? (
-              <div className="activities-empty">
-                <Activity size={28} />
-                <p>No activities yet — click Add to plan your days!</p>
-              </div>
-            ) : (
-              <div className="activities-list">
-                {activities.map((act) => (
-                  <div key={act.id} className="activity-item">
-                    <div className="activity-item-left">
-                      <div className="activity-icon"><Activity size={15} /></div>
-                      <div>
-                        <h4>{act.name}</h4>
-                        {act.type && <span className="activity-type">{act.type}</span>}
-                        {act.location && (
-                          <div className="meta-row" style={{ marginTop: '0.25rem' }}>
-                            <MapPin size={12} /><span>{act.location}</span>
-                          </div>
-                        )}
-                        {act.description && <p className="activity-desc">{act.description}</p>}
-                      </div>
-                    </div>
-                    <div className="activity-item-right">
-                      {act.estimatedCost != null && (
-                        <span className="activity-cost">${Number(act.estimatedCost).toLocaleString()}</span>
-                      )}
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        <button className="icon-btn" onClick={() => setActiveModal(act)} title="Edit">
-                          <Edit size={14} />
-                        </button>
-                        <button className="icon-btn danger" onClick={() => handleDeleteActivity(act.id)} title="Delete">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ActivityList 
+              activities={activities} 
+              onEdit={(act) => setActiveModal(act)} 
+              onDelete={handleDeleteActivity} 
+            />
           </div>
         </div>
 
@@ -384,53 +451,23 @@ const TravelDetails = () => {
                 </button>
               )}
             </div>
-            {compatLoading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {['first', 'second', 'third'].map((item) => (
-                  <div key={item} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <div className="skeleton skeleton-avatar" style={{ width: 40, height: 40 }} />
-                    <div style={{ flex: 1 }}>
-                      <SkeletonLoader variant="text" width="60%" />
-                      <SkeletonLoader variant="text" width="40%" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : compatTravelers.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>
-                Click "Find" to discover travelers with similar plans
-              </p>
-            ) : (
-              <div className="compat-list">
-                {compatTravelers.map((t) => (
-                  <div key={t.id ?? t.username ?? `${t.firstName}-${t.lastName}`} className="compat-item">
-                    <div className="compat-avatar">
-                      {(t.firstName || t.username || '?')[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <h4>{t.firstName} {t.lastName}</h4>
-                      <p>@{t.username}</p>
-                    </div>
-                    {t.compatibilityScore != null && (
-                      <span className="compat-score">{Math.round(t.compatibilityScore * 100)}%</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <CompatibleTravelersList loading={compatLoading} travelers={compatTravelers} />
           </div>
         </div>
       </div>
 
       {/* Activity Modal */}
-      {activeModal && (
-        <ActivityModal
-          planId={id}
-          activity={activeModal === 'add' ? null : activeModal}
-          onClose={() => setActiveModal(null)}
-          onSaved={handleActivitySaved}
-        />
-      )}
+      {activeModal && (() => {
+        const activityToEdit = activeModal === 'add' ? null : activeModal;
+        return (
+          <ActivityModal
+            planId={id}
+            activity={activityToEdit}
+            onClose={() => setActiveModal(null)}
+            onSaved={handleActivitySaved}
+          />
+        );
+      })()}
     </div>
   )
 }

@@ -203,7 +203,7 @@ const RegisterPage = () => {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-                  Creating account…
+                  {'Creating account…'}
                 </span>
               ) : (
                 'Create Account'
@@ -212,7 +212,7 @@ const RegisterPage = () => {
 
             <p className="auth-terms">
               By creating an account you agree to our{' '}
-              <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+              <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
             </p>
           </form>
 

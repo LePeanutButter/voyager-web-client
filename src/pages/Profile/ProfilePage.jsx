@@ -202,7 +202,7 @@ const ProfilePage = () => {
                     {saving ? (
                       <span className="flex items-center gap-2">
                         <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                        Saving…
+                        {'Saving…'}
                       </span>
                     ) : (
                       <><Save size={15} /> Save Changes</>

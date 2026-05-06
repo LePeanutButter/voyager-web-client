@@ -61,7 +61,7 @@ export function extractFieldErrors(error) {
   if (!Array.isArray(data?.errors)) return {}
 
   return data.errors.reduce((acc, e) => {
-    if (e && e.field) {
+    if (e?.field) {
       acc[e.field] = e.defaultMessage || e.message || 'Invalid value'
     }
     return acc

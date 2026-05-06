@@ -106,7 +106,6 @@
   .dashboard-grid { grid-template-columns: 1fr; }
 }
 
-.dashboard-main, .dashboard-sidebar {}
 
 .section-header {
   display: flex;

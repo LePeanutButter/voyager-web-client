@@ -37,6 +37,7 @@ const TravelerChatPage = () => {
       setError(null)
       setLoading(false)
     } catch (err) {
+      console.error(err)
       if (loading) setError('Failed to load messages')
       setLoading(false)
     }

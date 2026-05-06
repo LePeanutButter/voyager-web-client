@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
 import { getAllConversationMessages, sendTravelerMessage } from '../../services/socialService'
 import { useTravelerChatSocket } from '../../hooks/useTravelerChatSocket'
@@ -222,6 +223,12 @@ const TravelerChat = ({ connectionId, userId, peerName = 'Viajero' }) => {
       </form>
     </div>
   )
+}
+
+TravelerChat.propTypes = {
+  connectionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  userId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  peerName: PropTypes.string,
 }
 
 export default TravelerChat

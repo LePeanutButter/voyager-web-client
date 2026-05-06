@@ -130,7 +130,7 @@ export const removeConnection = async (connectionId) => {
 const unwrapPageContent = (body) => {
   if (!body) return []
   if (Array.isArray(body)) return body
-  const inner = body.data !== undefined ? body.data : body
+  const inner = body.data === undefined ? body : body.data
   if (Array.isArray(inner)) return inner
   if (inner?.content && Array.isArray(inner.content)) return inner.content
   if (inner?.records && Array.isArray(inner.records)) return inner.records
@@ -162,7 +162,7 @@ const extractPageMetadata = (raw) => {
   if (!raw || typeof raw !== 'object') {
     return { last: true, totalPages: null, number: 0 }
   }
-  let node = raw.data !== undefined ? raw.data : raw
+  let node = raw.data === undefined ? raw : raw.data
   if (node && typeof node === 'object' && node.data?.content !== undefined) {
     node = node.data
   }

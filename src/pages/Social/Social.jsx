@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { socialService, travelService } from '../../services/socialService' // actually socialService has the methods
+import { socialService } from '../../services/socialService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
-import { Users, Search, MapPin, Calendar, MessageCircle, UserPlus, Check, X } from 'lucide-react'
+import { Users, Search, MapPin, MessageCircle, UserPlus, Check, X } from 'lucide-react'
 import './Social.css'
 
 const Social = () => {

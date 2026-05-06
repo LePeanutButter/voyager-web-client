@@ -41,7 +41,7 @@ const TravelPreferencesPage = () => {
           }
         }
 
-        if (existingPrefs && existingPrefs.isCompleted) {
+        if (existingPrefs?.isCompleted) {
           setPreferences(existingPrefs)
           setIsCompleted(true)
           setLoading(false)

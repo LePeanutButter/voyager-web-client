@@ -71,20 +71,7 @@ const Dashboard = () => {
         {THREE_PLACEHOLDERS.map((item) => <TravelCardSkeleton key={item} />)}
       </div>
     )
-  } else if (!hasRecentPlans) {
-    recentPlansContent = (
-      <div className="empty-state" style={{ padding: '3rem 1rem' }}>
-        <div className="empty-state-icon" style={{ width: 64, height: 64 }}>
-          <Plane size={28} />
-        </div>
-        <h3>No plans yet</h3>
-        <p>Create your first travel plan and start your adventure!</p>
-        <button className={PRIMARY_BUTTON_CLASS} onClick={() => navigate(CREATE_PLAN_ROUTE)}>
-          <Plus size={16} /> Create First Plan
-        </button>
-      </div>
-    )
-  } else {
+  } else if (hasRecentPlans) {
     recentPlansContent = (
       <div className="plans-list">
         {recentPlans.map((plan) => {
@@ -103,6 +90,19 @@ const Dashboard = () => {
             </Link>
           )
         })}
+      </div>
+    )
+  } else {
+    recentPlansContent = (
+      <div className="empty-state" style={{ padding: '3rem 1rem' }}>
+        <div className="empty-state-icon" style={{ width: 64, height: 64 }}>
+          <Plane size={28} />
+        </div>
+        <h3>No plans yet</h3>
+        <p>Create your first travel plan and start your adventure!</p>
+        <button className={PRIMARY_BUTTON_CLASS} onClick={() => navigate(CREATE_PLAN_ROUTE)}>
+          <Plus size={16} /> Create First Plan
+        </button>
       </div>
     )
   }

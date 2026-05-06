@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import TravelerMatching from '../../components/TravelerMatching/TravelerMatching'
 import './SocialFeatures.css'
 
@@ -11,7 +11,6 @@ import './SocialFeatures.css'
 const TravelerMatchingPage = () => {
   // Mock data for demonstration
   const mockTravelPlanId = '1'
-  const mockToken = localStorage.getItem('token') || 'mock-token'
 
   return (
     <div className="social-features-page">
