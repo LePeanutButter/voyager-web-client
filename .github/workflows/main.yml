@@ -178,7 +178,7 @@ jobs:
       # Step 8b: SonarCloud scan (push to main)
       - name: SonarCloud Scan (branch)
         if: github.event_name != 'pull_request'
-        uses: SonarSource/sonarcloud-github-action@vffc3010689be73b8e5ae0c57ce35968afd7909e8
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
