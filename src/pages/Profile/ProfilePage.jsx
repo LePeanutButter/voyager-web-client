@@ -180,8 +180,8 @@ const ProfilePage = () => {
                   <textarea id="profile-bio" name="bio" value={form.bio} onChange={handleChange} rows={3} placeholder="Tell other travelers about yourself…" />
                 </div>
 
-                <div className="form-group" role="group" aria-labelledby="interests-label">
-                  <span id="interests-label" style={{ fontWeight: 500, color: '#495057', fontSize: '0.875rem' }}>Travel Interests</span>
+                <fieldset className="form-group" style={{ border: 'none', padding: 0, margin: 0 }}>
+                  <legend style={{ fontWeight: 500, color: '#495057', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Travel Interests</legend>
                   <div className="interests-grid">
                     {INTERESTS_OPTIONS.map((interest) => (
                       <button
@@ -189,12 +189,13 @@ const ProfilePage = () => {
                         type="button"
                         className={`interest-chip ${form.interests.includes(interest) ? 'active' : ''}`}
                         onClick={() => toggleInterest(interest)}
+                        aria-pressed={form.interests.includes(interest)}
                       >
                         {interest}
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 <div className="profile-form-actions">
                   <button type="button" className="btn-ghost" onClick={handleCancel}>Cancel</button>
