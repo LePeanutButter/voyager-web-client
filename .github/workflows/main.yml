@@ -2,7 +2,7 @@
 # GitHub Actions Workflow: CI Build & Deploy
 # Environment: Production
 # Description:
-#   - Runs tests (if present) and SonarCloud static analysis
+#   - Runs tests (if present) and SonarCloud static analysis (SONAR_TOKEN, ORGANIZATION_KEY, PROJECT_KEY + LCOV)
 #   - Runs Trivy security scan on source code/dependencies
 #   - Builds and packages the Voyager frontend app
 #   - Produces manual deployment handoff artifact for S3/CloudFront
@@ -145,12 +145,53 @@ jobs:
       - name: Install npm dependencies for Sonar
         run: npm ci --prefer-offline --no-audit
 
-      # Step 7: Run SonarCloud scan
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
+      # Step 7: Ensure LCOV exists for Sonar (placeholder if tests did not emit coverage)
+      - name: Ensure LCOV report for Sonar
+        run: |
+          mkdir -p coverage
+          if [ ! -s coverage/lcov.info ]; then
+            echo "No coverage/lcov.info from tests; writing minimal LCOV for Sonar."
+            printf '%s\n' 'TN:' 'SF:src/main.jsx' 'LF:0' 'LH:0' 'end_of_record' > coverage/lcov.info
+          fi
+          test -f coverage/lcov.info
+
+      # Step 8a: SonarCloud scan (pull request to main)
+      - name: SonarCloud Scan (PR)
+        if: github.event_name == 'pull_request'
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.organization=${{ secrets.ORGANIZATION_KEY }}
+            -Dsonar.projectKey=${{ secrets.PROJECT_KEY }}
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.scm.disabled=true
+            -Dsonar.pullrequest.key=${{ github.event.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+            -Dsonar.scm.revision=${{ github.event.pull_request.head.sha }}
+
+      # Step 8b: SonarCloud scan (push to main)
+      - name: SonarCloud Scan (branch)
+        if: github.event_name != 'pull_request'
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.organization=${{ secrets.ORGANIZATION_KEY }}
+            -Dsonar.projectKey=${{ secrets.PROJECT_KEY }}
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.scm.disabled=true
+            -Dsonar.branch.name=main
+            -Dsonar.branch.target=development
 
   # =========================================
   # Job: Build Stage
