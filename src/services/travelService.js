@@ -1,89 +1,123 @@
 import api from './api'
 
+/**
+ * Travel service — wraps /travel-plans/* and /matching/* endpoints.
+ */
 export const travelService = {
-  // Trips
-  getTrips: async (params = {}) => {
-    const response = await api.get('/trips', { params })
-    return response
+  // ─── Travel Plans ──────────────────────────────────────────────────────────
+
+  /**
+   * List authenticated user's travel plans.
+   * @param {{ page?, size? }} params
+   * @returns {Promise<TravelPlanDto[]>}
+   */
+  list: async (params = {}) => {
+    const response = await api.get('/travel-plans', { params })
+    // Normalize paginated structure
+    if (response && Array.isArray(response.content)) {
+      return response.content
+    }
+    if (response && Array.isArray(response.records)) {
+      return response.records
+    }
+    if (Array.isArray(response)) {
+      return response
+    }
+    return []
   },
 
-  getTrip: async (tripId) => {
-    const response = await api.get(`/trips/${tripId}`)
-    return response
-  },
+  /**
+   * Get a single travel plan by id.
+   * @param {number|string} id
+   * @returns {Promise<TravelPlanDto>}
+   */
+  getById: (id) => api.get(`/travel-plans/${id}`),
 
-  createTrip: async (tripData) => {
-    const response = await api.post('/trips', tripData)
-    return response
-  },
+  /**
+   * Create a new travel plan.
+   * @param {{ title, destinationLocation, originLocation?, startDate, endDate, estimatedBudget?, numberOfTravelers, description? }} payload
+   * @returns {Promise<TravelPlanDto>}
+   */
+  create: (payload) => api.post('/travel-plans', payload),
 
-  updateTrip: async (tripId, tripData) => {
-    const response = await api.put(`/trips/${tripId}`, tripData)
-    return response
-  },
+  /**
+   * Update an existing travel plan.
+   * @param {number|string} id
+   * @param {Partial<TravelPlanDto>} payload
+   * @returns {Promise<TravelPlanDto>}
+   */
+  update: (id, payload) => api.put(`/travel-plans/${id}`, payload),
 
-  deleteTrip: async (tripId) => {
-    const response = await api.delete(`/trips/${tripId}`)
-    return response
-  },
+  /**
+   * Delete a travel plan.
+   * @param {number|string} id
+   * @returns {Promise<void>}
+   */
+  remove: (id) => api.delete(`/travel-plans/${id}`),
 
-  // Destinations
-  getDestinations: async (params = {}) => {
-    const response = await api.get('/destinations', { params })
-    return response
-  },
+  /**
+   * Update the status of a travel plan.
+   * @param {number|string} id
+   * @param {'PLANNING'|'ACTIVE'|'COMPLETED'|'CANCELLED'} status
+   * @returns {Promise<TravelPlanDto>}
+   */
+  updateStatus: (id, status) =>
+    api.put(`/travel-plans/${id}/status`, null, { params: { status } }),
 
-  getDestination: async (destinationId) => {
-    const response = await api.get(`/destinations/${destinationId}`)
-    return response
-  },
+  // ─── Activities ────────────────────────────────────────────────────────────
 
-  searchDestinations: async (query) => {
-    const response = await api.get('/destinations/search', { params: { q: query } })
-    return response
-  },
+  /**
+   * Add an activity to a travel plan.
+   * @param {number|string} planId
+   * @param {{ name, description?, type?, startTime?, endTime?, location?, estimatedCost?, notes? }} payload
+   * @returns {Promise<TravelPlanActivityDto>}
+   */
+  addActivity: (planId, payload) =>
+    api.post(`/travel-plans/${planId}/activities`, payload),
 
-  // Favorites
-  getFavorites: async () => {
-    const response = await api.get('/favorites')
-    return response
-  },
+  /**
+   * Update an existing activity.
+   * @param {number|string} planId
+   * @param {number|string} activityId
+   * @param {Partial<TravelPlanActivityDto>} payload
+   * @returns {Promise<TravelPlanActivityDto>}
+   */
+  updateActivity: (planId, activityId, payload) =>
+    api.put(`/travel-plans/${planId}/activities/${activityId}`, payload),
 
-  addFavorite: async (destinationId) => {
-    const response = await api.post('/favorites', { destinationId })
-    return response
-  },
+  /**
+   * Delete an activity from a travel plan.
+   * @param {number|string} planId
+   * @param {number|string} activityId
+   * @returns {Promise<void>}
+   */
+  deleteActivity: (planId, activityId) =>
+    api.delete(`/travel-plans/${planId}/activities/${activityId}`),
 
-  removeFavorite: async (destinationId) => {
-    const response = await api.delete(`/favorites/${destinationId}`)
-    return response
-  },
+  // ─── Matching ──────────────────────────────────────────────────────────────
 
-  // Recommendations
-  getRecommendations: async (preferences) => {
-    const response = await api.post('/recommendations', preferences)
-    return response
-  },
+  /**
+   * Find compatible travelers for a specific plan.
+   * @param {number|string} planId
+   * @returns {Promise<TravelerMatchDto[]>}
+   */
+  getCompatibleTravelers: (planId) =>
+    api.get(`/travel-plans/${planId}/compatible-travelers`),
 
-  // Itinerary
-  getItinerary: async (tripId) => {
-    const response = await api.get(`/trips/${tripId}/itinerary`)
-    return response
-  },
+  /**
+   * Find travelers matching destination + date range.
+   * @param {{ destination: string, startDate: string, endDate: string, interests?: string[], limit?: number }} params
+   * @returns {Promise<MatchResponseDto[]>}
+   */
+  findMatches: ({ destination, startDate, endDate, interests = [], limit = 20 }) =>
+    api.get('/matching/matches', {
+      params: { destination, startDate, endDate, interests, limit },
+    }),
 
-  updateItinerary: async (tripId, itineraryData) => {
-    const response = await api.put(`/trips/${tripId}/itinerary`, itineraryData)
-    return response
-  },
-
-  // Activities
-  getActivities: async (destinationId) => {
-    const response = await api.get(`/destinations/${destinationId}/activities`)
-    return response
-  },
-
-  bookActivity: async (activityId, bookingData) => {
-    const response = await api.post(`/activities/${activityId}/book`, bookingData)
-    return response
-  }
+  /**
+   * Compute AI-scored compatibility matches.
+   * @param {{ destination: string, startDate: string, endDate: string, interests?: string[] }} body
+   * @returns {Promise<CompatibilityMatchResponse[]>}
+   */
+  getCompatibilityMatches: (body) => api.post('/compatibility/matches', body),
 }

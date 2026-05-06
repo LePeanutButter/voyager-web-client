@@ -1,162 +1,249 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import Card from '../../components/UI/Card'
-import Button from '../../components/UI/Button'
-import { useAuth } from '../../hooks/useAuth'
-import { 
-  MapPin, 
-  Calendar, 
-  TrendingUp, 
-  Users, 
-  Star,
-  Plane,
-  Hotel,
-  Camera
+import { useEffect, useState, useMemo } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/use-auth.js'
+import { useTravelPlans } from '../../hooks/useTravelPlans'
+import { aiService } from '../../services/aiService'
+import { StatCardSkeleton, TravelCardSkeleton } from '../../components/UI/SkeletonLoader'
+import ErrorBanner from '../../components/UI/ErrorBanner'
+import {
+  MapPin, Calendar, TrendingUp, Users, Plane,
+  Plus, Star, ArrowRight, Zap, Globe, Compass
 } from 'lucide-react'
 import './Dashboard.css'
 
+const THREE_PLACEHOLDERS = [1, 2, 3]
+const FOUR_PLACEHOLDERS = [1, 2, 3, 4]
+const PRIMARY_BUTTON_CLASS = 'btn-primary'
+const CREATE_PLAN_ROUTE = '/travel-plans/create'
+
 const Dashboard = () => {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
-  const hasToken = Boolean(localStorage.getItem('smartrip_token') || localStorage.getItem('token'))
-  const canCreateTrip = isAuthenticated && hasToken
+  const { user } = useAuth()
+  const { plans, loading: plansLoading, error: plansError } = useTravelPlans(true)
+  const [trending, setTrending] = useState([])
+  const [trendingLoading, setTrendingLoading] = useState(true)
 
-  const handlePlanNewTrip = () => {
-    if (!canCreateTrip) return
-    navigate('/travel-plans/create')
+  useEffect(() => {
+    aiService.getTrendingActivities(null, 3)
+      .then((res) => setTrending(res?.activities || []))
+      .catch(() => setTrending([]))
+      .finally(() => setTrendingLoading(false))
+  }, [])
+
+  // Derive stats from real plans
+  const stats = useMemo(() => {
+    const total = plans.length
+    const upcoming = plans.filter((p) => p.status === 'PLANNING' || p.status === 'ACTIVE').length
+    const completed = plans.filter((p) => p.status === 'COMPLETED').length
+    const destinations = new Set(plans.map((p) => p.destinationLocation).filter(Boolean)).size
+    return [
+      { label: 'Total Plans', value: total, icon: Plane, color: 'var(--voyager-blue)', bg: '#dbeafe' },
+      { label: 'Upcoming', value: upcoming, icon: Calendar, color: 'var(--color-success)', bg: '#d1fae5' },
+      { label: 'Completed', value: completed, icon: Star, color: 'var(--accent-gold)', bg: '#fef3c7' },
+      { label: 'Destinations', value: destinations, icon: Globe, color: 'var(--voyager-indigo)', bg: '#ede9fe' },
+    ]
+  }, [plans])
+
+  const recentPlans = plans.slice(0, 3)
+  const firstName = user?.firstName || user?.username || 'Traveler'
+  const hasRecentPlans = recentPlans.length > 0
+
+  const greeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 18) return 'Good afternoon'
+    return 'Good evening'
   }
 
-  const stats = [
-    { label: 'Trips Planned', value: '12', icon: MapPin, trend: '+2 this month' },
-    { label: 'Upcoming Trips', value: '3', icon: Calendar, trend: 'Next: Paris' },
-    { label: 'Places Visited', value: '28', icon: Camera, trend: '+4 this year' },
-    { label: 'Travel Points', value: '2,450', icon: TrendingUp, trend: '+150 earned' },
-  ]
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
-  const recentTrips = [
-    { destination: 'Tokyo, Japan', date: 'Mar 2024', status: 'completed', rating: 5 },
-    { destination: 'Paris, France', date: 'Jun 2024', status: 'upcoming', rating: 0 },
-    { destination: 'Bali, Indonesia', date: 'Aug 2024', status: 'planning', rating: 0 },
-  ]
+  const statusConfig = {
+    PLANNING: { label: 'Planning', cls: 'badge-planning' },
+    ACTIVE: { label: 'Active', cls: 'badge-active' },
+    COMPLETED: { label: 'Completed', cls: 'badge-completed' },
+    CANCELLED: { label: 'Cancelled', cls: 'badge-cancelled' },
+  }
 
-  const recommendations = [
-    { title: 'Santorini, Greece', type: 'Beach Destination', price: '$1,200', image: 'santorini' },
-    { title: 'Swiss Alps', type: 'Mountain Adventure', price: '$2,500', image: 'alps' },
-    { title: 'Dubai, UAE', type: 'Luxury City', price: '$1,800', image: 'dubai' },
-  ]
-
-  return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>Welcome back, Traveler!</h1>
-        <p>Here's your travel overview and personalized recommendations</p>
+  let recentPlansContent
+  if (plansLoading) {
+    recentPlansContent = (
+      <div className="plans-list">
+        {THREE_PLACEHOLDERS.map((item) => <TravelCardSkeleton key={item} />)}
       </div>
-
-      <div className="stats-grid">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon
+    )
+  } else if (hasRecentPlans) {
+    recentPlansContent = (
+      <div className="plans-list">
+        {recentPlans.map((plan) => {
+          const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
           return (
-            <Card key={index} hover>
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <Icon size={24} />
-                </div>
-                <div className="stat-content">
-                  <h3>{stat.value}</h3>
-                  <p>{stat.label}</p>
-                  <span className="stat-trend">{stat.trend}</span>
-                </div>
+            <Link key={plan.id} to={`/travel-plans/${plan.id}`} className="plan-row">
+              <div className="plan-row-icon">
+                <MapPin size={18} />
               </div>
-            </Card>
+              <div className="plan-row-info">
+                <h4>{plan.title}</h4>
+                <p>{plan.destinationLocation} · {formatDate(plan.startDate)}</p>
+              </div>
+              <span className={`badge ${sc.cls}`}>{sc.label}</span>
+              <ArrowRight size={16} className="plan-row-arrow" />
+            </Link>
           )
         })}
       </div>
+    )
+  } else {
+    recentPlansContent = (
+      <div className="empty-state" style={{ padding: '3rem 1rem' }}>
+        <div className="empty-state-icon" style={{ width: 64, height: 64 }}>
+          <Plane size={28} />
+        </div>
+        <h3>No plans yet</h3>
+        <p>Create your first travel plan and start your adventure!</p>
+        <button className={PRIMARY_BUTTON_CLASS} onClick={() => navigate(CREATE_PLAN_ROUTE)}>
+          <Plus size={16} /> Create First Plan
+        </button>
+      </div>
+    )
+  }
 
-      <div className="dashboard-content">
-        <div className="dashboard-main">
-          <Card title="Recent & Upcoming Trips">
-            <div className="trips-list">
-              {recentTrips.map((trip, index) => (
-                <div key={index} className="trip-item">
-                  <div className="trip-info">
-                    <h4>{trip.destination}</h4>
-                    <p>{trip.date}</p>
-                    <span className={`trip-status ${trip.status}`}>
-                      {trip.status}
-                    </span>
+  let trendingContent
+  if (trendingLoading) {
+    trendingContent = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {THREE_PLACEHOLDERS.map((item) => (
+          <div key={item} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', background: 'var(--surface-card)', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}>
+            <div className="skeleton skeleton-text skeleton-line-medium" />
+            <div className="skeleton skeleton-text skeleton-line-short" />
+          </div>
+        ))}
+      </div>
+    )
+  } else if (trending.length === 0) {
+    trendingContent = (
+      <div className="trending-empty">
+        <TrendingUp size={24} />
+        <p>No trending data available</p>
+      </div>
+    )
+  } else {
+    trendingContent = (
+      <div className="trending-list">
+        {trending.map((item, index) => (
+          <div key={item.id ?? item.name ?? item.title ?? index} className="trending-card animate-fadeIn">
+            <div className="trending-rank">#{index + 1}</div>
+            <div className="trending-info">
+              <h4>{item.name || item.title || 'Activity'}</h4>
+              <p>{item.category || item.type || 'Travel'}</p>
+            </div>
+            {item.rating && (
+              <div className="trending-rating">
+                <Star size={13} fill="var(--accent-gold)" color="var(--accent-gold)" />
+                <span>{Number(item.rating).toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="dashboard-page page-container">
+      {/* Header */}
+      <div className="dashboard-header">
+        <div>
+          <p className="dashboard-greeting">{greeting()},</p>
+          <h1 className="dashboard-name">{firstName} <span className="wave">👋</span></h1>
+          <p className="dashboard-subtitle">Here&apos;s an overview of your travel activity</p>
+        </div>
+        <button
+          id="dashboard-new-plan-btn"
+          className={PRIMARY_BUTTON_CLASS}
+          onClick={() => navigate(CREATE_PLAN_ROUTE)}
+        >
+          <Plus size={18} />
+          New Plan
+        </button>
+      </div>
+
+      <ErrorBanner variant="error" message={plansError} />
+
+      {/* Stats */}
+      <div className="dashboard-stats">
+        {plansLoading
+          ? FOUR_PLACEHOLDERS.map((item) => <StatCardSkeleton key={item} />)
+          : stats.map((s) => {
+              const Icon = s.icon
+              return (
+                <div key={s.label} className="stat-card animate-fadeIn">
+                  <div className="stat-icon" style={{ background: s.bg, color: s.color }}>
+                    <Icon size={22} />
                   </div>
-                  <div className="trip-actions">
-                    {trip.rating > 0 && (
-                      <div className="trip-rating">
-                        {[...Array(trip.rating)].map((_, i) => (
-                          <Star key={i} size={16} fill="#fbbf24" color="#fbbf24" />
-                        ))}
-                      </div>
-                    )}
-                    <Button size="small" variant="outline">View Details</Button>
+                  <div className="stat-body">
+                    <span className="stat-value">{s.value}</span>
+                    <span className="stat-label">{s.label}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
+              )
+            })}
+      </div>
 
-          <Card title="Quick Actions">
-            <div className="quick-actions-grid">
-              <Button variant="primary" className="action-btn" onClick={handlePlanNewTrip} disabled={!canCreateTrip}>
-                <Plane size={20} />
-                Plan New Trip
-              </Button>
-              <Button variant="outline" className="action-btn" onClick={() => navigate('/profile')}>
-                <Users size={20} />
-                Ver perfil
-              </Button>
-              <Button variant="outline" className="action-btn">
-                <Hotel size={20} />
-                Book Hotels
-              </Button>
-              <Button variant="outline" className="action-btn">
-                <Camera size={20} />
-                Travel Photos
-              </Button>
-              <Button variant="outline" className="action-btn">
-                <Users size={20} />
-                Find Travelers
-              </Button>
-            </div>
-          </Card>
+      {/* Main content */}
+      <div className="dashboard-grid">
+        {/* Recent plans */}
+        <div className="dashboard-main">
+          <div className="section-header">
+            <h2>Recent Plans</h2>
+            <button className="btn-link" onClick={() => navigate('/my-travels')}>
+              View all <ArrowRight size={15} />
+            </button>
+          </div>
+
+          {recentPlansContent}
+
+          {/* Quick actions */}
+          <div className="section-header" style={{ marginTop: '2rem' }}>
+            <h2>Quick Actions</h2>
+          </div>
+          <div className="quick-actions">
+            {[
+              { label: 'Plan a Trip', icon: Plane, action: () => navigate(CREATE_PLAN_ROUTE), primary: true },
+              { label: 'AI Assistant', icon: Zap, action: () => navigate('/ai-assistant') },
+              { label: 'Find Travelers', icon: Users, action: () => navigate('/social') },
+              { label: 'My Profile', icon: Compass, action: () => navigate('/profile') },
+            ].map(({ label, icon: Icon, action, primary }) => (
+              <button
+                key={label}
+                className={primary ? 'quick-action-btn primary' : 'quick-action-btn'}
+                onClick={action}
+              >
+                <Icon size={20} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Sidebar */}
         <div className="dashboard-sidebar">
-          <Card title="Recommended for You">
-            <div className="recommendations">
-              {recommendations.map((rec, index) => (
-                <div key={index} className="recommendation-card">
-                  <div className="rec-image">
-                    <img src={`/api/placeholder/200/120?text=${rec.image}`} alt={rec.title} />
-                  </div>
-                  <div className="rec-content">
-                    <h4>{rec.title}</h4>
-                    <p>{rec.type}</p>
-                    <span className="rec-price">{rec.price}</span>
-                    <Button size="small" variant="primary">Explore</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <div className="section-header">
+            <h2>Trending Now</h2>
+          </div>
 
-          <Card title="Travel Tips">
-            <div className="travel-tips">
-              <div className="tip-item">
-                <h4>Best Time to Visit Europe</h4>
-                <p>May through September offers the best weather for most European destinations.</p>
-              </div>
-              <div className="tip-item">
-                <h4>Packing Essentials</h4>
-                <p>Don't forget universal adapter, portable charger, and travel insurance.</p>
-              </div>
+          {trendingContent}
+
+          {/* AI CTA */}
+          <Link className="ai-cta-card" to="/ai-assistant">
+            <div className="ai-cta-icon">
+              <Zap size={22} />
             </div>
-          </Card>
+            <div>
+              <h4>AI Travel Assistant</h4>
+              <p>Get personalized recommendations</p>
+            </div>
+            <ArrowRight size={16} />
+          </Link>
         </div>
       </div>
     </div>

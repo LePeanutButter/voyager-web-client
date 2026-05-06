@@ -1,15 +1,15 @@
-import React from 'react'
+import PropTypes from 'prop-types'
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../contexts/use-auth.js'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
+      <div className="loading-center">
+        <div className="spinner" />
+        <p>Loading…</p>
       </div>
     )
   }
@@ -19,6 +19,10 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return children || <Outlet />
+}
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node,
 }
 
 export default ProtectedRoute

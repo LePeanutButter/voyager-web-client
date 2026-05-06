@@ -1,103 +1,91 @@
-import api from './api'
+import aiMicroservice from './aiMicroservice'
 
+/**
+ * AI service — wraps all voyager-ai-service (FastAPI) endpoints.
+ * All inputs and outputs use camelCase. 
+ * The aiMicroservice interceptor handles snake_case conversion for backend transport.
+ */
 export const aiService = {
-  // Chat with AI assistant
-  sendMessage: async (message, conversationHistory = []) => {
-    const response = await api.post('/ai/chat', {
-      message,
-      conversationHistory
+  // ─── Chat ──────────────────────────────────────────────────────────────────
+
+  chat: (userId, message) =>
+    aiMicroservice.post('/chat', { userId, message }),
+
+  getHistory: (userId) => 
+    aiMicroservice.get(`/chat/${userId}/history`),
+
+  clearHistory: (userId) => 
+    aiMicroservice.delete(`/chat/${userId}/history`),
+
+  // ─── Recommendations ───────────────────────────────────────────────────────
+
+  getPersonalizedRecommendations: ({ userId, ...rest }) =>
+    aiMicroservice.post('/recommendations/personalized', { userId, ...rest }),
+
+  getPopularActivities: (location, limit = 10) =>
+    aiMicroservice.get(`/recommendations/popular/${encodeURIComponent(location)}`, {
+      params: { limit },
+    }),
+
+  getTrendingActivities: (category = null, limit = 10) =>
+    aiMicroservice.get('/recommendations/trending', {
+      params: { ...(category ? { category } : {}), limit },
+    }),
+
+  getSimilarActivities: (activityId, limit = 5) =>
+    aiMicroservice.get(`/recommendations/similar/${activityId}`, {
+      params: { limit },
+    }),
+
+  getCategories: () => 
+    aiMicroservice.get('/recommendations/categories'),
+
+  submitRecommendationFeedback: (userId, activityId, rating, feedbackText = null) =>
+    aiMicroservice.post('/recommendations/feedback', null, {
+      params: {
+        userId,
+        activityId,
+        rating,
+        ...(feedbackText ? { feedbackText } : {}),
+      },
+    }),
+
+  // ─── Matching ──────────────────────────────────────────────────────────────
+
+  getBuddyRecommendations: (userId, location = null, limit = 10) =>
+    aiMicroservice.get(`/matching/recommendations/${userId}`, {
+      params: { limit, ...(location ? { location } : {}) },
+    }),
+
+  getCompatibilityScore: (userId, targetUserId) =>
+    aiMicroservice.post(`/matching/compatibility/${userId}/${targetUserId}`),
+
+  submitMatchFeedback: (userId, targetUserId, rating, feedbackText = null) =>
+    aiMicroservice.post(`/matching/feedback/${userId}/${targetUserId}`, null, {
+      params: {
+        rating,
+        ...(feedbackText ? { feedbackText } : {}),
+      },
+    }),
+
+  // ─── Preferences ───────────────────────────────────────────────────────────
+
+  getTravelPreferences: (userId) => 
+    aiMicroservice.get(`/preferences/${userId}`),
+
+  startQuestionnaire: (userId) => 
+    aiMicroservice.post('/preferences/questionnaire/start', { userId }),
+
+  submitQuestionnaireStep: ({ userId, sessionId, answers }) =>
+    aiMicroservice.post('/preferences/questionnaire/step', { 
+      userId, 
+      sessionId, 
+      answers 
+    }),
+
+  submitQuestionnaire: (sessionId, formattedAnswers) => 
+    aiMicroservice.post('/preferences/questionnaire/submit', { 
+      sessionId, 
+      answers: formattedAnswers 
     })
-    return response
-  },
-
-  // Get travel recommendations
-  getRecommendations: async (preferences, tripType = 'general') => {
-    const response = await api.post('/ai/recommendations', {
-      preferences,
-      tripType
-    })
-    return response
-  },
-
-  // Generate itinerary
-  generateItinerary: async (tripData) => {
-    const response = await api.post('/ai/itinerary/generate', tripData)
-    return response
-  },
-
-  // Optimize existing itinerary
-  optimizeItinerary: async (itineraryData, constraints = {}) => {
-    const response = await api.post('/ai/itinerary/optimize', {
-      itinerary: itineraryData,
-      constraints
-    })
-    return response
-  },
-
-  // Get destination insights
-  getDestinationInsights: async (destinationId) => {
-    const response = await api.get(`/ai/destinations/${destinationId}/insights`)
-    return response
-  },
-
-  // Get travel tips
-  getTravelTips: async (destination, travelStyle = 'general') => {
-    const response = await api.post('/ai/tips', {
-      destination,
-      travelStyle
-    })
-    return response
-  },
-
-  // Budget estimation
-  estimateBudget: async (tripData) => {
-    const response = await api.post('/ai/budget/estimate', tripData)
-    return response
-  },
-
-  // Best time to visit
-  getBestTimeToVisit: async (destinationId, preferences = {}) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/best-time`, preferences)
-    return response
-  },
-
-  // Weather forecast
-  getWeatherForecast: async (destinationId, dates) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/weather`, { dates })
-    return response
-  },
-
-  // Local events and festivals
-  getLocalEvents: async (destinationId, dateRange) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/events`, { dateRange })
-    return response
-  },
-
-  // Language and culture tips
-  getCulturalTips: async (destinationId) => {
-    const response = await api.get(`/ai/destinations/${destinationId}/culture`)
-    return response
-  },
-
-  // Safety information
-  getSafetyInfo: async (destinationId) => {
-    const response = await api.get(`/ai/destinations/${destinationId}/safety`)
-    return response
-  },
-
-  // Transportation recommendations
-  getTransportationOptions: async (origin, destination, preferences = {}) => {
-    const response = await api.post('/ai/transportation', {
-      origin,
-      destination,
-      preferences
-    })
-    return response
-  },
-
-  // Accommodation recommendations
-  getAccommodationRecommendations: async (destinationId, preferences = {}) => {
-    const response = await api.post(`/ai/destinations/${destinationId}/accommodations`, preferences)
-    return response
-  }
 }

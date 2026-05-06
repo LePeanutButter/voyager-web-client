@@ -1,194 +1,220 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import Card from '../../components/UI/Card'
-import Button from '../../components/UI/Button'
-import { MapPin, Calendar, Users, DollarSign, Clock, Plus, Luggage } from 'lucide-react'
-import { getTravelStatusBadgeClass, getTravelStatusText } from '../../utils/travelStatus'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useTravelPlans } from '../../hooks/useTravelPlans'
+import { TravelCardSkeleton } from '../../components/UI/SkeletonLoader'
+import ErrorBanner from '../../components/UI/ErrorBanner'
+import {
+  Plane, MapPin, Calendar, Users, DollarSign,
+  Plus, Clock, Trash2, ArrowRight, Filter
+} from 'lucide-react'
+import './MyTravels.css'
+
+const STATUS_FILTERS = ['ALL', 'PLANNING', 'ACTIVE', 'COMPLETED', 'CANCELLED']
+
+const statusConfig = {
+  PLANNING: { label: 'Planning', cls: 'badge-planning' },
+  ACTIVE:   { label: 'Active',   cls: 'badge-active' },
+  COMPLETED:{ label: 'Completed',cls: 'badge-completed' },
+  CANCELLED:{ label: 'Cancelled',cls: 'badge-cancelled' },
+}
 
 const MyTravels = () => {
-  const [travels, setTravels] = useState([])
-  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+  const { plans, loading, error, remove, clearError } = useTravelPlans(true)
+  const [activeFilter, setActiveFilter] = useState('ALL')
+  const [deletingId, setDeletingId] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
-  useEffect(() => {
-    fetchMyTravels()
-  }, [])
+  const filtered = activeFilter === 'ALL'
+    ? plans
+    : plans.filter((p) => p.status === activeFilter)
 
-  const fetchMyTravels = async () => {
+  const formatDate = (d) => {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const handleDelete = async (id) => {
+    setDeletingId(id)
     try {
-      setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8080/api/v1/travel-plans', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Error al cargar los viajes')
-      }
-
-      const data = await response.json()
-      setTravels(data.data || [])
-    } catch (error) {
-      console.error('Error fetching travels:', error)
-      alert('No se pudieron cargar tus viajes')
+      await remove(id)
     } finally {
-      setLoading(false)
+      setDeletingId(null)
+      setConfirmDelete(null)
     }
   }
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Fecha por definir'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-  }
-
-  const getStatusColor = (status) => {
-    const fullClass = getTravelStatusBadgeClass(status)
-    return fullClass.replace(' border-green-200', '').replace(' border-blue-200', '').replace(' border-gray-200', '').replace(' border-red-200', '')
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando tus viajes...</p>
+  let emptyStateContent
+  if (plans.length === 0) {
+    emptyStateContent = (
+      <>
+        <div className="empty-state-icon">
+          <Plane size={32} />
         </div>
-      </div>
+        <h3>No travel plans yet</h3>
+        <p>Start planning your first adventure and let AI guide you to the perfect destination!</p>
+        <Link to="/travel-plans/create" className="btn-primary" style={{ display: 'inline-flex' }}>
+          <Plus size={16} /> Create My First Plan
+        </Link>
+      </>
+    )
+  } else {
+    emptyStateContent = (
+      <>
+        <div className="empty-state-icon">
+          <Filter size={28} />
+        </div>
+        <h3>No {activeFilter.toLowerCase()} plans</h3>
+        <p>Try selecting a different filter.</p>
+        <button className="btn-primary" onClick={() => setActiveFilter('ALL')} style={{ display: 'inline-flex' }}>
+          View All Plans
+        </button>
+      </>
     )
   }
 
-  if (travels.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-            <div className="mb-8">
-              <div className="mx-auto w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-6">
-                <Luggage size={40} className="text-white" />
+  let content
+  if (loading) {
+    content = (
+      <div className="travels-grid">
+        {['one', 'two', 'three', 'four', 'five', 'six'].map((item) => <TravelCardSkeleton key={item} />)}
+      </div>
+    )
+  } else if (filtered.length === 0) {
+    content = (
+      <div className="empty-state">
+        {emptyStateContent}
+      </div>
+    )
+  } else {
+    content = (
+      <div className="travels-grid">
+        {filtered.map((plan) => {
+          const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
+          return (
+            <div key={plan.id} className="travel-card animate-fadeIn">
+              {/* Card gradient header */}
+              <div className="travel-card-header">
+                <span className={`badge ${sc.cls}`}>{sc.label}</span>
+                <button
+                  className="delete-btn"
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(plan.id) }}
+                  title="Delete plan"
+                  aria-label="Delete plan"
+                >
+                  <Trash2 size={15} />
+                </button>
+                <h3 className="travel-card-title">{plan.title}</h3>
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                ¿Aún no tienes viajes creados?
-              </h2>
-              <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-                Comienza planificando tu primera aventura y conecta con otros viajeros que comparten tus mismos intereses
-              </p>
-              <Link to="/travel-plans/create">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg inline-flex items-center">
-                  <Plus size={20} className="mr-2" />
-                  Crear mi primer viaje
-                </Button>
-              </Link>
+
+              {/* Body */}
+              <div className="travel-card-body">
+                {plan.description && (
+                  <p className="travel-description">{plan.description}</p>
+                )}
+
+                <div className="travel-meta">
+                  {plan.destinationLocation && (
+                    <div className="meta-row">
+                      <MapPin size={14} />
+                      <span>{plan.destinationLocation}</span>
+                    </div>
+                  )}
+                  <div className="meta-row">
+                    <Calendar size={14} />
+                    <span>{formatDate(plan.startDate)} → {formatDate(plan.endDate)}</span>
+                  </div>
+                  <div className="meta-row-row">
+                    {plan.numberOfTravelers && (
+                      <div className="meta-row">
+                        <Users size={14} />
+                        <span>{plan.numberOfTravelers} traveler{plan.numberOfTravelers > 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    {plan.estimatedBudget && (
+                      <div className="meta-row">
+                        <DollarSign size={14} />
+                        <span>${Number(plan.estimatedBudget).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="travel-card-footer">
+                  <div className="meta-row" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                    <Clock size={12} />
+                    <span>{formatDate(plan.createdAt)}</span>
+                  </div>
+                  <button
+                    className="btn-view-details"
+                    onClick={() => navigate(`/travel-plans/${plan.id}`)}
+                  >
+                    Details <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
             </div>
-        </div>
+          )
+        })}
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Mis Viajes</h1>
-          <p className="text-gray-600">
-            Administra y gestiona todos tus viajes creados
-          </p>
-        </div>
-
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <Luggage size={20} className="text-blue-600" />
-            <span className="text-sm text-gray-500 font-medium">
-              {travels.length} {travels.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}
-            </span>
+    <div className="my-travels-page page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1>My Travels</h1>
+            <p>Manage and track all your travel plans</p>
           </div>
-          <Link to="/travel-plans/create">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white inline-flex items-center">
-              <Plus size={16} className="mr-2" />
-              Nuevo Viaje
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {travels.map((travel) => (
-            <Card key={travel.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-md">
-              <div className="relative">
-                {/* Header con imagen de fondo */}
-                <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-                  <div className="absolute top-3 right-3">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(travel.status)}`}>
-                      {getTravelStatusText(travel.status)}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-3 left-3 text-white">
-                    <h3 className="text-lg font-bold line-clamp-1">
-                      {travel.title}
-                    </h3>
-                  </div>
-                </div>
-                
-                {/* Contenido */}
-                <div className="p-4">
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2 min-h-[2.5rem]">
-                    {travel.description || 'Sin descripción disponible'}
-                  </p>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-700">
-                      <MapPin size={16} className="mr-2 text-blue-500 flex-shrink-0" />
-                      <span className="truncate">{travel.destinationLocation || 'Destino por definir'}</span>
-                    </div>
-
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Calendar size={16} className="mr-2 text-green-500 flex-shrink-0" />
-                      <span className="text-xs">
-                        {formatDate(travel.startDate)} - {formatDate(travel.endDate)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      {travel.numberOfTravelers && (
-                        <div className="flex items-center text-sm text-gray-700">
-                          <Users size={16} className="mr-2 text-purple-500 flex-shrink-0" />
-                          <span className="text-xs">{travel.numberOfTravelers} {travel.numberOfTravelers === 1 ? 'viajero' : 'viajeros'}</span>
-                        </div>
-                      )}
-                      
-                      {travel.estimatedBudget && (
-                        <div className="flex items-center text-sm text-gray-700">
-                          <DollarSign size={16} className="mr-1 text-green-600 flex-shrink-0" />
-                          <span className="text-xs font-semibold">${travel.estimatedBudget.toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-gray-100">
-                    <div className="flex justify-between items-center">
-                      <Link to={`/travel-plans/${travel.id}`}>
-                        <Button variant="outline" size="sm" className="text-xs px-3 py-1.5 h-auto">
-                          Ver detalles
-                        </Button>
-                      </Link>
-                      <div className="text-xs text-gray-400 flex items-center">
-                        <Clock size={12} className="mr-1" />
-                        {formatDate(travel.createdAt)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+          <button className="btn-primary" onClick={() => navigate('/travel-plans/create')}>
+            <Plus size={18} /> New Plan
+          </button>
         </div>
       </div>
+
+      <ErrorBanner variant="error" message={error} onDismiss={clearError} />
+
+      {/* Filter tabs */}
+      {!loading && plans.length > 0 && (
+        <div className="filter-bar">
+          <Filter size={15} className="text-muted" />
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f}
+              className={`filter-tab ${activeFilter === f ? 'active' : ''}`}
+              onClick={() => setActiveFilter(f)}
+            >
+              {f === 'ALL' ? `All (${plans.length})` : f.charAt(0) + f.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      {content}
+
+      {confirmDelete && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button type="button" onClick={() => setConfirmDelete(null)} aria-label="Close modal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 'none', cursor: 'default' }} />
+          <dialog open className="modal-box animate-scaleIn" style={{ maxWidth: 500, position: 'relative', zIndex: 1, margin: 0 }}>
+            <h3>Delete Travel Plan?</h3>
+            <p>This action cannot be undone. The plan and all its activities will be permanently deleted.</p>
+            <div className="modal-actions">
+              <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button
+                className="btn-danger"
+                onClick={() => handleDelete(confirmDelete)}
+                disabled={deletingId === confirmDelete}
+              >
+                {deletingId === confirmDelete ? 'Deleting…' : 'Delete Plan'}
+              </button>
+            </div>
+          </dialog>
+        </div>
+      )}
     </div>
   )
 }

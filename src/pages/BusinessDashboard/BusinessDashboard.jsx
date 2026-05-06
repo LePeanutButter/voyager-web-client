@@ -1,15 +1,10 @@
-import React from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import { 
-  TrendingUp, 
   Users, 
   DollarSign, 
   Calendar, 
   Star,
-  Hotel,
-  Plane,
-  MapPin,
   BarChart3,
   Settings,
   Plus

@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // Create separate API instance for AI service
 const aiApi = axios.create({
-  baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || '/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -24,7 +24,7 @@ aiApi.interceptors.request.use(
     return config
   },
   (error) => {
-    return Promise.reject(error)
+    throw error
   }
 );
 
@@ -60,7 +60,7 @@ aiApi.interceptors.response.use(
     }
     
     // Return a more user-friendly error
-    return Promise.reject(new Error(errorMessage))
+    throw new Error(errorMessage)
   }
 );
 

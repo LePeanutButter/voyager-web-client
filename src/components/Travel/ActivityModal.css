@@ -1,0 +1,40 @@
+.activity-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.activity-modal {
+  width: min(560px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.activity-modal form {
+  display: grid;
+  gap: 10px;
+}
+
+.activity-modal input,
+.activity-modal textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.activity-modal-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.activity-modal-error {
+  color: #b91c1c;
+  margin: 0;
+}

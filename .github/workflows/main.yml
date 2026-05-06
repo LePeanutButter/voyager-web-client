@@ -1,0 +1,276 @@
+# ===========================================
+# GitHub Actions Workflow: CI Build & Deploy
+# Environment: Production
+# Description:
+#   - Runs tests (if present) and SonarCloud static analysis (SONAR_TOKEN, ORGANIZATION_KEY, PROJECT_KEY + LCOV)
+#   - Runs Trivy security scan on source code/dependencies
+#   - Builds and packages the Voyager frontend app
+#   - Produces manual deployment handoff artifact for S3/CloudFront
+#   - Triggers on every push or pull request to the 'main' branch
+# ===========================================
+
+name: CI Build & Deploy (Web Client - Production)
+
+# -------------------------------------------
+# Trigger: Run workflow on push or PR to 'main' branch
+# -------------------------------------------
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# -------------------------------------------
+# Jobs Definition
+# -------------------------------------------
+jobs:
+  # =========================================
+  # Job: Dynamic Analysis (Tests + Coverage)
+  # Purpose: Run tests and generate coverage for SonarCloud
+  # =========================================
+  test_and_coverage:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout project
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      # Step 2: Setup Node
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+
+      # Step 3: Cache npm dependencies
+      - name: Cache npm dependencies
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}
+
+      # Step 4: Install dependencies
+      - name: Clean Install dependencies
+        run: |
+          rm -rf node_modules
+          npm ci
+
+      # Step 5: Run tests with coverage (vitest run + full-src LCOV for Sonar; CI=true in GHA)
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      # Step 6: Upload coverage results
+      - name: Upload Coverage Artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: Coverage
+          path: coverage
+
+  # =========================================
+  # Job: Security Scan (Trivy)
+  # Purpose: Scan filesystem and dependencies for vulnerabilities
+  # =========================================
+  trivy_scan:
+    name: Run Trivy Security Scan
+    needs: test_and_coverage
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout project
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Step 2: Run Trivy filesystem scan
+      - name: Run Trivy FS Scan
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        continue-on-error: true
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL'
+          exit-code: '0'
+
+  # =========================================
+  # Job: SonarCloud Scan
+  # Purpose: Run static code analysis with SonarCloud
+  # =========================================
+  sonar_scan:
+    name: Sonar Cloud static analysis
+    needs: [test_and_coverage, trivy_scan]
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout project
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      # Step 2: Install Java
+      - name: Set up JDK
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Step 3: Cache SonarCloud packages
+      - name: Cache SonarCloud packages
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      # Step 4: Download coverage artifact
+      - name: Download Coverage Artifact
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: Coverage
+          path: coverage
+        continue-on-error: true
+
+      # Step 5: Set up Node.js for Sonar
+      - name: Set up Node.js for Sonar
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+
+      # Step 6: Install npm dependencies for Sonar
+      - name: Install npm dependencies for Sonar
+        run: npm ci --prefer-offline --no-audit
+
+      # Step 7: Ensure LCOV exists for Sonar (placeholder if tests did not emit coverage)
+      - name: Ensure LCOV report for Sonar
+        run: |
+          mkdir -p coverage
+          if [ ! -s coverage/lcov.info ]; then
+            echo "No coverage/lcov.info from tests; writing minimal LCOV for Sonar."
+            printf '%s\n' 'TN:' 'SF:src/main.jsx' 'LF:0' 'LH:0' 'end_of_record' > coverage/lcov.info
+          fi
+          test -f coverage/lcov.info
+
+      # Step 8a: SonarCloud scan (pull request to main)
+      - name: SonarCloud Scan (PR)
+        if: github.event_name == 'pull_request'
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.organization=${{ secrets.ORGANIZATION_KEY }}
+            -Dsonar.projectKey=${{ secrets.PROJECT_KEY }}
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.scm.disabled=true
+            -Dsonar.pullrequest.key=${{ github.event.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+            -Dsonar.scm.revision=${{ github.event.pull_request.head.sha }}
+
+      # Step 8b: SonarCloud scan (push to main)
+      - name: SonarCloud Scan (branch)
+        if: github.event_name != 'pull_request'
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.organization=${{ secrets.ORGANIZATION_KEY }}
+            -Dsonar.projectKey=${{ secrets.PROJECT_KEY }}
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.scm.disabled=true
+            -Dsonar.branch.name=main
+            -Dsonar.branch.target=development
+
+  # =========================================
+  # Job: Build Stage
+  # Purpose: Lint and build the app for production
+  # =========================================
+  build:
+    name: Build Stage for Voyager Web Client (main)
+    needs: sonar_scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+    steps:
+      # Step 1: Checkout source code from repository
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Step 2: Set up the Node.js environment
+      - name: Set up Node.js environment
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # Step 3: Cache npm dependencies to speed up builds
+      - name: Cache npm dependencies
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-package-lock.json
+          restore-keys: |
+            npm-${{ runner.os }}
+
+      # Step 4: Install dependencies and lint
+      - name: Install dependencies and lint
+        run: |
+          npm ci
+          npm run lint
+
+      # Step 5: Build the application for production
+      - name: Compile source code
+        run: npm run build
+
+      # Step 6: Package build output as artifact for deployment
+      - name: Package build artifacts
+        run: |
+          mkdir -p release
+          tar -czf release/web-client-dist.tar.gz dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: web-client-dist
+          path: release/web-client-dist.tar.gz
+
+  # =========================================
+  # Job: Deploy Stage (Manual)
+  # Purpose: Manual deployment handoff for Learner Lab (user intervention required)
+  # =========================================
+  deploy_manual:
+    if: github.event_name == 'push'
+    name: Manual Deploy Handoff (Learner Lab)
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      FRONTEND_BUCKET: smarttrip-frontend-bucket
+    steps:
+      # Step 1: Download build artifact
+      - name: Download build artifact
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: web-client-dist
+          path: release
+
+      # Step 2: Upload manual deployment package
+      - name: Upload manual deployment package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: web-client-production-manual-deploy
+          path: |
+            release/web-client-dist.tar.gz
+            scripts/deploy-web-client-manual.sh

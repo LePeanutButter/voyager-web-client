@@ -1,251 +1,209 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Card from '../../components/UI/Card'
-import Button from '../../components/UI/Button'
-import { travelPlanService } from '../../services/travelPlanService'
+import { useTravelPlans } from '../../hooks/useTravelPlans'
+import { MapPin, Calendar, Users, DollarSign, ArrowLeft } from 'lucide-react'
+import ErrorBanner from '../../components/UI/ErrorBanner'
 
-const getPlansStorageKey = () => {
-  try {
-    const raw = localStorage.getItem('userData')
-    const user = raw ? JSON.parse(raw) : null
-    const identity = user?.id || user?.username || user?.email || 'anonymous'
-    return `created_travel_plans_${identity}`
-  } catch {
-    return 'created_travel_plans_anonymous'
-  }
-}
-
-const toLocalDateTime = (date, endOfDay = false) => {
-  if (!date) return undefined
-  return `${date}${endOfDay ? 'T23:59:59' : 'T00:00:00'}`
-}
-
-const inputStyle = {
+const CP_BORDER = '1px solid var(--border-color)'
+const CP_FORM_GROUP_COL = { display: 'flex', flexDirection: 'column', gap: '0.5rem' }
+const CP_LABEL = { fontWeight: 600, fontSize: '0.875rem' }
+const CP_INPUT = { padding: '0.75rem', borderRadius: 'var(--border-radius)', border: CP_BORDER }
+const CP_INPUT_ICON = {
   width: '100%',
-  padding: '0.75rem 1rem',
-  border: '1px solid var(--border-color, #e9ecef)',
-  borderRadius: '8px',
-  outline: 'none'
+  padding: '0.75rem 0.75rem 0.75rem 2.25rem',
+  borderRadius: 'var(--border-radius)',
+  border: CP_BORDER,
 }
-
-const errorStyle = {
-  padding: '0.75rem',
-  background: '#f8d7da',
-  color: '#721c24',
-  border: '1px solid #f5c6cb',
-  borderRadius: '8px',
-  fontSize: '0.875rem'
-}
-
-const successStyle = {
-  padding: '0.75rem',
-  background: '#d1e7dd',
-  color: '#0f5132',
-  border: '1px solid #badbcc',
-  borderRadius: '8px',
-  fontSize: '0.875rem'
-}
+const CP_ICON_POS = { position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }
 
 const CreateTravelPlanPage = () => {
+  const navigate = useNavigate()
+  const { create: add, error, clearError } = useTravelPlans()
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
+    description: '',
     destinationLocation: '',
     originLocation: '',
     startDate: '',
     endDate: '',
+    numberOfTravelers: '',
     estimatedBudget: '',
-    numberOfTravelers: 1,
-    description: ''
   })
-  const [fieldErrors, setFieldErrors] = useState({})
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
-  const navigate = useNavigate()
-
-  const setValue = (name, value) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: '' }))
-    if (error) setError('')
-    if (success) setSuccess('')
-  }
-
-  const validate = () => {
-    const next = {}
-    if (!formData.title.trim()) next.title = 'El título es requerido'
-    if (!formData.destinationLocation.trim()) next.destinationLocation = 'El destino es requerido'
-    if (!formData.startDate) next.startDate = 'La fecha de inicio es requerida'
-    if (!formData.endDate) next.endDate = 'La fecha de fin es requerida'
-
-    if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate)
-      const end = new Date(formData.endDate)
-      if (end < start) next.endDate = 'El rango de fechas es inválido'
-    }
-
-    const travelers = Number(formData.numberOfTravelers)
-    if (!Number.isFinite(travelers) || travelers < 1) next.numberOfTravelers = 'Mínimo 1 viajero'
-
-    setFieldErrors(next)
-    return Object.keys(next).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!validate()) return
-
     setLoading(true)
-    setError('')
-    setSuccess('')
+    clearError()
+
     try {
       const payload = {
-        title: formData.title.trim(),
-        destinationLocation: formData.destinationLocation.trim(),
-        originLocation: formData.originLocation?.trim() || undefined,
-        startDate: toLocalDateTime(formData.startDate, false),
-        endDate: toLocalDateTime(formData.endDate, true),
-        estimatedBudget: formData.estimatedBudget === '' ? undefined : Number(formData.estimatedBudget),
-        numberOfTravelers: Number(formData.numberOfTravelers),
-        description: formData.description?.trim() || undefined
+        ...formData,
+        numberOfTravelers: formData.numberOfTravelers ? Number(formData.numberOfTravelers) : undefined,
+        estimatedBudget: formData.estimatedBudget ? Number(formData.estimatedBudget) : undefined,
       }
-
-      const created = await travelPlanService.create(payload)
-      const createdPlan = created?.data || created
-      localStorage.setItem('last_created_travel_plan', JSON.stringify(createdPlan))
-      try {
-        const plansKey = getPlansStorageKey()
-        const previous = JSON.parse(localStorage.getItem(plansKey) || '[]')
-        const next = Array.isArray(previous) ? [createdPlan, ...previous] : [createdPlan]
-        localStorage.setItem(plansKey, JSON.stringify(next))
-      } catch {
-        localStorage.setItem(getPlansStorageKey(), JSON.stringify([createdPlan]))
-      }
-      setSuccess('Plan de viaje creado. Redirigiendo…')
-      setTimeout(() => navigate('/travel-planning', { replace: true }), 900)
+      
+      const newPlan = await add(payload)
+      navigate(`/travel-plans/${newPlan.id}`)
     } catch (err) {
-      setError(err?.message || 'No se pudo crear el plan')
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={{ padding: '1.5rem' }}>
-      <h1 style={{ margin: '0 0 1rem 0' }}>Crear plan de viaje</h1>
+    <div className="page-container" style={{ maxWidth: 600 }}>
+      <button className="btn-back" onClick={() => navigate('/my-travels')} style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+        <ArrowLeft size={16} /> Back to My Travels
+      </button>
 
-      <Card title="Nuevo plan">
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
-          <div>
-            <label htmlFor="travel-plan-title">Título *</label>
+      <div style={{ background: 'var(--surface-card)', padding: '2rem', borderRadius: 'var(--border-radius-xl)', boxShadow: 'var(--shadow-md)' }}>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>Create Travel Plan</h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Plan your next big adventure.</p>
+
+        <ErrorBanner variant="error" message={error} onDismiss={clearError} />
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="form-group" style={CP_FORM_GROUP_COL}>
+            <label htmlFor="title" style={CP_LABEL}>Title *</label>
             <input
-              id="travel-plan-title"
-              style={inputStyle}
+              id="title"
+              name="title"
               value={formData.title}
-              onChange={(e) => setValue('title', e.target.value)}
-            />
-            {fieldErrors.title && <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.title}</div>}
-          </div>
-
-          <div>
-            <label htmlFor="travel-plan-destination">Destino *</label>
-            <input
-              id="travel-plan-destination"
-              style={inputStyle}
-              value={formData.destinationLocation}
-              onChange={(e) => setValue('destinationLocation', e.target.value)}
-            />
-            {fieldErrors.destinationLocation && (
-              <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.destinationLocation}</div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="travel-plan-origin">Origen (opcional)</label>
-            <input
-              id="travel-plan-origin"
-              style={inputStyle}
-              value={formData.originLocation}
-              onChange={(e) => setValue('originLocation', e.target.value)}
+              onChange={handleChange}
+              placeholder="E.g., Summer in Paris"
+              required
+              style={CP_INPUT}
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label htmlFor="travel-plan-start-date">Fecha de inicio *</label>
-              <input
-                id="travel-plan-start-date"
-                style={inputStyle}
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setValue('startDate', e.target.value)}
-              />
-              {fieldErrors.startDate && <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.startDate}</div>}
-            </div>
-            <div>
-              <label htmlFor="travel-plan-end-date">Fecha de fin *</label>
-              <input
-                id="travel-plan-end-date"
-                style={inputStyle}
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setValue('endDate', e.target.value)}
-              />
-              {fieldErrors.endDate && <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.endDate}</div>}
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label htmlFor="travel-plan-estimated-budget">Presupuesto estimado (opcional)</label>
-              <input
-                id="travel-plan-estimated-budget"
-                style={inputStyle}
-                type="number"
-                value={formData.estimatedBudget}
-                onChange={(e) => setValue('estimatedBudget', e.target.value)}
-                min="0"
-              />
-            </div>
-            <div>
-              <label htmlFor="travel-plan-travelers">Número de viajeros *</label>
-              <input
-                id="travel-plan-travelers"
-                style={inputStyle}
-                type="number"
-                value={formData.numberOfTravelers}
-                onChange={(e) => setValue('numberOfTravelers', e.target.value)}
-                min="1"
-              />
-              {fieldErrors.numberOfTravelers && (
-                <div style={{ color: '#dc3545', fontSize: '0.8rem' }}>{fieldErrors.numberOfTravelers}</div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="travel-plan-description">Descripción (opcional)</label>
+          <div className="form-group" style={CP_FORM_GROUP_COL}>
+            <label htmlFor="description" style={CP_LABEL}>Description</label>
             <textarea
-              id="travel-plan-description"
-              style={{ ...inputStyle, minHeight: '120px' }}
+              id="description"
+              name="description"
               value={formData.description}
-              onChange={(e) => setValue('description', e.target.value)}
+              onChange={handleChange}
+              placeholder="What's the vibe?"
+              rows={3}
+              style={CP_INPUT}
             />
           </div>
 
-          {error && <div style={errorStyle}>{error}</div>}
-          {success && <div style={successStyle}>{success}</div>}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button type="submit" variant="primary" loading={loading}>
-              Crear
-            </Button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="originLocation" style={CP_LABEL}>Origin</label>
+              <div style={{ position: 'relative' }}>
+                <MapPin size={16} style={CP_ICON_POS} />
+                <input
+                  id="originLocation"
+                  name="originLocation"
+                  value={formData.originLocation}
+                  onChange={handleChange}
+                  placeholder="Your city"
+                  style={CP_INPUT_ICON}
+                />
+              </div>
+            </div>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="destinationLocation" style={CP_LABEL}>Destination *</label>
+              <div style={{ position: 'relative' }}>
+                <MapPin size={16} style={CP_ICON_POS} />
+                <input
+                  id="destinationLocation"
+                  name="destinationLocation"
+                  value={formData.destinationLocation}
+                  onChange={handleChange}
+                  placeholder="Where to?"
+                  required
+                  style={CP_INPUT_ICON}
+                />
+              </div>
+            </div>
           </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="startDate" style={CP_LABEL}>Start Date *</label>
+              <div style={{ position: 'relative' }}>
+                <Calendar size={16} style={CP_ICON_POS} />
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  required
+                  style={CP_INPUT_ICON}
+                />
+              </div>
+            </div>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="endDate" style={CP_LABEL}>End Date *</label>
+              <div style={{ position: 'relative' }}>
+                <Calendar size={16} style={CP_ICON_POS} />
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  required
+                  style={CP_INPUT_ICON}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="numberOfTravelers" style={CP_LABEL}>Travelers</label>
+              <div style={{ position: 'relative' }}>
+                <Users size={16} style={CP_ICON_POS} />
+                <input
+                  type="number"
+                  min="1"
+                  id="numberOfTravelers"
+                  name="numberOfTravelers"
+                  value={formData.numberOfTravelers}
+                  onChange={handleChange}
+                  placeholder="2"
+                  style={CP_INPUT_ICON}
+                />
+              </div>
+            </div>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="estimatedBudget" style={CP_LABEL}>Budget ($)</label>
+              <div style={{ position: 'relative' }}>
+                <DollarSign size={16} style={CP_ICON_POS} />
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  id="estimatedBudget"
+                  name="estimatedBudget"
+                  value={formData.estimatedBudget}
+                  onChange={handleChange}
+                  placeholder="2000"
+                  style={CP_INPUT_ICON}
+                />
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
+            {loading ? 'Creating...' : 'Create Plan'}
+          </button>
         </form>
-      </Card>
+      </div>
     </div>
   )
 }
 
 export default CreateTravelPlanPage
-
