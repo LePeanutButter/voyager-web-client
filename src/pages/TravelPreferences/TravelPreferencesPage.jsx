@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { aiService } from '../../services/aiService'
 import { useAuth } from '../../contexts/AuthContext'
@@ -35,8 +35,10 @@ const TravelPreferencesPage = () => {
         let existingPrefs = null
         try {
           existingPrefs = await aiService.getTravelPreferences(userId)
-        } catch (e) {
-          // It's ok if they don't exist yet (404)
+        } catch (err) {
+          if (err?.response?.status !== 404) {
+            throw err
+          }
         }
 
         if (existingPrefs && existingPrefs.isCompleted) {
@@ -128,7 +130,7 @@ const TravelPreferencesPage = () => {
         </div>
         <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Preferences Saved!</h1>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '1.1rem' }}>
-          Your travel profile has been analyzed. You are categorized as a 
+          Your travel profile has been analyzed. You are categorized as a{' '}
           <strong style={{ color: 'var(--text-primary)', margin: '0 0.25rem' }}>{preferences?.travelerCategory || 'Explorer'}</strong>.
         </p>
         <button className="btn-primary" onClick={() => navigate('/dashboard')}>

@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import PropTypes from 'prop-types'
+import { useParams, useNavigate } from 'react-router-dom'
 import { travelService } from '../../services/travelService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
 import { extractErrorMessage } from '../../utils/errorUtils'
 import {
   MapPin, Calendar, Users, DollarSign, ArrowLeft,
-  Edit, Plus, Trash2, CheckCircle, Globe, Clock,
+  Edit, Plus, Trash2, Globe, Clock,
   Activity, UserCheck
 } from 'lucide-react'
 import './TravelDetails.css'
@@ -118,6 +119,21 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
   )
 }
 
+ActivityModal.propTypes = {
+  planId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  activity: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    name: PropTypes.string,
+    description: PropTypes.string,
+    type: PropTypes.string,
+    location: PropTypes.string,
+    estimatedCost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    notes: PropTypes.string,
+  }),
+  onClose: PropTypes.func.isRequired,
+  onSaved: PropTypes.func.isRequired,
+}
+
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
 const TravelDetails = () => {
   const { id } = useParams()
@@ -170,7 +186,7 @@ const TravelDetails = () => {
   }
 
   const handleDeleteActivity = async (actId) => {
-    if (!window.confirm('Delete this activity?')) return
+    if (globalThis.confirm('Delete this activity?') === false) return
     try {
       await travelService.deleteActivity(id, actId)
       setPlan((prev) => ({
@@ -203,7 +219,7 @@ const TravelDetails = () => {
             <div>
               <SkeletonLoader variant="card" />
               <div style={{ marginTop: '1rem' }}>
-                {[...Array(3)].map((_, i) => <SkeletonLoader key={i} variant="text" />)}
+                {['first', 'second', 'third'].map((item) => <SkeletonLoader key={item} variant="text" />)}
               </div>
             </div>
             <SkeletonLoader variant="card" />
@@ -370,8 +386,8 @@ const TravelDetails = () => {
             </div>
             {compatLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                {['first', 'second', 'third'].map((item) => (
+                  <div key={item} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                     <div className="skeleton skeleton-avatar" style={{ width: 40, height: 40 }} />
                     <div style={{ flex: 1 }}>
                       <SkeletonLoader variant="text" width="60%" />
@@ -386,8 +402,8 @@ const TravelDetails = () => {
               </p>
             ) : (
               <div className="compat-list">
-                {compatTravelers.map((t, i) => (
-                  <div key={t.id || i} className="compat-item">
+                {compatTravelers.map((t) => (
+                  <div key={t.id ?? t.username ?? `${t.firstName}-${t.lastName}`} className="compat-item">
                     <div className="compat-avatar">
                       {(t.firstName || t.username || '?')[0].toUpperCase()}
                     </div>

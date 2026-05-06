@@ -56,13 +56,13 @@
 .connection-requests__error {
   background-color: #fee;
   border: 1px solid #fcc;
-  color: #c33;
+  color: #b91c1c;
 }
 
 .connection-requests__success {
   background-color: #efe;
   border: 1px solid #cfc;
-  color: #3c3;
+  color: #166534;
 }
 
 .btn-close {

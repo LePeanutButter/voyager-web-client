@@ -447,7 +447,7 @@ button[class*="danger"]:hover {
 
 .confirm-dialog p {
   margin: 0 0 0.75rem;
-  color: #495057;
+  color: #374151;
   font-size: 0.9rem;
   line-height: 1.5;
 }

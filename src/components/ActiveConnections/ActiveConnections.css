@@ -169,7 +169,7 @@
   border-radius: 6px;
   border: 1px solid #d5d8dc;
   background: #fff;
-  color: #566573;
+  color: #334155;
   cursor: pointer;
 }
 
@@ -186,6 +186,17 @@
 .active-connections__confirm {
   padding-top: 4px;
   border-top: 1px solid #ecf0f1;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  margin: 0;
+  padding-inline: 0;
+}
+
+.active-connections__confirm-legend {
+  font-size: 0;
+  line-height: 0;
+  padding: 0;
 }
 
 .active-connections__confirm-text {

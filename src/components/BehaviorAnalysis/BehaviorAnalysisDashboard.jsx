@@ -68,7 +68,7 @@ const BehaviorAnalysisDashboard = ({ userId }) => {
   };
 
   const handleClearData = async () => {
-    if (window.confirm('Are you sure you want to clear all behavior data? This action cannot be undone.')) {
+    if (globalThis.confirm('Are you sure you want to clear all behavior data? This action cannot be undone.')) {
       try {
         await clearUserBehaviorData(userId);
         setSummary(null);

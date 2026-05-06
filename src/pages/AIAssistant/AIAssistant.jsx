@@ -1,13 +1,11 @@
-import React, { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAIChat } from '../../hooks/useAIChat'
-import { aiService } from '../../services/aiService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import { ChatMessageSkeleton } from '../../components/UI/SkeletonLoader'
 import {
   Send, Bot, User, MapPin, Calendar, DollarSign,
-  Lightbulb, Trash2, ThumbsUp, ThumbsDown, Sparkles,
-  TrendingUp, X
+  Lightbulb, Trash2, ThumbsUp, ThumbsDown, Sparkles, TrendingUp
 } from 'lucide-react'
 import './AIAssistant.css'
 
@@ -63,7 +61,7 @@ const AIAssistant = () => {
   }
 
   const handleClearHistory = async () => {
-    if (!window.confirm('Clear entire conversation history?')) return
+    if (globalThis.confirm('Clear entire conversation history?') === false) return
     await clearHistory()
   }
 
@@ -131,9 +129,9 @@ const AIAssistant = () => {
                       {/* Suggestion chips */}
                       {msg.type === 'ai' && msg.suggestions?.length > 0 && (
                         <div className="msg-suggestions">
-                          {msg.suggestions.slice(0, 4).map((s, i) => (
+                          {msg.suggestions.slice(0, 4).map((s) => (
                             <button
-                              key={i}
+                              key={typeof s === 'string' ? s : s.text || s.name}
                               className="suggestion-chip"
                               onClick={() => handleSuggestion(typeof s === 'string' ? s : s.text || s.name || '')}
                             >
@@ -220,11 +218,11 @@ const AIAssistant = () => {
           <div className="ai-sidebar-section">
             <h3>Quick Prompts</h3>
             <div className="quick-suggestions">
-              {QUICK_SUGGESTIONS.map((s, i) => {
+              {QUICK_SUGGESTIONS.map((s) => {
                 const Icon = s.icon
                 return (
                   <button
-                    key={i}
+                    key={s.text}
                     className="quick-suggestion-btn"
                     onClick={() => handleSuggestion(s.text)}
                   >

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useUserProfile } from '../../hooks/useUserProfile'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
-import { User, Mail, Phone, MapPin, Edit2, Save, X, Shield, Star } from 'lucide-react'
+import { User, Mail, Phone, Edit2, Save, X, Shield, Star } from 'lucide-react'
 import './ProfilePage.css'
 
 const INTERESTS_OPTIONS = [
@@ -11,7 +11,7 @@ const INTERESTS_OPTIONS = [
 ]
 
 const ProfilePage = () => {
-  const { profile, loading, saving, error, success, save, clearMessages, refresh } = useUserProfile()
+  const { profile, loading, saving, error, success, save, clearMessages } = useUserProfile()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
     firstName: '',

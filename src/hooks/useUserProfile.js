@@ -38,11 +38,11 @@ export function useUserProfile() {
   }, [updateUser])
 
   useEffect(() => {
-    if (!contextUser) {
-      refresh()
-    } else {
+    if (contextUser) {
       setProfile(contextUser)
       setLoading(false)
+    } else {
+      refresh()
     }
   }, [contextUser, refresh])
 

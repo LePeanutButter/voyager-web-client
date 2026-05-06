@@ -1,4 +1,4 @@
-import React from 'react'
+import PropTypes from 'prop-types'
 import { AlertCircle, CheckCircle, X, AlertTriangle, Info } from 'lucide-react'
 
 const VARIANTS = {
@@ -53,6 +53,12 @@ const ErrorBanner = ({ variant = 'error', message, onDismiss }) => {
       )}
     </div>
   )
+}
+
+ErrorBanner.propTypes = {
+  variant: PropTypes.oneOf(['error', 'success', 'warning', 'info']),
+  message: PropTypes.string,
+  onDismiss: PropTypes.func,
 }
 
 export default ErrorBanner

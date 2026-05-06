@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTravelPlans } from '../../hooks/useTravelPlans'
 import { aiService } from '../../services/aiService'
@@ -11,10 +11,15 @@ import {
 } from 'lucide-react'
 import './Dashboard.css'
 
+const THREE_PLACEHOLDERS = [1, 2, 3]
+const FOUR_PLACEHOLDERS = [1, 2, 3, 4]
+const PRIMARY_BUTTON_CLASS = 'btn-primary'
+const CREATE_PLAN_ROUTE = '/travel-plans/create'
+
 const Dashboard = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { plans, loading: plansLoading, error: plansError, refresh } = useTravelPlans(true)
+  const { plans, loading: plansLoading, error: plansError } = useTravelPlans(true)
   const [trending, setTrending] = useState([])
   const [trendingLoading, setTrendingLoading] = useState(true)
 
@@ -41,6 +46,7 @@ const Dashboard = () => {
 
   const recentPlans = plans.slice(0, 3)
   const firstName = user?.firstName || user?.username || 'Traveler'
+  const hasRecentPlans = recentPlans.length > 0
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -58,6 +64,90 @@ const Dashboard = () => {
     CANCELLED: { label: 'Cancelled', cls: 'badge-cancelled' },
   }
 
+  let recentPlansContent
+  if (plansLoading) {
+    recentPlansContent = (
+      <div className="plans-list">
+        {THREE_PLACEHOLDERS.map((item) => <TravelCardSkeleton key={item} />)}
+      </div>
+    )
+  } else if (!hasRecentPlans) {
+    recentPlansContent = (
+      <div className="empty-state" style={{ padding: '3rem 1rem' }}>
+        <div className="empty-state-icon" style={{ width: 64, height: 64 }}>
+          <Plane size={28} />
+        </div>
+        <h3>No plans yet</h3>
+        <p>Create your first travel plan and start your adventure!</p>
+        <button className={PRIMARY_BUTTON_CLASS} onClick={() => navigate(CREATE_PLAN_ROUTE)}>
+          <Plus size={16} /> Create First Plan
+        </button>
+      </div>
+    )
+  } else {
+    recentPlansContent = (
+      <div className="plans-list">
+        {recentPlans.map((plan) => {
+          const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
+          return (
+            <Link key={plan.id} to={`/travel-plans/${plan.id}`} className="plan-row">
+              <div className="plan-row-icon">
+                <MapPin size={18} />
+              </div>
+              <div className="plan-row-info">
+                <h4>{plan.title}</h4>
+                <p>{plan.destinationLocation} · {formatDate(plan.startDate)}</p>
+              </div>
+              <span className={`badge ${sc.cls}`}>{sc.label}</span>
+              <ArrowRight size={16} className="plan-row-arrow" />
+            </Link>
+          )
+        })}
+      </div>
+    )
+  }
+
+  let trendingContent
+  if (trendingLoading) {
+    trendingContent = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {THREE_PLACEHOLDERS.map((item) => (
+          <div key={item} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', background: 'var(--surface-card)', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}>
+            <div className="skeleton skeleton-text skeleton-line-medium" />
+            <div className="skeleton skeleton-text skeleton-line-short" />
+          </div>
+        ))}
+      </div>
+    )
+  } else if (trending.length === 0) {
+    trendingContent = (
+      <div className="trending-empty">
+        <TrendingUp size={24} />
+        <p>No trending data available</p>
+      </div>
+    )
+  } else {
+    trendingContent = (
+      <div className="trending-list">
+        {trending.map((item, index) => (
+          <div key={item.id ?? item.name ?? item.title ?? index} className="trending-card animate-fadeIn">
+            <div className="trending-rank">#{index + 1}</div>
+            <div className="trending-info">
+              <h4>{item.name || item.title || 'Activity'}</h4>
+              <p>{item.category || item.type || 'Travel'}</p>
+            </div>
+            {item.rating && (
+              <div className="trending-rating">
+                <Star size={13} fill="var(--accent-gold)" color="var(--accent-gold)" />
+                <span>{Number(item.rating).toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="dashboard-page page-container">
       {/* Header */}
@@ -69,8 +159,8 @@ const Dashboard = () => {
         </div>
         <button
           id="dashboard-new-plan-btn"
-          className="btn-primary"
-          onClick={() => navigate('/travel-plans/create')}
+          className={PRIMARY_BUTTON_CLASS}
+          onClick={() => navigate(CREATE_PLAN_ROUTE)}
         >
           <Plus size={18} />
           New Plan
@@ -82,7 +172,7 @@ const Dashboard = () => {
       {/* Stats */}
       <div className="dashboard-stats">
         {plansLoading
-          ? Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)
+          ? FOUR_PLACEHOLDERS.map((item) => <StatCardSkeleton key={item} />)
           : stats.map((s) => {
               const Icon = s.icon
               return (
@@ -110,41 +200,7 @@ const Dashboard = () => {
             </button>
           </div>
 
-          {plansLoading ? (
-            <div className="plans-list">
-              {Array.from({ length: 3 }, (_, i) => <TravelCardSkeleton key={i} />)}
-            </div>
-          ) : recentPlans.length === 0 ? (
-            <div className="empty-state" style={{ padding: '3rem 1rem' }}>
-              <div className="empty-state-icon" style={{ width: 64, height: 64 }}>
-                <Plane size={28} />
-              </div>
-              <h3>No plans yet</h3>
-              <p>Create your first travel plan and start your adventure!</p>
-              <button className="btn-primary" onClick={() => navigate('/travel-plans/create')}>
-                <Plus size={16} /> Create First Plan
-              </button>
-            </div>
-          ) : (
-            <div className="plans-list">
-              {recentPlans.map((plan) => {
-                const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
-                return (
-                  <div key={plan.id} className="plan-row" onClick={() => navigate(`/travel-plans/${plan.id}`)}>
-                    <div className="plan-row-icon">
-                      <MapPin size={18} />
-                    </div>
-                    <div className="plan-row-info">
-                      <h4>{plan.title}</h4>
-                      <p>{plan.destinationLocation} · {formatDate(plan.startDate)}</p>
-                    </div>
-                    <span className={`badge ${sc.cls}`}>{sc.label}</span>
-                    <ArrowRight size={16} className="plan-row-arrow" />
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {recentPlansContent}
 
           {/* Quick actions */}
           <div className="section-header" style={{ marginTop: '2rem' }}>
@@ -152,7 +208,7 @@ const Dashboard = () => {
           </div>
           <div className="quick-actions">
             {[
-              { label: 'Plan a Trip', icon: Plane, action: () => navigate('/travel-plans/create'), primary: true },
+              { label: 'Plan a Trip', icon: Plane, action: () => navigate(CREATE_PLAN_ROUTE), primary: true },
               { label: 'AI Assistant', icon: Zap, action: () => navigate('/ai-assistant') },
               { label: 'Find Travelers', icon: Users, action: () => navigate('/social') },
               { label: 'My Profile', icon: Compass, action: () => navigate('/profile') },
@@ -175,42 +231,10 @@ const Dashboard = () => {
             <h2>Trending Now</h2>
           </div>
 
-          {trendingLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {Array.from({ length: 3 }, (_, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', background: 'var(--surface-card)', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}>
-                  <div className="skeleton skeleton-text skeleton-line-medium" />
-                  <div className="skeleton skeleton-text skeleton-line-short" />
-                </div>
-              ))}
-            </div>
-          ) : trending.length === 0 ? (
-            <div className="trending-empty">
-              <TrendingUp size={24} />
-              <p>No trending data available</p>
-            </div>
-          ) : (
-            <div className="trending-list">
-              {trending.map((item, i) => (
-                <div key={i} className="trending-card animate-fadeIn">
-                  <div className="trending-rank">#{i + 1}</div>
-                  <div className="trending-info">
-                    <h4>{item.name || item.title || 'Activity'}</h4>
-                    <p>{item.category || item.type || 'Travel'}</p>
-                  </div>
-                  {item.rating && (
-                    <div className="trending-rating">
-                      <Star size={13} fill="var(--accent-gold)" color="var(--accent-gold)" />
-                      <span>{Number(item.rating).toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          {trendingContent}
 
           {/* AI CTA */}
-          <div className="ai-cta-card" onClick={() => navigate('/ai-assistant')}>
+          <Link className="ai-cta-card" to="/ai-assistant">
             <div className="ai-cta-icon">
               <Zap size={22} />
             </div>
@@ -219,7 +243,7 @@ const Dashboard = () => {
               <p>Get personalized recommendations</p>
             </div>
             <ArrowRight size={16} />
-          </div>
+          </Link>
         </div>
       </div>
     </div>

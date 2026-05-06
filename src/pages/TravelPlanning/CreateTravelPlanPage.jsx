@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTravelPlans } from '../../hooks/useTravelPlans'
 import { MapPin, Calendar, Users, DollarSign, ArrowLeft } from 'lucide-react'
@@ -39,7 +39,7 @@ const CreateTravelPlanPage = () => {
       const newPlan = await add(payload)
       navigate(`/travel-plans/${newPlan.id}`)
     } catch (err) {
-      // error is handled by hook
+      console.error(err)
     } finally {
       setLoading(false)
     }

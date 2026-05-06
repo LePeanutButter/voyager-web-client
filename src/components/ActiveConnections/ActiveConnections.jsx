@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
 import { getUserConnections, removeConnection } from '../../services/socialService'
 import './ActiveConnections.css'
@@ -157,7 +158,8 @@ const ActiveConnections = ({ userId }) => {
                   </button>
                 </div>
               ) : (
-                <div className="active-connections__confirm" role="group" aria-label="Confirmar eliminación">
+                <fieldset className="active-connections__confirm">
+                  <legend className="active-connections__confirm-legend">Confirmar eliminación</legend>
                   <p className="active-connections__confirm-text">
                     ¿Eliminar esta conexión? Dejarás de coordinar con esta persona.
                   </p>
@@ -179,7 +181,7 @@ const ActiveConnections = ({ userId }) => {
                       {isRemoving ? 'Eliminando…' : 'Sí, eliminar'}
                     </button>
                   </div>
-                </div>
+                </fieldset>
               )}
             </li>
           )
@@ -194,6 +196,10 @@ const ActiveConnections = ({ userId }) => {
       )}
     </section>
   )
+}
+
+ActiveConnections.propTypes = {
+  userId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 }
 
 export default ActiveConnections

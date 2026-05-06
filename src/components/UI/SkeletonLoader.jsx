@@ -1,4 +1,4 @@
-import React from 'react'
+import PropTypes from 'prop-types'
 import './SkeletonLoader.css'
 
 /**
@@ -41,14 +41,14 @@ const SkeletonLoader = ({
 
   return (
     <>
-      {Array.from({ length: count }, (_, i) => (
+      {Array.from({ length: count }, () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`).map((skeletonKey, index) => (
         <div
-          key={i}
+          key={skeletonKey}
           className={getClass()}
           style={{
             ...getStyle(),
             width: variant === 'text' && !width
-              ? `${85 - (i % 3) * 15}%`
+              ? `${85 - (index % 3) * 15}%`
               : width || '100%',
           }}
           aria-hidden="true"
@@ -56,6 +56,14 @@ const SkeletonLoader = ({
       ))}
     </>
   )
+}
+
+SkeletonLoader.propTypes = {
+  variant: PropTypes.oneOf(['text', 'title', 'card', 'avatar', 'block']),
+  width: PropTypes.string,
+  height: PropTypes.string,
+  count: PropTypes.number,
+  className: PropTypes.string,
 }
 
 /**
@@ -98,5 +106,9 @@ export const ChatMessageSkeleton = ({ isUser = false }) => (
     {isUser && <div className="skeleton skeleton-avatar" style={{ width: 36, height: 36 }} />}
   </div>
 )
+
+ChatMessageSkeleton.propTypes = {
+  isUser: PropTypes.bool,
+}
 
 export default SkeletonLoader

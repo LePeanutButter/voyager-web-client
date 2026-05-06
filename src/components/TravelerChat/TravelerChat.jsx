@@ -37,7 +37,7 @@ const TravelerChat = ({ connectionId, userId, peerName = 'Viajero' }) => {
   const listEndRef = useRef(null)
 
   const appendMessages = useCallback((incoming) => {
-    if (!incoming) return
+    if (incoming == null) return
     const list = Array.isArray(incoming) ? incoming : [incoming]
     setMessages((prev) => {
       const map = new Map()

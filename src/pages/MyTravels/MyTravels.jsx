@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTravelPlans } from '../../hooks/useTravelPlans'
 import { TravelCardSkeleton } from '../../components/UI/SkeletonLoader'
@@ -44,6 +44,122 @@ const MyTravels = () => {
     }
   }
 
+  let content
+  if (loading) {
+    content = (
+      <div className="travels-grid">
+        {['one', 'two', 'three', 'four', 'five', 'six'].map((item) => <TravelCardSkeleton key={item} />)}
+      </div>
+    )
+  } else if (filtered.length === 0) {
+    content = (
+      <div className="empty-state">
+        {emptyStateContent}
+      </div>
+    )
+  } else {
+    content = (
+      <div className="travels-grid">
+        {filtered.map((plan) => {
+          const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
+          return (
+            <div key={plan.id} className="travel-card animate-fadeIn">
+              {/* Card gradient header */}
+              <div className="travel-card-header">
+                <span className={`badge ${sc.cls}`}>{sc.label}</span>
+                <button
+                  className="delete-btn"
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(plan.id) }}
+                  title="Delete plan"
+                  aria-label="Delete plan"
+                >
+                  <Trash2 size={15} />
+                </button>
+                <h3 className="travel-card-title">{plan.title}</h3>
+              </div>
+
+              {/* Body */}
+              <div className="travel-card-body">
+                {plan.description && (
+                  <p className="travel-description">{plan.description}</p>
+                )}
+
+                <div className="travel-meta">
+                  {plan.destinationLocation && (
+                    <div className="meta-row">
+                      <MapPin size={14} />
+                      <span>{plan.destinationLocation}</span>
+                    </div>
+                  )}
+                  <div className="meta-row">
+                    <Calendar size={14} />
+                    <span>{formatDate(plan.startDate)} → {formatDate(plan.endDate)}</span>
+                  </div>
+                  <div className="meta-row-row">
+                    {plan.numberOfTravelers && (
+                      <div className="meta-row">
+                        <Users size={14} />
+                        <span>{plan.numberOfTravelers} traveler{plan.numberOfTravelers > 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    {plan.estimatedBudget && (
+                      <div className="meta-row">
+                        <DollarSign size={14} />
+                        <span>${Number(plan.estimatedBudget).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="travel-card-footer">
+                  <div className="meta-row" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                    <Clock size={12} />
+                    <span>{formatDate(plan.createdAt)}</span>
+                  </div>
+                  <button
+                    className="btn-view-details"
+                    onClick={() => navigate(`/travel-plans/${plan.id}`)}
+                  >
+                    Details <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  let emptyStateContent = null
+  if (plans.length === 0) {
+    emptyStateContent = (
+      <>
+        <div className="empty-state-icon">
+          <Plane size={32} />
+        </div>
+        <h3>No travel plans yet</h3>
+        <p>Start planning your first adventure and let AI guide you to the perfect destination!</p>
+        <Link to="/travel-plans/create" className="btn-primary" style={{ display: 'inline-flex' }}>
+          <Plus size={16} /> Create My First Plan
+        </Link>
+      </>
+    )
+  } else {
+    emptyStateContent = (
+      <>
+        <div className="empty-state-icon">
+          <Filter size={28} />
+        </div>
+        <h3>No {activeFilter.toLowerCase()} plans</h3>
+        <p>Try selecting a different filter.</p>
+        <button className="btn-primary" onClick={() => setActiveFilter('ALL')} style={{ display: 'inline-flex' }}>
+          View All Plans
+        </button>
+      </>
+    )
+  }
+
   return (
     <div className="my-travels-page page-container">
       {/* Header */}
@@ -78,105 +194,7 @@ const MyTravels = () => {
       )}
 
       {/* Content */}
-      {loading ? (
-        <div className="travels-grid">
-          {Array.from({ length: 6 }, (_, i) => <TravelCardSkeleton key={i} />)}
-        </div>
-      ) : filtered.length === 0 ? (
-        plans.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">
-              <Plane size={32} />
-            </div>
-            <h3>No travel plans yet</h3>
-            <p>Start planning your first adventure and let AI guide you to the perfect destination!</p>
-            <Link to="/travel-plans/create" className="btn-primary" style={{ display: 'inline-flex' }}>
-              <Plus size={16} /> Create My First Plan
-            </Link>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-state-icon">
-              <Filter size={28} />
-            </div>
-            <h3>No {activeFilter.toLowerCase()} plans</h3>
-            <p>Try selecting a different filter.</p>
-            <button className="btn-primary" onClick={() => setActiveFilter('ALL')} style={{ display: 'inline-flex' }}>
-              View All Plans
-            </button>
-          </div>
-        )
-      ) : (
-        <div className="travels-grid">
-          {filtered.map((plan) => {
-            const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
-            return (
-              <div key={plan.id} className="travel-card animate-fadeIn">
-                {/* Card gradient header */}
-                <div className="travel-card-header">
-                  <span className={`badge ${sc.cls}`}>{sc.label}</span>
-                  <button
-                    className="delete-btn"
-                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(plan.id) }}
-                    title="Delete plan"
-                    aria-label="Delete plan"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                  <h3 className="travel-card-title">{plan.title}</h3>
-                </div>
-
-                {/* Body */}
-                <div className="travel-card-body">
-                  {plan.description && (
-                    <p className="travel-description">{plan.description}</p>
-                  )}
-
-                  <div className="travel-meta">
-                    {plan.destinationLocation && (
-                      <div className="meta-row">
-                        <MapPin size={14} />
-                        <span>{plan.destinationLocation}</span>
-                      </div>
-                    )}
-                    <div className="meta-row">
-                      <Calendar size={14} />
-                      <span>{formatDate(plan.startDate)} → {formatDate(plan.endDate)}</span>
-                    </div>
-                    <div className="meta-row-row">
-                      {plan.numberOfTravelers && (
-                        <div className="meta-row">
-                          <Users size={14} />
-                          <span>{plan.numberOfTravelers} traveler{plan.numberOfTravelers > 1 ? 's' : ''}</span>
-                        </div>
-                      )}
-                      {plan.estimatedBudget && (
-                        <div className="meta-row">
-                          <DollarSign size={14} />
-                          <span>${Number(plan.estimatedBudget).toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="travel-card-footer">
-                    <div className="meta-row" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                      <Clock size={12} />
-                      <span>{formatDate(plan.createdAt)}</span>
-                    </div>
-                    <button
-                      className="btn-view-details"
-                      onClick={() => navigate(`/travel-plans/${plan.id}`)}
-                    >
-                      Details <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      {content}
 
       {/* Delete confirmation modal */}
       {confirmDelete && (

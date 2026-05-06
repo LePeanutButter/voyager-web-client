@@ -58,7 +58,7 @@ export function extractErrorMessage(error) {
 export function extractFieldErrors(error) {
   const data = error?.response?.data
 
-  if (!data || !Array.isArray(data.errors)) return {}
+  if (!Array.isArray(data?.errors)) return {}
 
   return data.errors.reduce((acc, e) => {
     if (e && e.field) {

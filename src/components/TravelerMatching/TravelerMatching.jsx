@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import PropTypes from 'prop-types'
 import { getCompatibleTravelers, sendConnectionRequest } from '../../services/socialService'
 import './TravelerMatching.css'
 
@@ -15,13 +16,7 @@ const TravelerMatching = ({ travelPlanId }) => {
   const [successMessage, setSuccessMessage] = useState(null)
   const [sendingTo, setSendingTo] = useState(null)
 
-  useEffect(() => {
-    if (travelPlanId) {
-      fetchCompatibleTravelers()
-    }
-  }, [travelPlanId])
-
-  const fetchCompatibleTravelers = async () => {
+  const fetchCompatibleTravelers = useCallback(async () => {
     setLoading(true)
     setError(null)
     
@@ -37,7 +32,13 @@ const TravelerMatching = ({ travelPlanId }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [travelPlanId])
+
+  useEffect(() => {
+    if (travelPlanId) {
+      fetchCompatibleTravelers()
+    }
+  }, [travelPlanId, fetchCompatibleTravelers])
 
   const handleSendConnectionRequest = async (recipientId, recipientName) => {
     setSendingTo(recipientId)
@@ -72,14 +73,6 @@ const TravelerMatching = ({ travelPlanId }) => {
       day: 'numeric', 
       year: 'numeric' 
     })
-  }
-
-  const calculateOverlapDays = (startDate, endDate) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const diffTime = Math.abs(end - start)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
   }
 
   if (loading) {
@@ -186,6 +179,10 @@ const TravelerMatching = ({ travelPlanId }) => {
       )}
     </div>
   )
+}
+
+TravelerMatching.propTypes = {
+  travelPlanId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 }
 
 export default TravelerMatching

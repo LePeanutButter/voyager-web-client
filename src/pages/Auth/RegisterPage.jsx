@@ -1,10 +1,70 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
+import PropTypes from 'prop-types'
 import { Link, useNavigate } from 'react-router-dom'
 import { Lock, Eye, EyeOff, User, Mail, Phone, Plane } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { extractFieldErrors } from '../../utils/errorUtils'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import './Auth.css'
+
+const Field = ({
+  id,
+  name,
+  label,
+  type = 'text',
+  placeholder,
+  icon: Icon,
+  autoComplete,
+  formData,
+  fieldErrors,
+  onChange,
+  showPassword,
+  onTogglePassword,
+}) => (
+  <div className="form-group">
+    <label htmlFor={id}>{label}</label>
+    <div className="input-wrapper">
+      {Icon && <Icon size={17} className="input-icon" />}
+      <input
+        id={id}
+        name={name}
+        type={type}
+        value={formData[name]}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={fieldErrors[name] ? 'error' : ''}
+        autoComplete={autoComplete}
+        style={Icon ? undefined : { paddingLeft: '1rem' }}
+      />
+      {name === 'password' && (
+        <button
+          type="button"
+          className="input-action-btn"
+          onClick={onTogglePassword}
+          aria-label={showPassword ? 'Hide password' : 'Show password'}
+        >
+          {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+        </button>
+      )}
+    </div>
+    {fieldErrors[name] && <span className="field-error">{fieldErrors[name]}</span>}
+  </div>
+)
+
+Field.propTypes = {
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  type: PropTypes.string,
+  placeholder: PropTypes.string,
+  icon: PropTypes.elementType,
+  autoComplete: PropTypes.string,
+  formData: PropTypes.object.isRequired,
+  fieldErrors: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  showPassword: PropTypes.bool.isRequired,
+  onTogglePassword: PropTypes.func.isRequired,
+}
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -71,37 +131,6 @@ const RegisterPage = () => {
     }
   }
 
-  const Field = ({ id, name, label, type = 'text', placeholder, icon: Icon, autoComplete }) => (
-    <div className="form-group">
-      <label htmlFor={id}>{label}</label>
-      <div className="input-wrapper">
-        {Icon && <Icon size={17} className="input-icon" />}
-        <input
-          id={id}
-          name={name}
-          type={type}
-          value={formData[name]}
-          onChange={handleChange}
-          placeholder={placeholder}
-          className={fieldErrors[name] ? 'error' : ''}
-          autoComplete={autoComplete}
-          style={Icon ? undefined : { paddingLeft: '1rem' }}
-        />
-        {name === 'password' && (
-          <button
-            type="button"
-            className="input-action-btn"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-          </button>
-        )}
-      </div>
-      {fieldErrors[name] && <span className="field-error">{fieldErrors[name]}</span>}
-    </div>
-  )
-
   return (
     <div className="auth-page">
       {/* Hero */}
@@ -143,11 +172,11 @@ const RegisterPage = () => {
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className="form-row">
               <Field id="reg-firstName" name="firstName" label="First name" placeholder="John" icon={User} autoComplete="given-name" />
-              <Field id="reg-lastName" name="lastName" label="Last name" placeholder="Doe" autoComplete="family-name" />
+              <Field id="reg-lastName" name="lastName" label="Last name" placeholder="Doe" autoComplete="family-name" formData={formData} fieldErrors={fieldErrors} onChange={handleChange} showPassword={showPassword} onTogglePassword={() => setShowPassword((v) => !v)} />
             </div>
 
-            <Field id="reg-username" name="username" label="Username" placeholder="john_doe" icon={User} autoComplete="username" />
-            <Field id="reg-email" name="email" label="Email address" type="email" placeholder="john@example.com" icon={Mail} autoComplete="email" />
+              <Field id="reg-username" name="username" label="Username" placeholder="john_doe" icon={User} autoComplete="username" formData={formData} fieldErrors={fieldErrors} onChange={handleChange} showPassword={showPassword} onTogglePassword={() => setShowPassword((v) => !v)} />
+              <Field id="reg-email" name="email" label="Email address" type="email" placeholder="john@example.com" icon={Mail} autoComplete="email" formData={formData} fieldErrors={fieldErrors} onChange={handleChange} showPassword={showPassword} onTogglePassword={() => setShowPassword((v) => !v)} />
             <Field
               id="reg-password"
               name="password"
@@ -156,8 +185,13 @@ const RegisterPage = () => {
               placeholder="Minimum 8 characters"
               icon={Lock}
               autoComplete="new-password"
+              formData={formData}
+              fieldErrors={fieldErrors}
+              onChange={handleChange}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((v) => !v)}
             />
-            <Field id="reg-phone" name="phoneNumber" label="Phone (optional)" type="tel" placeholder="+1 555 000 0000" icon={Phone} autoComplete="tel" />
+            <Field id="reg-phone" name="phoneNumber" label="Phone (optional)" type="tel" placeholder="+1 555 000 0000" icon={Phone} autoComplete="tel" formData={formData} fieldErrors={fieldErrors} onChange={handleChange} showPassword={showPassword} onTogglePassword={() => setShowPassword((v) => !v)} />
 
             <button
               id="register-submit-btn"
