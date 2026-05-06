@@ -90,6 +90,11 @@ const RegisterPage = () => {
     if (error) setError('')
   }
 
+  const isValidEmail = (email) => {
+    const parts = email.split('@')
+    return parts.length === 2 && parts[0].length > 0 && parts[1].includes('.') && parts[1].split('.').every((p) => p.length > 0)
+  }
+
   const validate = () => {
     const errs = {}
     if (!formData.firstName.trim()) errs.firstName = 'First name is required'
@@ -97,7 +102,7 @@ const RegisterPage = () => {
     if (!formData.username.trim()) errs.username = 'Username is required'
     else if (formData.username.length < 3) errs.username = 'Username must be at least 3 characters'
     if (!formData.email.trim()) errs.email = 'Email is required'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = 'Enter a valid email address'
+    else if (!isValidEmail(formData.email)) errs.email = 'Enter a valid email address'
     if (!formData.password) errs.password = 'Password is required'
     else if (formData.password.length < 8) errs.password = 'Password must be at least 8 characters'
     setFieldErrors(errs)

@@ -2,15 +2,15 @@
  * Utility functions for case conversion (snake_case <-> camelCase).
  */
 
-const toCamelCase = (str) => {
-  return str.replace(/([-_][a-z])/g, (group) =>
-    group.toUpperCase().replaceAll('-', '').replaceAll('_', '')
-  )
-}
+const toCamelCase = (str) =>
+  str.split(/[-_]/).map((word, i) =>
+    i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+  ).join('')
 
-const toSnakeCase = (str) => {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
-}
+const toSnakeCase = (str) =>
+  [...str].map((char) =>
+    char >= 'A' && char <= 'Z' ? '_' + char.toLowerCase() : char
+  ).join('')
 
 const isObject = (obj) => {
   return obj !== null && typeof obj === 'object' && !Array.isArray(obj) && !(obj instanceof Date)
