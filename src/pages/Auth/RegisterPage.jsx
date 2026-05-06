@@ -176,7 +176,7 @@ const RegisterPage = () => {
 
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className="form-row">
-              <Field id="reg-firstName" name="firstName" label="First name" placeholder="John" icon={User} autoComplete="given-name" />
+              <Field id="reg-firstName" name="firstName" label="First name" placeholder="John" icon={User} autoComplete="given-name" formData={formData} fieldErrors={fieldErrors} onChange={handleChange} showPassword={showPassword} onTogglePassword={() => setShowPassword((v) => !v)} />
               <Field id="reg-lastName" name="lastName" label="Last name" placeholder="Doe" autoComplete="family-name" formData={formData} fieldErrors={fieldErrors} onChange={handleChange} showPassword={showPassword} onTogglePassword={() => setShowPassword((v) => !v)} />
             </div>
 

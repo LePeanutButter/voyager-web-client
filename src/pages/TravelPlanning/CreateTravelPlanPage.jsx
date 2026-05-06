@@ -18,7 +18,7 @@ const CP_ICON_POS = { position: 'absolute', left: '0.75rem', top: '0.875rem', co
 
 const CreateTravelPlanPage = () => {
   const navigate = useNavigate()
-  const { add, error, clearError } = useTravelPlans()
+  const { create: add, error, clearError } = useTravelPlans()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',

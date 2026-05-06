@@ -1,6 +1,18 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
+const ciFullCoverage =
+  process.env.CI === 'true' || process.env.VITEST_COVERAGE_FULL === '1'
+
+const coverageDomainInclude = [
+  'src/utils/**/*.{js,jsx}',
+  'src/services/**/*.{js,jsx}',
+  'src/hooks/**/*.{js,jsx}',
+  'src/contexts/**/*.{js,jsx}',
+  'src/models/**/*.{js,jsx}',
+  'src/api/**/*.{js,jsx}',
+]
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -17,28 +29,22 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
-      // Cobertura al 90 % sobre la capa de dominio (sin pantallas JSX masivas).
-      // Informe completo: quita `include` de coverage o ejecuta sin umbrales.
-      include: [
-        'src/utils/**/*.{js,jsx}',
-        'src/services/**/*.{js,jsx}',
-        'src/hooks/**/*.{js,jsx}',
-        'src/contexts/**/*.{js,jsx}',
-        'src/models/**/*.{js,jsx}',
-        'src/api/**/*.{js,jsx}',
-      ],
+      // Local: 90 % sobre capa de dominio. CI (Sonar): todo `src/**` en LCOV sin umbrales globales.
+      include: ciFullCoverage ? ['src/**/*.{js,jsx}'] : coverageDomainInclude,
       exclude: [
         'src/**/*.test.{js,jsx}',
         'src/**/*.spec.{js,jsx}',
         'src/test/**',
         'src/main.jsx',
       ],
-      thresholds: {
-        lines: 90,
-        statements: 90,
-        functions: 90,
-        branches: 82,
-      },
+      thresholds: ciFullCoverage
+        ? undefined
+        : {
+            lines: 90,
+            statements: 90,
+            functions: 90,
+            branches: 82,
+          },
     },
   },
 })

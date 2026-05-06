@@ -88,3 +88,4 @@ CardContent.propTypes = {
 }
 
 export default Card
+export { Card }

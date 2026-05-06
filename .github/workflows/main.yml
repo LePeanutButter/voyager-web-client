@@ -61,9 +61,9 @@ jobs:
           rm -rf node_modules
           npm ci
 
-      # Step 5: Run tests with coverage (if present)
+      # Step 5: Run tests with coverage (vitest run + full-src LCOV for Sonar; CI=true in GHA)
       - name: Run tests with coverage
-        run: npm run test --if-present -- --coverage
+        run: npm run test:coverage
 
       # Step 6: Upload coverage results
       - name: Upload Coverage Artifacts
@@ -103,7 +103,7 @@ jobs:
   # =========================================
   sonar_scan:
     name: Sonar Cloud static analysis
-    needs: trivy_scan
+    needs: [test_and_coverage, trivy_scan]
     runs-on: ubuntu-latest
     steps:
       # Step 1: Checkout source code
