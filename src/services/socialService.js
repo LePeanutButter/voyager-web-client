@@ -158,14 +158,19 @@ export const getConversationMessages = async (connectionId, userId, page = 0, si
  * Spring Data Page (or similar) nested inside ApiResponse `data`.
  * @returns {{ last: boolean, totalPages: number|null, number: number }}
  */
-const extractPageMetadata = (raw) => {
-  if (!raw || typeof raw !== 'object') {
-    return { last: true, totalPages: null, number: 0 }
-  }
+const emptyPageMeta = () => ({ last: true, totalPages: null, number: 0 })
+
+const unwrapPageNode = (raw) => {
+  if (!raw || typeof raw !== 'object') return null
   let node = raw.data === undefined ? raw : raw.data
-  if (node && typeof node === 'object' && node.data?.content !== undefined) {
+  if (node?.data?.content !== undefined) {
     node = node.data
   }
+  return node
+}
+
+const extractPageMetadata = (raw) => {
+  const node = unwrapPageNode(raw)
   if (node && typeof node === 'object' && Array.isArray(node.content)) {
     return {
       last: Boolean(node.last),
@@ -173,7 +178,7 @@ const extractPageMetadata = (raw) => {
       number: typeof node.number === 'number' ? node.number : 0,
     }
   }
-  return { last: true, totalPages: null, number: 0 }
+  return emptyPageMeta()
 }
 
 /**
@@ -215,4 +220,19 @@ export const sendTravelerMessage = async ({ connectionId, senderId, content }) =
     console.error('Error sending traveler message:', error)
     throw error
   }
+}
+
+/** Aggregate export for consumers that prefer a single namespace object */
+export const socialService = {
+  getCompatibleTravelers,
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  rejectConnectionRequest,
+  getPendingRequests,
+  getSentRequests,
+  getUserConnections,
+  removeConnection,
+  getConversationMessages,
+  getAllConversationMessages,
+  sendTravelerMessage,
 }

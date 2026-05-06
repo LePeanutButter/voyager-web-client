@@ -1,4 +1,3 @@
-import React from 'react'
 import TravelerMatching from '../../components/TravelerMatching/TravelerMatching'
 import './SocialFeatures.css'
 
@@ -30,7 +29,7 @@ const TravelerMatchingPage = () => {
             <li>Select one of your active travel plans</li>
             <li>Our system finds travelers with the same destination</li>
             <li>View compatibility scores based on overlapping dates</li>
-            <li>Send connection requests to travelers you'd like to meet</li>
+            <li>{'Send connection requests to travelers you\u2019d like to meet'}</li>
           </ol>
         </div>
 

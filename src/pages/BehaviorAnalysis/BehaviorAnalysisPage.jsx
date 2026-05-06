@@ -3,11 +3,9 @@
  * Main page for behavior analysis and preference management
  */
 
-import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useAuth } from '../../contexts/use-auth.js';
 import BehaviorAnalysisDashboard from '../../components/BehaviorAnalysis/BehaviorAnalysisDashboard.jsx';
-import { Card, CardHeader, CardContent, CardTitle } from '../../components/UI/Card.jsx';
-import Button from '../../components/UI/Button.jsx';
+import { Card, CardContent } from '../../components/UI/Card.jsx';
 
 const BehaviorAnalysisPage = () => {
   const { user } = useAuth();

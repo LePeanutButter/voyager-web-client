@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { authService } from '../services/authService'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/use-auth.js'
 import { extractErrorMessage } from '../utils/errorUtils'
 
 /**

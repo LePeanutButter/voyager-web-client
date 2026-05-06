@@ -4,10 +4,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext.jsx';
+import { useAuth } from '../contexts/use-auth.js';
 import { 
   BehaviorTracker, 
-  trackUserBehavior,
   analyzeUserBehavior,
   getBehaviorSummary,
   getDetectedPatterns
@@ -202,12 +201,13 @@ export const useBehaviorTracking = (component, options = {}) => {
       },
       ...clickOptions
     });
-  }, [component, trackInteraction]);
+  }, [component, trackInteraction, options.context]);
 
   // Track component duration on unmount
   useEffect(() => {
+    const startMs = startTimeRef.current
     return () => {
-      const duration = Date.now() - startTimeRef.current;
+      const duration = Date.now() - startMs
       trackInteraction('view', {
         context: {
           component,

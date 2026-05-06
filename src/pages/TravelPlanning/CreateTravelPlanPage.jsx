@@ -4,6 +4,18 @@ import { useTravelPlans } from '../../hooks/useTravelPlans'
 import { MapPin, Calendar, Users, DollarSign, ArrowLeft } from 'lucide-react'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 
+const CP_BORDER = '1px solid var(--border-color)'
+const CP_FORM_GROUP_COL = { display: 'flex', flexDirection: 'column', gap: '0.5rem' }
+const CP_LABEL = { fontWeight: 600, fontSize: '0.875rem' }
+const CP_INPUT = { padding: '0.75rem', borderRadius: 'var(--border-radius)', border: CP_BORDER }
+const CP_INPUT_ICON = {
+  width: '100%',
+  padding: '0.75rem 0.75rem 0.75rem 2.25rem',
+  borderRadius: 'var(--border-radius)',
+  border: CP_BORDER,
+}
+const CP_ICON_POS = { position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }
+
 const CreateTravelPlanPage = () => {
   const navigate = useNavigate()
   const { add, error, clearError } = useTravelPlans()
@@ -58,8 +70,8 @@ const CreateTravelPlanPage = () => {
         <ErrorBanner variant="error" message={error} onDismiss={clearError} />
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="title" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Title *</label>
+          <div className="form-group" style={CP_FORM_GROUP_COL}>
+            <label htmlFor="title" style={CP_LABEL}>Title *</label>
             <input
               id="title"
               name="title"
@@ -67,12 +79,12 @@ const CreateTravelPlanPage = () => {
               onChange={handleChange}
               placeholder="E.g., Summer in Paris"
               required
-              style={{ padding: '0.75rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+              style={CP_INPUT}
             />
           </div>
 
-          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="description" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Description</label>
+          <div className="form-group" style={CP_FORM_GROUP_COL}>
+            <label htmlFor="description" style={CP_LABEL}>Description</label>
             <textarea
               id="description"
               name="description"
@@ -80,29 +92,29 @@ const CreateTravelPlanPage = () => {
               onChange={handleChange}
               placeholder="What's the vibe?"
               rows={3}
-              style={{ padding: '0.75rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+              style={CP_INPUT}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="originLocation" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Origin</label>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="originLocation" style={CP_LABEL}>Origin</label>
               <div style={{ position: 'relative' }}>
-                <MapPin size={16} style={{ position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }} />
+                <MapPin size={16} style={CP_ICON_POS} />
                 <input
                   id="originLocation"
                   name="originLocation"
                   value={formData.originLocation}
                   onChange={handleChange}
                   placeholder="Your city"
-                  style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.25rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+                  style={CP_INPUT_ICON}
                 />
               </div>
             </div>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="destinationLocation" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Destination *</label>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="destinationLocation" style={CP_LABEL}>Destination *</label>
               <div style={{ position: 'relative' }}>
-                <MapPin size={16} style={{ position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }} />
+                <MapPin size={16} style={CP_ICON_POS} />
                 <input
                   id="destinationLocation"
                   name="destinationLocation"
@@ -110,17 +122,17 @@ const CreateTravelPlanPage = () => {
                   onChange={handleChange}
                   placeholder="Where to?"
                   required
-                  style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.25rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+                  style={CP_INPUT_ICON}
                 />
               </div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="startDate" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Start Date *</label>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="startDate" style={CP_LABEL}>Start Date *</label>
               <div style={{ position: 'relative' }}>
-                <Calendar size={16} style={{ position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }} />
+                <Calendar size={16} style={CP_ICON_POS} />
                 <input
                   type="date"
                   id="startDate"
@@ -128,14 +140,14 @@ const CreateTravelPlanPage = () => {
                   value={formData.startDate}
                   onChange={handleChange}
                   required
-                  style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.25rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+                  style={CP_INPUT_ICON}
                 />
               </div>
             </div>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="endDate" style={{ fontWeight: 600, fontSize: '0.875rem' }}>End Date *</label>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="endDate" style={CP_LABEL}>End Date *</label>
               <div style={{ position: 'relative' }}>
-                <Calendar size={16} style={{ position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }} />
+                <Calendar size={16} style={CP_ICON_POS} />
                 <input
                   type="date"
                   id="endDate"
@@ -143,17 +155,17 @@ const CreateTravelPlanPage = () => {
                   value={formData.endDate}
                   onChange={handleChange}
                   required
-                  style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.25rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+                  style={CP_INPUT_ICON}
                 />
               </div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="numberOfTravelers" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Travelers</label>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="numberOfTravelers" style={CP_LABEL}>Travelers</label>
               <div style={{ position: 'relative' }}>
-                <Users size={16} style={{ position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }} />
+                <Users size={16} style={CP_ICON_POS} />
                 <input
                   type="number"
                   min="1"
@@ -162,14 +174,14 @@ const CreateTravelPlanPage = () => {
                   value={formData.numberOfTravelers}
                   onChange={handleChange}
                   placeholder="2"
-                  style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.25rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+                  style={CP_INPUT_ICON}
                 />
               </div>
             </div>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="estimatedBudget" style={{ fontWeight: 600, fontSize: '0.875rem' }}>Budget ($)</label>
+            <div className="form-group" style={CP_FORM_GROUP_COL}>
+              <label htmlFor="estimatedBudget" style={CP_LABEL}>Budget ($)</label>
               <div style={{ position: 'relative' }}>
-                <DollarSign size={16} style={{ position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }} />
+                <DollarSign size={16} style={CP_ICON_POS} />
                 <input
                   type="number"
                   min="0"
@@ -179,7 +191,7 @@ const CreateTravelPlanPage = () => {
                   value={formData.estimatedBudget}
                   onChange={handleChange}
                   placeholder="2000"
-                  style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.25rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}
+                  style={CP_INPUT_ICON}
                 />
               </div>
             </div>

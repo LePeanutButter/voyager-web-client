@@ -1,7 +1,5 @@
-import React from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
-import { User, Mail, Calendar, MapPin, Settings } from 'lucide-react'
 
 const Profile = () => {
   return (

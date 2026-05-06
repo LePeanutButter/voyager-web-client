@@ -1,6 +1,6 @@
-import React from 'react'
+import PropTypes from 'prop-types'
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/use-auth.js'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
@@ -19,6 +19,10 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return children || <Outlet />
+}
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node,
 }
 
 export default ProtectedRoute

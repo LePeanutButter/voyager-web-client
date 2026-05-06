@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/use-auth.js'
 import { useAIChat } from '../../hooks/useAIChat'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import { ChatMessageSkeleton } from '../../components/UI/SkeletonLoader'

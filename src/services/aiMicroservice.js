@@ -37,6 +37,51 @@ aiMicroservice.interceptors.request.use(
   (error) => { throw error }
 )
 
+function maybeRetryAiRequest(config, error, client) {
+  if (config && config._retryCount === undefined) {
+    config._retryCount = 0
+  }
+  const isTransient =
+    error.code === 'ECONNABORTED' ||
+    (error.response && error.response.status >= 500)
+  if (config && config._retryCount < 2 && isTransient) {
+    config._retryCount += 1
+    return client(config)
+  }
+  return null
+}
+
+function clearAiSessionIfUnauthorized(status) {
+  if (status !== 401) return
+  localStorage.removeItem(TOKEN_KEY)
+  if (globalThis.location?.pathname?.includes('/login')) return
+  globalThis.location.href = '/login'
+}
+
+async function handleAiFailure(error, client) {
+  const retry = maybeRetryAiRequest(error.config, error, client)
+  if (retry) return retry
+
+  const config = error.config
+  const status = error.response?.status
+  const message = extractErrorMessage(error) || 'An unexpected error occurred'
+
+  console.error('[AI SERVICE ERROR]', {
+    url: config?.url,
+    method: config?.method,
+    status,
+    message,
+    retryCount: config?._retryCount || 0,
+  })
+
+  clearAiSessionIfUnauthorized(status)
+
+  const enhanced = new Error(message)
+  enhanced.response = error.response
+  enhanced.status = status
+  throw enhanced
+}
+
 // ─── Response Interceptor ────────────────────────────────────────────────────
 aiMicroservice.interceptors.response.use(
   (response) => {
@@ -50,46 +95,7 @@ aiMicroservice.interceptors.response.use(
     // Normalize snake_case response to camelCase for frontend
     return keysToCamelCase(unwrappedData)
   },
-  async (error) => {
-    const config = error.config
-    
-    // Lightweight retry logic (max 2 retries) for transient/timeout errors
-    if (config && !config._retryCount) {
-      config._retryCount = 0
-    }
-    
-    if (
-      config &&
-      config._retryCount < 2 &&
-      (error.code === 'ECONNABORTED' || (error.response && error.response.status >= 500))
-    ) {
-      config._retryCount += 1
-      return aiMicroservice(config)
-    }
-
-    const status = error.response?.status
-    const message = extractErrorMessage(error) || 'An unexpected error occurred'
-    
-    console.error('[AI SERVICE ERROR]', {
-      url: config?.url,
-      method: config?.method,
-      status,
-      message,
-      retryCount: config?._retryCount || 0
-    })
-
-    if (status === 401) {
-      localStorage.removeItem(TOKEN_KEY)
-      if (!globalThis.location?.pathname?.includes('/login')) {
-        globalThis.location.href = '/login'
-      }
-    }
-
-    const enhanced = new Error(message)
-    enhanced.response = error.response
-    enhanced.status = status
-    throw enhanced
-  }
+  async (error) => handleAiFailure(error, aiMicroservice)
 )
 
 export default aiMicroservice

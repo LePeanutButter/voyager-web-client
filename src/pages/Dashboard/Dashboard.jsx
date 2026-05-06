@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/use-auth.js'
 import { useTravelPlans } from '../../hooks/useTravelPlans'
 import { aiService } from '../../services/aiService'
 import { StatCardSkeleton, TravelCardSkeleton } from '../../components/UI/SkeletonLoader'
@@ -31,7 +31,7 @@ const Dashboard = () => {
   }, [])
 
   // Derive stats from real plans
-  const stats = React.useMemo(() => {
+  const stats = useMemo(() => {
     const total = plans.length
     const upcoming = plans.filter((p) => p.status === 'PLANNING' || p.status === 'ACTIVE').length
     const completed = plans.filter((p) => p.status === 'COMPLETED').length

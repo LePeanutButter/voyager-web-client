@@ -28,6 +28,19 @@ const STATUS_TRANSITIONS = {
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'
 
+async function persistPlanActivity(planId, isEdit, activity, payload) {
+  if (isEdit) {
+    return travelService.updateActivity(planId, activity.id, payload)
+  }
+  return travelService.addActivity(planId, payload)
+}
+
+function getActivitySubmitLabel(loading, isEdit) {
+  if (loading) return 'Saving…'
+  if (isEdit) return 'Save Changes'
+  return 'Add Activity'
+}
+
 /* ── Activity Modal ────────────────────────────────────────────────────────── */
 const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
   const isEdit = Boolean(activity)
@@ -50,7 +63,10 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.name.trim()) { setError('Activity name is required'); return }
+    if (!form.name.trim()) {
+      setError('Activity name is required')
+      return
+    }
     setLoading(true)
     try {
       const payload = {
@@ -61,12 +77,7 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
         estimatedCost: form.estimatedCost === '' ? undefined : Number(form.estimatedCost),
         notes: form.notes?.trim() || undefined,
       }
-      let result
-      if (isEdit) {
-        result = await travelService.updateActivity(planId, activity.id, payload)
-      } else {
-        result = await travelService.addActivity(planId, payload)
-      }
+      const result = await persistPlanActivity(planId, isEdit, activity, payload)
       onSaved(result, isEdit)
     } catch (err) {
       setError(extractErrorMessage(err))
@@ -75,9 +86,7 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
     }
   }
 
-  let btnText = 'Add Activity';
-  if (loading) btnText = 'Saving…';
-  else if (isEdit) btnText = 'Save Changes';
+  const btnText = getActivitySubmitLabel(loading, isEdit)
 
   return (
     <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -210,7 +219,7 @@ const CompatibleTravelersList = ({ loading, travelers }) => {
   if (travelers.length === 0) {
     return (
       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>
-        Click "Find" to discover travelers with similar plans
+        {'Click \u201CFind\u201D to discover travelers with similar plans'}
       </p>
     )
   }
@@ -238,6 +247,205 @@ const CompatibleTravelersList = ({ loading, travelers }) => {
 CompatibleTravelersList.propTypes = {
   loading: PropTypes.bool.isRequired,
   travelers: PropTypes.array.isRequired,
+}
+
+function TravelDetailsBreadcrumb({ navigate }) {
+  return (
+    <div className="breadcrumb">
+      <button type="button" className="btn-back" onClick={() => navigate('/my-travels')}>
+        <ArrowLeft size={16} /> My Travels
+      </button>
+    </div>
+  )
+}
+
+TravelDetailsBreadcrumb.propTypes = {
+  navigate: PropTypes.func.isRequired,
+}
+
+function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLoading, handleStatusChange }) {
+  return (
+    <div className="details-header">
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+          <span className={`badge ${sc.cls}`}>{sc.label}</span>
+          {transitions.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {transitions.map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  className="btn-status"
+                  onClick={() => handleStatusChange(st)}
+                  disabled={statusLoading}
+                >
+                  {statusLoading ? '…' : `Mark ${st.charAt(0) + st.slice(1).toLowerCase()}`}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <h1 style={{ marginBottom: '0.5rem' }}>{plan.title}</h1>
+        {plan.description && <p>{plan.description}</p>}
+      </div>
+      <button
+        type="button"
+        className="btn-primary"
+        onClick={() => navigate(`/travel-plans/${id}/edit`)}
+      >
+        <Edit size={16} /> Edit Plan
+      </button>
+    </div>
+  )
+}
+
+TravelDetailsTopSection.propTypes = {
+  plan: PropTypes.object.isRequired,
+  id: PropTypes.string.isRequired,
+  navigate: PropTypes.func.isRequired,
+  sc: PropTypes.object.isRequired,
+  transitions: PropTypes.arrayOf(PropTypes.string).isRequired,
+  statusLoading: PropTypes.bool.isRequired,
+  handleStatusChange: PropTypes.func.isRequired,
+}
+
+function PlanInfoCards({ plan }) {
+  const cards = [
+    plan.destinationLocation && { icon: MapPin, label: 'Destination', value: plan.destinationLocation },
+    plan.originLocation && { icon: Globe, label: 'Origin', value: plan.originLocation },
+    { icon: Calendar, label: 'Dates', value: `${formatDate(plan.startDate)} – ${formatDate(plan.endDate)}` },
+    plan.numberOfTravelers && { icon: Users, label: 'Travelers', value: `${plan.numberOfTravelers} traveler${plan.numberOfTravelers > 1 ? 's' : ''}` },
+    plan.estimatedBudget && { icon: DollarSign, label: 'Budget', value: `$${Number(plan.estimatedBudget).toLocaleString()}` },
+    plan.createdAt && { icon: Clock, label: 'Created', value: formatDate(plan.createdAt) },
+  ].filter(Boolean)
+
+  return (
+    <div className="info-cards">
+      {cards.map(({ icon: Icon, label, value }) => (
+        <div key={label} className="info-card">
+          <div className="info-card-icon"><Icon size={16} /></div>
+          <div>
+            <span className="info-card-label">{label}</span>
+            <span className="info-card-value">{value}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+PlanInfoCards.propTypes = {
+  plan: PropTypes.object.isRequired,
+}
+
+function TravelDetailsView({
+  plan,
+  id,
+  navigate,
+  error,
+  setError,
+  activeModal,
+  setActiveModal,
+  statusLoading,
+  handleStatusChange,
+  handleActivitySaved,
+  handleDeleteActivity,
+  compatTravelers,
+  compatLoading,
+  loadCompatibleTravelers,
+}) {
+  const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
+  const transitions = STATUS_TRANSITIONS[plan.status] || []
+  const activities = plan.activities || []
+
+  return (
+    <div className="travel-details-page page-container">
+      <TravelDetailsBreadcrumb navigate={navigate} />
+      <TravelDetailsTopSection
+        plan={plan}
+        id={id}
+        navigate={navigate}
+        sc={sc}
+        transitions={transitions}
+        statusLoading={statusLoading}
+        handleStatusChange={handleStatusChange}
+      />
+
+      <ErrorBanner variant="error" message={error} onDismiss={() => setError(null)} />
+
+      <div className="details-grid">
+        <div>
+          <PlanInfoCards plan={plan} />
+
+          <div className="section-card">
+            <div className="section-card-header">
+              <div className="flex items-center gap-2">
+                <Activity size={18} />
+                <h2>Activities ({activities.length})</h2>
+              </div>
+              <button
+                type="button"
+                id="add-activity-btn"
+                className="btn-primary"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                onClick={() => setActiveModal('add')}
+              >
+                <Plus size={15} /> Add
+              </button>
+            </div>
+            <ActivityList
+              activities={activities}
+              onEdit={(act) => setActiveModal(act)}
+              onDelete={handleDeleteActivity}
+            />
+          </div>
+        </div>
+
+        <div>
+          <div className="section-card">
+            <div className="section-card-header">
+              <div className="flex items-center gap-2">
+                <UserCheck size={18} />
+                <h2>Compatible Travelers</h2>
+              </div>
+              {compatTravelers.length === 0 && (
+                <button type="button" className="btn-outline-sm" onClick={loadCompatibleTravelers} disabled={compatLoading}>
+                  {compatLoading ? 'Loading…' : 'Find'}
+                </button>
+              )}
+            </div>
+            <CompatibleTravelersList loading={compatLoading} travelers={compatTravelers} />
+          </div>
+        </div>
+      </div>
+
+      {activeModal ? (
+        <ActivityModal
+          planId={id}
+          activity={activeModal === 'add' ? null : activeModal}
+          onClose={() => setActiveModal(null)}
+          onSaved={handleActivitySaved}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+TravelDetailsView.propTypes = {
+  plan: PropTypes.object.isRequired,
+  id: PropTypes.string.isRequired,
+  navigate: PropTypes.func.isRequired,
+  error: PropTypes.string,
+  setError: PropTypes.func.isRequired,
+  activeModal: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  setActiveModal: PropTypes.func.isRequired,
+  statusLoading: PropTypes.bool.isRequired,
+  handleStatusChange: PropTypes.func.isRequired,
+  handleActivitySaved: PropTypes.func.isRequired,
+  handleDeleteActivity: PropTypes.func.isRequired,
+  compatTravelers: PropTypes.array.isRequired,
+  compatLoading: PropTypes.bool.isRequired,
+  loadCompatibleTravelers: PropTypes.func.isRequired,
 }
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
@@ -348,132 +556,23 @@ const TravelDetails = () => {
 
   if (!plan) return null
 
-  const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
-  const transitions = STATUS_TRANSITIONS[plan.status] || []
-  const activities = plan.activities || []
-
   return (
-    <div className="travel-details-page page-container">
-      {/* Breadcrumb */}
-      <div className="breadcrumb">
-        <button className="btn-back" onClick={() => navigate('/my-travels')}>
-          <ArrowLeft size={16} /> My Travels
-        </button>
-      </div>
-
-      {/* Plan header */}
-      <div className="details-header">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            <span className={`badge ${sc.cls}`}>{sc.label}</span>
-            {transitions.length > 0 && (
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {transitions.map((st) => (
-                  <button
-                    key={st}
-                    className="btn-status"
-                    onClick={() => handleStatusChange(st)}
-                    disabled={statusLoading}
-                  >
-                    {statusLoading ? '…' : `Mark ${st.charAt(0) + st.slice(1).toLowerCase()}`}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <h1 style={{ marginBottom: '0.5rem' }}>{plan.title}</h1>
-          {plan.description && <p>{plan.description}</p>}
-        </div>
-        <button
-          className="btn-primary"
-          onClick={() => navigate(`/travel-plans/${id}/edit`)}
-        >
-          <Edit size={16} /> Edit Plan
-        </button>
-      </div>
-
-      <ErrorBanner variant="error" message={error} onDismiss={() => setError(null)} />
-
-      <div className="details-grid">
-        {/* Main column */}
-        <div>
-          {/* Info cards */}
-          <div className="info-cards">
-            {[
-              plan.destinationLocation && { icon: MapPin, label: 'Destination', value: plan.destinationLocation },
-              plan.originLocation && { icon: Globe, label: 'Origin', value: plan.originLocation },
-              { icon: Calendar, label: 'Dates', value: `${formatDate(plan.startDate)} – ${formatDate(plan.endDate)}` },
-              plan.numberOfTravelers && { icon: Users, label: 'Travelers', value: `${plan.numberOfTravelers} traveler${plan.numberOfTravelers > 1 ? 's' : ''}` },
-              plan.estimatedBudget && { icon: DollarSign, label: 'Budget', value: `$${Number(plan.estimatedBudget).toLocaleString()}` },
-              plan.createdAt && { icon: Clock, label: 'Created', value: formatDate(plan.createdAt) },
-            ].filter(Boolean).map(({ icon: Icon, label, value }) => (
-              <div key={label} className="info-card">
-                <div className="info-card-icon"><Icon size={16} /></div>
-                <div>
-                  <span className="info-card-label">{label}</span>
-                  <span className="info-card-value">{value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Activities */}
-          <div className="section-card">
-            <div className="section-card-header">
-              <div className="flex items-center gap-2">
-                <Activity size={18} />
-                <h2>Activities ({activities.length})</h2>
-              </div>
-              <button
-                id="add-activity-btn"
-                className="btn-primary"
-                style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                onClick={() => setActiveModal('add')}
-              >
-                <Plus size={15} /> Add
-              </button>
-            </div>
-            <ActivityList 
-              activities={activities} 
-              onEdit={(act) => setActiveModal(act)} 
-              onDelete={handleDeleteActivity} 
-            />
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div>
-          {/* Compatible travelers */}
-          <div className="section-card">
-            <div className="section-card-header">
-              <div className="flex items-center gap-2">
-                <UserCheck size={18} />
-                <h2>Compatible Travelers</h2>
-              </div>
-              {compatTravelers.length === 0 && (
-                <button className="btn-outline-sm" onClick={loadCompatibleTravelers} disabled={compatLoading}>
-                  {compatLoading ? 'Loading…' : 'Find'}
-                </button>
-              )}
-            </div>
-            <CompatibleTravelersList loading={compatLoading} travelers={compatTravelers} />
-          </div>
-        </div>
-      </div>
-
-      {/* Activity Modal */}
-      {activeModal && (() => {
-        const activityToEdit = activeModal === 'add' ? null : activeModal;
-        return (
-          <ActivityModal
-            planId={id}
-            activity={activityToEdit}
-            onClose={() => setActiveModal(null)}
-            onSaved={handleActivitySaved}
-          />
-        );
-      })()}
-    </div>
+    <TravelDetailsView
+      plan={plan}
+      id={id}
+      navigate={navigate}
+      error={error}
+      setError={setError}
+      activeModal={activeModal}
+      setActiveModal={setActiveModal}
+      statusLoading={statusLoading}
+      handleStatusChange={handleStatusChange}
+      handleActivitySaved={handleActivitySaved}
+      handleDeleteActivity={handleDeleteActivity}
+      compatTravelers={compatTravelers}
+      compatLoading={compatLoading}
+      loadCompatibleTravelers={loadCompatibleTravelers}
+    />
   )
 }
 

@@ -1,22 +1,22 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
+import { useReducer, useEffect, useCallback } from 'react'
+import PropTypes from 'prop-types'
 import { authService } from '../services/authService'
 import { TOKEN_KEY } from '../services/api'
+import { AuthContext } from './auth-context.js'
 
 const sanitizeUser = (user) => {
-  if (!user || typeof user !== "object") return null;
+  if (!user || typeof user !== 'object') return null
 
   return {
-    id: String(user.id ?? ""),
-    name: String(user.name ?? ""),
-    email: String(user.email ?? ""),
-    firstName: String(user.firstName ?? ""),
-    lastName: String(user.lastName ?? ""),
-    username: String(user.username ?? ""),
-    role: String(user.role ?? "USER")
-  };
-};
-
-// ─── State & Actions ─────────────────────────────────────────────────────────
+    id: String(user.id ?? ''),
+    name: String(user.name ?? ''),
+    email: String(user.email ?? ''),
+    firstName: String(user.firstName ?? ''),
+    lastName: String(user.lastName ?? ''),
+    username: String(user.username ?? ''),
+    role: String(user.role ?? 'USER'),
+  }
+}
 
 const initialState = {
   user: null,
@@ -74,19 +74,13 @@ function authReducer(state, action) {
   }
 }
 
-// ─── Context ─────────────────────────────────────────────────────────────────
-
-const AuthContext = createContext(null)
-
-// ─── Provider ────────────────────────────────────────────────────────────────
-
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
   useEffect(() => {
     const restoreSession = async () => {
       const token = localStorage.getItem(TOKEN_KEY)
-      
+
       if (!token) {
         dispatch({ type: ACTIONS.AUTH_FAILURE, payload: null })
         return
@@ -106,8 +100,6 @@ export const AuthProvider = ({ children }) => {
 
     restoreSession()
   }, [])
-
-  // ─── Actions ───────────────────────────────────────────────────────────────
 
   const login = useCallback(async (arg1, arg2) => {
     if (typeof arg2 === 'string' && arg2.length > 0) {
@@ -139,19 +131,22 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  const register = useCallback(async (userData) => {
-    dispatch({ type: ACTIONS.SET_LOADING, payload: true })
-    try {
-      await authService.register(userData)
-      return await login({
-        usernameOrEmail: userData.username || userData.email,
-        password: userData.password
-      })
-    } catch (error) {
-      dispatch({ type: ACTIONS.AUTH_FAILURE, payload: error.message })
-      throw error
-    }
-  }, [login])
+  const register = useCallback(
+    async (userData) => {
+      dispatch({ type: ACTIONS.SET_LOADING, payload: true })
+      try {
+        await authService.register(userData)
+        return await login({
+          usernameOrEmail: userData.username || userData.email,
+          password: userData.password,
+        })
+      } catch (error) {
+        dispatch({ type: ACTIONS.AUTH_FAILURE, payload: error.message })
+        throw error
+      }
+    },
+    [login],
+  )
 
   const updateUser = useCallback((partial) => {
     dispatch({ type: ACTIONS.UPDATE_USER, payload: partial })
@@ -184,14 +179,6 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-// ─── Hook ────────────────────────────────────────────────────────────────────
-
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+AuthProvider.propTypes = {
+  children: PropTypes.node,
 }
-
-export default AuthContext

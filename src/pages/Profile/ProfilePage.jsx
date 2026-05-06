@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import { useUserProfile } from '../../hooks/useUserProfile'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
@@ -9,6 +10,279 @@ const INTERESTS_OPTIONS = [
   'Adventure', 'Beach', 'Culture', 'Food & Cuisine', 'History',
   'Luxury', 'Nature', 'Nightlife', 'Photography', 'Sports', 'Wellness', 'Wildlife',
 ]
+
+function ProfileSidebar({ profile, displayName, initials, editing, onEdit }) {
+  return (
+    <div className="profile-sidebar-card">
+      <div className="profile-avatar-wrap">
+        <div className="profile-avatar">{initials}</div>
+        <div className="profile-avatar-badge">
+          <Shield size={12} />
+        </div>
+      </div>
+      <h2 className="profile-name">{displayName}</h2>
+      <p className="profile-username">@{profile.username}</p>
+
+      <div className="profile-meta-list">
+        {profile.email && (
+          <div className="profile-meta-item">
+            <Mail size={15} />
+            <span>{profile.email}</span>
+          </div>
+        )}
+        {profile.phoneNumber && (
+          <div className="profile-meta-item">
+            <Phone size={15} />
+            <span>{profile.phoneNumber}</span>
+          </div>
+        )}
+        {profile.role && (
+          <div className="profile-meta-item">
+            <Star size={15} />
+            <span>{profile.role}</span>
+          </div>
+        )}
+      </div>
+
+      {!editing && (
+        <button className="btn-primary" style={{ width: '100%', marginTop: '1.25rem' }} onClick={onEdit}>
+          <Edit2 size={15} /> Edit Profile
+        </button>
+      )}
+    </div>
+  )
+}
+
+ProfileSidebar.propTypes = {
+  profile: PropTypes.shape({
+    username: PropTypes.string,
+    email: PropTypes.string,
+    phoneNumber: PropTypes.string,
+    role: PropTypes.string,
+  }).isRequired,
+  displayName: PropTypes.string.isRequired,
+  initials: PropTypes.string.isRequired,
+  editing: PropTypes.bool.isRequired,
+  onEdit: PropTypes.func.isRequired,
+}
+
+function ProfileEditingCard({ form, saving, onChange, onToggleInterest, onSave, onCancel }) {
+  return (
+    <div className="profile-form-card">
+      <div className="profile-form-header">
+        <h3>Edit Profile</h3>
+        <button type="button" className="icon-btn" onClick={onCancel}><X size={18} /></button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="form-row-2">
+          <div className="form-group">
+            <label htmlFor="profile-firstName">First Name</label>
+            <input id="profile-firstName" name="firstName" value={form.firstName} onChange={onChange} placeholder="John" />
+          </div>
+          <div className="form-group">
+            <label htmlFor="profile-lastName">Last Name</label>
+            <input id="profile-lastName" name="lastName" value={form.lastName} onChange={onChange} placeholder="Doe" />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="profile-phone">Phone Number</label>
+          <input id="profile-phone" name="phoneNumber" type="tel" value={form.phoneNumber} onChange={onChange} placeholder="+1 555 000 0000" />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="profile-bio">Bio</label>
+          <textarea id="profile-bio" name="bio" value={form.bio} onChange={onChange} rows={3} placeholder="Tell other travelers about yourself…" />
+        </div>
+
+        <fieldset className="form-group" style={{ border: 'none', padding: 0, margin: 0 }}>
+          <legend style={{ fontWeight: 500, color: '#495057', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Travel Interests</legend>
+          <div className="interests-grid">
+            {INTERESTS_OPTIONS.map((interest) => (
+              <button
+                key={interest}
+                type="button"
+                className={`interest-chip ${form.interests.includes(interest) ? 'active' : ''}`}
+                onClick={() => onToggleInterest(interest)}
+                aria-pressed={form.interests.includes(interest)}
+              >
+                {interest}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="profile-form-actions">
+          <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button>
+          <button type="button" className="btn-primary" onClick={onSave} disabled={saving}>
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />{' '}{'Saving…'}
+              </span>
+            ) : (
+              <span className="flex items-center gap-2"><Save size={15} /> Save Changes</span>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+ProfileEditingCard.propTypes = {
+  form: PropTypes.shape({
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    phoneNumber: PropTypes.string,
+    bio: PropTypes.string,
+    interests: PropTypes.arrayOf(PropTypes.string),
+  }).isRequired,
+  saving: PropTypes.bool.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onToggleInterest: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+}
+
+function ProfileViewCard({ profile }) {
+  return (
+    <div className="profile-view-card">
+      <div className="profile-section">
+        <h3>Personal Information</h3>
+        <div className="profile-fields">
+          {[
+            { label: 'First Name', value: profile.firstName, icon: User },
+            { label: 'Last Name', value: profile.lastName, icon: User },
+            { label: 'Email', value: profile.email, icon: Mail },
+            { label: 'Phone', value: profile.phoneNumber || '—', icon: Phone },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="profile-field">
+              <span className="profile-field-label">
+                <Icon size={14} /> {label}
+              </span>
+              <span className="profile-field-value">{value || '—'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {profile.bio && (
+        <div className="profile-section">
+          <h3>Bio</h3>
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.65 }}>{profile.bio}</p>
+        </div>
+      )}
+
+      {Array.isArray(profile.interests) && profile.interests.length > 0 && (
+        <div className="profile-section">
+          <h3>Travel Interests</h3>
+          <div className="interests-display">
+            {profile.interests.map((i) => (
+              <span key={i} className="interest-chip active">{i}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+ProfileViewCard.propTypes = {
+  profile: PropTypes.shape({
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    email: PropTypes.string,
+    phoneNumber: PropTypes.string,
+    bio: PropTypes.string,
+    interests: PropTypes.arrayOf(PropTypes.string),
+  }).isRequired,
+}
+
+function formStateFromProfile(profile) {
+  return {
+    firstName: profile.firstName || '',
+    lastName: profile.lastName || '',
+    phoneNumber: profile.phoneNumber || '',
+    bio: profile.bio || '',
+    interests: Array.isArray(profile.interests) ? profile.interests : [],
+  }
+}
+
+function ProfilePageLoaded({
+  profile,
+  editing,
+  form,
+  saving,
+  error,
+  success,
+  onEdit,
+  onChange,
+  onToggleInterest,
+  onSave,
+  onCancel,
+  clearMessages,
+}) {
+  const displayName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.username
+  const initials = ((profile.firstName?.[0] || '') + (profile.lastName?.[0] || '')).toUpperCase() || profile.username?.[0]?.toUpperCase() || '?'
+
+  return (
+    <div className="profile-page page-container">
+      <div className="page-header">
+        <h1>My Profile</h1>
+        <p>Manage your personal information and travel preferences</p>
+      </div>
+
+      <ErrorBanner variant="error" message={error} onDismiss={clearMessages} />
+      <ErrorBanner variant="success" message={success} onDismiss={clearMessages} />
+
+      <div className="profile-grid">
+        <ProfileSidebar
+          profile={profile}
+          displayName={displayName}
+          initials={initials}
+          editing={editing}
+          onEdit={onEdit}
+        />
+
+        <div>
+          {editing ? (
+            <ProfileEditingCard
+              form={form}
+              saving={saving}
+              onChange={onChange}
+              onToggleInterest={onToggleInterest}
+              onSave={onSave}
+              onCancel={onCancel}
+            />
+          ) : (
+            <ProfileViewCard profile={profile} />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+ProfilePageLoaded.propTypes = {
+  profile: PropTypes.object.isRequired,
+  editing: PropTypes.bool.isRequired,
+  form: PropTypes.object.isRequired,
+  saving: PropTypes.bool.isRequired,
+  error: PropTypes.string,
+  success: PropTypes.string,
+  onEdit: PropTypes.func.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onToggleInterest: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  clearMessages: PropTypes.func.isRequired,
+}
+
+ProfilePageLoaded.defaultProps = {
+  error: null,
+  success: null,
+}
 
 const ProfilePage = () => {
   const { profile, loading, saving, error, success, save, clearMessages } = useUserProfile()
@@ -22,15 +296,7 @@ const ProfilePage = () => {
   })
 
   useEffect(() => {
-    if (profile) {
-      setForm({
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        phoneNumber: profile.phoneNumber || '',
-        bio: profile.bio || '',
-        interests: Array.isArray(profile.interests) ? profile.interests : [],
-      })
-    }
+    if (profile) setForm(formStateFromProfile(profile))
   }, [profile])
 
   const handleChange = (e) => {
@@ -63,15 +329,7 @@ const ProfilePage = () => {
   }
 
   const handleCancel = () => {
-    if (profile) {
-      setForm({
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        phoneNumber: profile.phoneNumber || '',
-        bio: profile.bio || '',
-        interests: Array.isArray(profile.interests) ? profile.interests : [],
-      })
-    }
+    if (profile) setForm(formStateFromProfile(profile))
     setEditing(false)
     clearMessages()
   }
@@ -95,166 +353,21 @@ const ProfilePage = () => {
 
   if (!profile) return null
 
-  const displayName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.username
-  const initials = ((profile.firstName?.[0] || '') + (profile.lastName?.[0] || '')).toUpperCase() || profile.username?.[0]?.toUpperCase() || '?'
-
   return (
-    <div className="profile-page page-container">
-      <div className="page-header">
-        <h1>My Profile</h1>
-        <p>Manage your personal information and travel preferences</p>
-      </div>
-
-      <ErrorBanner variant="error" message={error} onDismiss={clearMessages} />
-      <ErrorBanner variant="success" message={success} onDismiss={clearMessages} />
-
-      <div className="profile-grid">
-        {/* Sidebar */}
-        <div className="profile-sidebar-card">
-          <div className="profile-avatar-wrap">
-            <div className="profile-avatar">{initials}</div>
-            <div className="profile-avatar-badge">
-              <Shield size={12} />
-            </div>
-          </div>
-          <h2 className="profile-name">{displayName}</h2>
-          <p className="profile-username">@{profile.username}</p>
-
-          <div className="profile-meta-list">
-            {profile.email && (
-              <div className="profile-meta-item">
-                <Mail size={15} />
-                <span>{profile.email}</span>
-              </div>
-            )}
-            {profile.phoneNumber && (
-              <div className="profile-meta-item">
-                <Phone size={15} />
-                <span>{profile.phoneNumber}</span>
-              </div>
-            )}
-            {profile.role && (
-              <div className="profile-meta-item">
-                <Star size={15} />
-                <span>{profile.role}</span>
-              </div>
-            )}
-          </div>
-
-          {!editing && (
-            <button className="btn-primary" style={{ width: '100%', marginTop: '1.25rem' }} onClick={() => setEditing(true)}>
-              <Edit2 size={15} /> Edit Profile
-            </button>
-          )}
-        </div>
-
-        {/* Main content */}
-        <div>
-          {editing ? (
-            /* Edit form */
-            <div className="profile-form-card">
-              <div className="profile-form-header">
-                <h3>Edit Profile</h3>
-                <button className="icon-btn" onClick={handleCancel}><X size={18} /></button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-row-2">
-                  <div className="form-group">
-                    <label htmlFor="profile-firstName">First Name</label>
-                    <input id="profile-firstName" name="firstName" value={form.firstName} onChange={handleChange} placeholder="John" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="profile-lastName">Last Name</label>
-                    <input id="profile-lastName" name="lastName" value={form.lastName} onChange={handleChange} placeholder="Doe" />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="profile-phone">Phone Number</label>
-                  <input id="profile-phone" name="phoneNumber" type="tel" value={form.phoneNumber} onChange={handleChange} placeholder="+1 555 000 0000" />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="profile-bio">Bio</label>
-                  <textarea id="profile-bio" name="bio" value={form.bio} onChange={handleChange} rows={3} placeholder="Tell other travelers about yourself…" />
-                </div>
-
-                <fieldset className="form-group" style={{ border: 'none', padding: 0, margin: 0 }}>
-                  <legend style={{ fontWeight: 500, color: '#495057', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Travel Interests</legend>
-                  <div className="interests-grid">
-                    {INTERESTS_OPTIONS.map((interest) => (
-                      <button
-                        key={interest}
-                        type="button"
-                        className={`interest-chip ${form.interests.includes(interest) ? 'active' : ''}`}
-                        onClick={() => toggleInterest(interest)}
-                        aria-pressed={form.interests.includes(interest)}
-                      >
-                        {interest}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <div className="profile-form-actions">
-                  <button type="button" className="btn-ghost" onClick={handleCancel}>Cancel</button>
-                  <button type="button" className="btn-primary" onClick={handleSave} disabled={saving}>
-                    {saving ? (
-                      <span className="flex items-center gap-2">
-                        <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />{' '}{'Saving…'}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2"><Save size={15} /> Save Changes</span>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* View mode */
-            <div className="profile-view-card">
-              <div className="profile-section">
-                <h3>Personal Information</h3>
-                <div className="profile-fields">
-                  {[
-                    { label: 'First Name', value: profile.firstName, icon: User },
-                    { label: 'Last Name', value: profile.lastName, icon: User },
-                    { label: 'Email', value: profile.email, icon: Mail },
-                    { label: 'Phone', value: profile.phoneNumber || '—', icon: Phone },
-                  ].map(({ label, value, icon: Icon }) => (
-                    <div key={label} className="profile-field">
-                      <span className="profile-field-label">
-                        <Icon size={14} /> {label}
-                      </span>
-                      <span className="profile-field-value">{value || '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {profile.bio && (
-                <div className="profile-section">
-                  <h3>Bio</h3>
-                  <p style={{ color: 'var(--text-secondary)', lineHeight: 1.65 }}>{profile.bio}</p>
-                </div>
-              )}
-
-              {Array.isArray(profile.interests) && profile.interests.length > 0 && (
-                <div className="profile-section">
-                  <h3>Travel Interests</h3>
-                  <div className="interests-display">
-                    {profile.interests.map((i) => (
-                      <span key={i} className="interest-chip active">{i}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <ProfilePageLoaded
+      profile={profile}
+      editing={editing}
+      form={form}
+      saving={saving}
+      error={error}
+      success={success}
+      onEdit={() => setEditing(true)}
+      onChange={handleChange}
+      onToggleInterest={toggleInterest}
+      onSave={handleSave}
+      onCancel={handleCancel}
+      clearMessages={clearMessages}
+    />
   )
 }
 

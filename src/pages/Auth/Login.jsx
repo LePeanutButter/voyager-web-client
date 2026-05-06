@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
@@ -113,7 +113,8 @@ const Login = () => {
 
           <div className="auth-footer">
             <p>
-              Don't have an account? <Link to="/register">Sign up</Link>
+              {'Don\u2019t have an account? '}
+              <Link to="/register">Sign up</Link>
             </p>
             <p>
               <Link to="/forgot-password">Forgot your password?</Link>

@@ -1,4 +1,3 @@
-import React from 'react'
 import ConnectionRequests from '../../components/ConnectionRequests/ConnectionRequests'
 import './SocialFeatures.css'
 

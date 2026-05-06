@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getPendingRequests, acceptConnectionRequest, rejectConnectionRequest } from '../../services/socialService'
 import './ConnectionRequests.css'
 
@@ -126,7 +126,9 @@ const ConnectionRequests = () => {
                 <h3>{request.requesterName || 'Traveler'}</h3>
                 <p className="request-date">Requested {formatDate(request.createdAt)}</p>
                 {request.message && (
-                  <p className="request-message">"{request.message}"</p>
+                  <p className="request-message">
+                    <q cite="#">{request.message}</q>
+                  </p>
                 )}
               </div>
               <div className="request-card__status">
@@ -174,8 +176,8 @@ const ConnectionRequests = () => {
         <div className="connection-requests__empty">
           <div className="empty-icon">📭</div>
           <h3>No pending requests</h3>
-          <p>You don't have any pending connection requests at the moment.</p>
-          <p>When travelers send you connection requests, they'll appear here.</p>
+          <p>{'You don\u2019t have any pending connection requests at the moment.'}</p>
+          <p>{'When travelers send you connection requests, they\u2019ll appear here.'}</p>
         </div>
       )}
     </div>
