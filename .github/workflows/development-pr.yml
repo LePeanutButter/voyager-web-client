@@ -34,19 +34,19 @@ jobs:
     steps:
       # Step 1: Checkout source code
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       # Step 2: Setup Node
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
 
       # Step 3: Cache npm dependencies
       - name: Cache npm dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -64,7 +64,7 @@ jobs:
 
       # Step 6: Upload coverage results
       - name: Upload Coverage Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: Coverage
@@ -81,7 +81,7 @@ jobs:
     steps:
       # Step 1: Checkout source code
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # Step 2: Run Trivy filesystem scan
       - name: Run Trivy FS Scan
@@ -104,20 +104,20 @@ jobs:
     steps:
       # Step 1: Checkout source code
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       # Step 2: Install Java
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: 'temurin'
           java-version: '17'
 
       # Step 3: Cache SonarCloud packages
       - name: Cache SonarCloud packages
-        uses: actions/cache@v3
+        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
@@ -125,7 +125,7 @@ jobs:
 
       # Step 4: Download coverage artifact
       - name: Download Coverage Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: Coverage
           path: coverage
@@ -133,7 +133,7 @@ jobs:
 
       # Step 5: Set up Node.js for Sonar
       - name: Set up Node.js for Sonar
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
 
@@ -143,7 +143,7 @@ jobs:
 
       # Step 7: Run SonarCloud scan
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -162,17 +162,17 @@ jobs:
     steps:
       # Step 1: Checkout source code from repository
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # Step 2: Set up the Node.js environment
       - name: Set up Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ matrix.node-version }}
 
       # Step 3: Cache npm dependencies to speed up builds
       - name: Cache npm dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-package-lock.json
@@ -196,7 +196,7 @@ jobs:
           tar -czf release/web-client-dist.tar.gz dist
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: web-client-dist
           path: release/web-client-dist.tar.gz
