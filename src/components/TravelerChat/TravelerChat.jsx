@@ -49,7 +49,7 @@ const TravelerChat = ({ connectionId, userId, peerName = 'Viajero' }) => {
       for (const raw of list) {
         const n = normalizeIncoming(raw)
         if (n.type === 'ERROR') continue
-        if (n.id == null) map.set(`tmp-${Math.random()}`, n)
+        if (n.id == null) map.set(`tmp-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`, n)
         else map.set(n.id, n)
       }
       return Array.from(map.values()).sort(sortByTime)

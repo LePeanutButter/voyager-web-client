@@ -41,7 +41,7 @@ const SkeletonLoader = ({
 
   return (
     <>
-      {Array.from({ length: count }, () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`).map((skeletonKey, index) => (
+      {Array.from({ length: count }, (_, i) => `skeleton-${Date.now()}-${i}`).map((skeletonKey, index) => (
         <div
           key={skeletonKey}
           className={getClass()}

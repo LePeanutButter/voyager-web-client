@@ -7,7 +7,7 @@ import { TOKEN_KEY } from './api'
  * Axios instance for voyager-ai-service (FastAPI).
  */
 const aiMicroservice = axios.create({
-  baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || 'http://localhost:8000/api/v1',
+  baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || '/api/v1',
   timeout: 30000, 
   headers: {
     'Content-Type': 'application/json',
