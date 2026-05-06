@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
+const env = globalThis.process?.env ?? {}
 const ciFullCoverage =
-  process.env.CI === 'true' || process.env.VITEST_COVERAGE_FULL === '1'
+  env.CI === 'true' || env.VITEST_COVERAGE_FULL === '1'
 
 const coverageDomainInclude = [
   'src/utils/**/*.{js,jsx}',
@@ -29,7 +30,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
-      // Local: 90 % sobre capa de dominio. CI (Sonar): todo `src/**` en LCOV sin umbrales globales.
+      // Local: 90% on domain layer. CI (Sonar): all `src/**` in LCOV without global thresholds.
       include: ciFullCoverage ? ['src/**/*.{js,jsx}'] : coverageDomainInclude,
       exclude: [
         'src/**/*.test.{js,jsx}',

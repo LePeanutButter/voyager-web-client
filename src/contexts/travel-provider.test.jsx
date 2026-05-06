@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, vi, beforeEach, afterEach } from 'vitest'
 import { render, act, screen } from '@testing-library/react'
 import { TravelProvider } from './travel-provider.jsx'
 import { useTravel } from './use-travel.js'
