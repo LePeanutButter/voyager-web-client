@@ -119,6 +119,35 @@
   }
 }
 
+[data-theme="dark"] .btn-secondary {
+  background: #111a3a;
+  color: #ffffff;
+  border: 1px solid #243156;
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(.btn-disabled):not(.btn-loading) {
+  background: #17224a;
+}
+
+[data-theme="dark"] .btn-ghost {
+  color: #ccd5e8;
+}
+
+[data-theme="dark"] .btn-ghost:hover:not(.btn-disabled):not(.btn-loading) {
+  background: #101737;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .btn-outline {
+  color: #5eebff;
+  border-color: rgba(94, 235, 255, 0.48);
+}
+
+[data-theme="dark"] .btn-outline:hover:not(.btn-disabled):not(.btn-loading) {
+  background: #5eebff;
+  color: #0a0f29;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .btn-large {

@@ -6,7 +6,7 @@ const CookiesPage = () => {
     <div className="legal-page">
       <header className="legal-hero">
         <span className="legal-kicker">Legal</span>
-        <h1 className="legal-title">Cookies Policy</h1>
+        <h1 className="legal-title">Politica de Cookies</h1>
         <p className="legal-meta">Ultima actualizacion: 07 mayo 2026</p>
       </header>
 

@@ -25,7 +25,7 @@ const Footer = () => {
             <h4>Compañía</h4>
             <ul>
               <li><Link to="/dashboard">Plataforma</Link></li>
-              <li><Link to="/business-dashboard">Business</Link></li>
+              <li><Link to="/business-dashboard">Negocios</Link></li>
               <li><Link to="/profile">Cuenta</Link></li>
               <li><Link to="/register">Crear cuenta</Link></li>
             </ul>
@@ -35,10 +35,10 @@ const Footer = () => {
         
         <div className="footer-bottom">
           <div className="footer-bottom-content">
-            <p>&copy; 2026 SmarTrip. All rights reserved.</p>
+            <p>&copy; 2026 SmarTrip. Todos los derechos reservados.</p>
             <div className="footer-links">
-              <Link to="/privacy">Privacy Policy</Link>
-              <Link to="/terms">Terms</Link>
+              <Link to="/privacy">Politica de privacidad</Link>
+              <Link to="/terms">Terminos</Link>
               <Link to="/cookies">Cookies</Link>
             </div>
           </div>

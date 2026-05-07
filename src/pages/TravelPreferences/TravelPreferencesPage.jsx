@@ -27,17 +27,17 @@ function TravelPreferencesQuestionnaire({
   return (
     <div className="page-container" style={{ maxWidth: 600 }}>
       <button type="button" className="btn-back" onClick={() => navigate(-1)} style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-        <ArrowLeft size={16} /> Back
+        <ArrowLeft size={16} /> Volver
       </button>
 
       <div style={{ background: 'var(--surface-card)', padding: '2.5rem', borderRadius: 'var(--border-radius-xl)', boxShadow: 'var(--shadow-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--voyager-blue)' }}>
             <Compass size={24} />
-            <span style={{ fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Travel Profile</span>
+            <span style={{ fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perfil de viaje</span>
           </div>
           <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Step {stepIndex + 1} of {questions.length}
+            Paso {stepIndex + 1} de {questions.length}
           </span>
         </div>
 
@@ -90,9 +90,9 @@ function TravelPreferencesQuestionnaire({
             disabled={!canProceed || saving}
             style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}
           >
-            {saving ? 'Saving...' : (
+            {saving ? 'Guardando...' : (
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {stepIndex < questions.length - 1 ? 'Next' : 'Finish'} <ChevronRight size={18} />
+                {stepIndex < questions.length - 1 ? 'Siguiente' : 'Finalizar'} <ChevronRight size={18} />
               </span>
             )}
           </button>
@@ -170,7 +170,7 @@ const TravelPreferencesPage = () => {
         setQuestions(session.questions || [])
 
       } catch (err) {
-        setError(err?.message || 'Failed to initialize preferences.')
+        setError(err?.message || 'No se pudieron inicializar las preferencias.')
       } finally {
         setLoading(false)
       }
@@ -217,7 +217,7 @@ const TravelPreferencesPage = () => {
       setPreferences(finalPrefs)
       setIsCompleted(true)
     } catch (err) {
-      setError(err?.message || 'Failed to submit preferences.')
+      setError(err?.message || 'No se pudieron guardar las preferencias.')
     } finally {
       setSaving(false)
     }
@@ -240,13 +240,13 @@ const TravelPreferencesPage = () => {
         <div style={{ display: 'inline-flex', padding: '1.5rem', background: 'var(--color-success-light)', color: 'var(--color-success)', borderRadius: '50%', marginBottom: '1.5rem' }}>
           <CheckCircle size={48} />
         </div>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Preferences Saved!</h1>
+        <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>¡Preferencias guardadas!</h1>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '1.1rem' }}>
-          Your travel profile has been analyzed. You are categorized as a{' '}
-          <strong style={{ color: 'var(--text-primary)', margin: '0 0.25rem' }}>{preferences?.travelerCategory || 'Explorer'}</strong>.
+          Tu perfil de viaje ha sido analizado. Estas categorizado como{' '}
+          <strong style={{ color: 'var(--text-primary)', margin: '0 0.25rem' }}>{preferences?.travelerCategory || 'Explorador'}</strong>.
         </p>
         <button type="button" className="btn-primary" onClick={() => navigate('/dashboard')}>
-          Go to Dashboard
+          Ir al panel
         </button>
       </div>
     )
@@ -255,7 +255,7 @@ const TravelPreferencesPage = () => {
   if (questions.length === 0) {
     return (
       <div className="page-container" style={{ maxWidth: 600 }}>
-        <ErrorBanner variant="error" message={error || 'No questions available.'} />
+        <ErrorBanner variant="error" message={error || 'No hay preguntas disponibles.'} />
       </div>
     )
   }

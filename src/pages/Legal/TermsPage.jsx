@@ -6,7 +6,7 @@ const TermsPage = () => {
     <div className="legal-page">
       <header className="legal-hero">
         <span className="legal-kicker">Legal</span>
-        <h1 className="legal-title">Terms of Service</h1>
+        <h1 className="legal-title">Terminos de Servicio</h1>
         <p className="legal-meta">Ultima actualizacion: 07 mayo 2026</p>
       </header>
 

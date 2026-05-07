@@ -7,7 +7,7 @@
 .settings-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #0a0f29;
+  color: var(--text-primary);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -37,6 +37,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  color: var(--text-secondary);
 }
 
 .settings-help {
@@ -45,17 +46,8 @@
   color: var(--text-muted);
 }
 
-.settings-actions {
-  margin-top: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.settings-saved {
-  color: #0ea56f;
-  font-size: 0.9rem;
-  font-weight: 600;
+[data-theme="dark"] .settings-item input[type="checkbox"] {
+  accent-color: #5eebff;
 }
 
 @media (max-width: 900px) {

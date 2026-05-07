@@ -6,22 +6,22 @@ import './Home.css'
 
 const Home = () => {
   const aiCards = [
-    { title: 'Weekend creativo en CDMX', tags: ['Food', 'Art', 'Night'], reason: 'Basado en tus gustos urbanos y presupuesto' },
-    { title: 'Ruta slow en Lisboa', tags: ['Culture', 'Coffee', 'Walks'], reason: 'Afinado por tu historial de viajes tranquilos' },
-    { title: 'Escapada social en Medellin', tags: ['People', 'Local events'], reason: 'Alto match con viajeros similares' },
+    { title: 'Weekend creativo en CDMX', tags: ['Comida', 'Arte', 'Noche'], reason: 'Basado en tus gustos urbanos y presupuesto' },
+    { title: 'Ruta slow en Lisboa', tags: ['Cultura', 'Cafe', 'Caminatas'], reason: 'Afinado por tu historial de viajes tranquilos' },
+    { title: 'Escapada social en Medellin', tags: ['Personas', 'Eventos locales'], reason: 'Alta compatibilidad con viajeros similares' },
   ]
 
   const connections = [
-    { name: 'Sofia P.', city: 'Buenos Aires', interests: ['Street Food', 'Live music'] },
-    { name: 'Luca M.', city: 'Milan', interests: ['Design', 'Coffee Routes'] },
-    { name: 'Daniela R.', city: 'Bogota', interests: ['Museums', 'Hiking'] },
+    { name: 'Sofia P.', city: 'Buenos Aires', interests: ['Comida callejera', 'Musica en vivo'] },
+    { name: 'Luca M.', city: 'Milan', interests: ['Diseno', 'Rutas de cafe'] },
+    { name: 'Daniela R.', city: 'Bogota', interests: ['Museos', 'Senderismo'] },
   ]
 
   return (
     <div className="home modern-home">
       <section className="hero-new">
         <div className="hero-copy">
-          <p className="eyebrow">AI-first travel intelligence</p>
+          <p className="eyebrow">Inteligencia de viaje centrada en IA</p>
           <h1>
             Recomendaciones inteligentes.
             <br />
@@ -53,7 +53,7 @@ const Home = () => {
             </div>
             <h3>“Plan 4 dias en Barcelona con arte + gastronomia”</h3>
             <div className="preview-tags">
-              <span>Art</span><span>Food</span><span>Walkable</span>
+              <span>Arte</span><span>Comida</span><span>Caminable</span>
             </div>
           </Card>
 
@@ -70,7 +70,7 @@ const Home = () => {
 
       <section className="section-block ai-section">
         <div className="section-heading">
-          <p>IA Recommendations</p>
+          <p>Recomendaciones IA</p>
           <h2>Tu feed personalizado de experiencias</h2>
         </div>
         <div className="ai-grid">
@@ -92,7 +92,7 @@ const Home = () => {
 
       <section className="section-block community-section">
         <div className="section-heading">
-          <p>Community</p>
+          <p>Comunidad</p>
           <h2>Conecta con personas que viajan como tu</h2>
         </div>
         <div className="community-grid">
@@ -118,7 +118,7 @@ const Home = () => {
 
       <section className="section-block trips-section">
         <div className="section-heading">
-          <p>Experiences</p>
+          <p>Experiencias</p>
           <h2>La compra y gestion de viajes, como complemento natural</h2>
         </div>
         <div className="trip-cards">
@@ -142,21 +142,21 @@ const Home = () => {
 
       <section className="section-block proof-section">
         <div className="section-heading">
-          <p>Social proof</p>
+          <p>Prueba social</p>
           <h2>Viajeros que deciden mejor con IA + comunidad</h2>
         </div>
         <div className="proof-grid">
           <Card className="quote-card" hover>
             <p>“En menos de 2 minutos tuve recomendaciones que si encajaban conmigo.”</p>
-            <span>- Camila, Product Designer</span>
+            <span>- Camila, Diseñadora de producto</span>
           </Card>
           <Card className="quote-card" hover>
             <p>“Lo mejor es conectar con gente compatible sin ruido de red social tradicional.”</p>
-            <span>- Matteo, Remote Consultant</span>
+            <span>- Matteo, Consultor remoto</span>
           </Card>
           <Card className="quote-card" hover>
             <p>“Siento que la plataforma entiende mi estilo y no solo vende paquetes.”</p>
-            <span>- Valentina, Traveler</span>
+            <span>- Valentina, Viajera</span>
           </Card>
         </div>
       </section>

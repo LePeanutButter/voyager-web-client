@@ -4,16 +4,16 @@ import Card from '../../components/UI/Card'
 import './CalendarPage.css'
 
 const upcomingItems = [
-  { id: 'evt-1', title: 'Flight to Barcelona', date: '2026-06-02', time: '08:45', location: 'BOG -> BCN', type: 'Trip' },
-  { id: 'evt-2', title: 'City Food Walk', date: '2026-06-03', time: '14:00', location: 'El Born', type: 'Experience' },
-  { id: 'evt-3', title: 'Community meetup', date: '2026-06-05', time: '19:30', location: 'Gothic Quarter', type: 'Community' },
+  { id: 'evt-1', title: 'Vuelo a Barcelona', date: '2026-06-02', time: '08:45', location: 'BOG -> BCN', type: 'Viaje' },
+  { id: 'evt-2', title: 'Ruta gastronomica urbana', date: '2026-06-03', time: '14:00', location: 'El Born', type: 'Experiencia' },
+  { id: 'evt-3', title: 'Encuentro de comunidad', date: '2026-06-05', time: '19:30', location: 'Barrio Gotico', type: 'Comunidad' },
 ]
 
 const CalendarPage = () => {
   return (
     <div className="calendar-page page-container">
       <div className="page-header">
-        <h1>Calendar</h1>
+        <h1>Calendario</h1>
         <p>Visualiza tus actividades, viajes y planes compartidos en un solo lugar.</p>
       </div>
 
@@ -43,8 +43,8 @@ const CalendarPage = () => {
       </div>
 
       <div className="calendar-actions">
-        <Link to="/travel-plans/create" className="btn btn-primary">Plan New Trip</Link>
-        <Link to="/ai-assistant" className="btn btn-outline">Ask AI Assistant</Link>
+        <Link to="/travel-plans/create" className="btn btn-primary">Planear nuevo viaje</Link>
+        <Link to="/ai-assistant" className="btn btn-outline">Preguntar a IA</Link>
       </div>
     </div>
   )

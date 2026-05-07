@@ -143,7 +143,7 @@ const RegisterPage = () => {
         <div className="auth-hero-content">
           <div className="auth-logo">
             <Plane size={28} />
-            <span>Voyager</span>
+            <span>SmarTrip</span>
           </div>
           <h1>Join the<br />travel community</h1>
           <p>Create your free account and start planning unforgettable journeys powered by AI.</p>
@@ -168,8 +168,8 @@ const RegisterPage = () => {
       <div className="auth-form-panel">
         <div className="auth-form-container animate-fadeIn">
           <div className="auth-form-header">
-            <h2>Create account</h2>
-            <p>Start your adventure — it&apos;s free</p>
+            <h2>Crear cuenta</h2>
+            <p>Empieza tu aventura — es gratis</p>
           </div>
 
           <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />
@@ -211,20 +211,20 @@ const RegisterPage = () => {
                   {'Creating account…'}
                 </span>
               ) : (
-                'Create Account'
+                'Crear cuenta'
               )}
             </button>
 
             <p className="auth-terms">
-              By creating an account you agree to our{' '}
-              <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
+              Al crear una cuenta aceptas nuestros{' '}
+              <a href="/terms">Terminos de servicio</a> y la <a href="/privacy">Politica de privacidad</a>.
             </p>
           </form>
 
           <div className="auth-footer">
             <p>
-              Already have an account?{' '}
-              <Link to="/login" className="auth-link">Sign in</Link>
+              ¿Ya tienes cuenta?{' '}
+              <Link to="/login" className="auth-link">Inicia sesion</Link>
             </p>
           </div>
         </div>

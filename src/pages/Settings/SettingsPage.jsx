@@ -1,83 +1,90 @@
-import { useMemo, useState } from 'react'
-import { Bell, Moon, Shield, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Moon, Shield, SlidersHorizontal } from 'lucide-react'
 import Card from '../../components/UI/Card'
+import { useTheme } from '../../contexts/use-theme.js'
 import './SettingsPage.css'
 
 const STORAGE_KEY = 'smartrip_settings'
 
 const defaultSettings = {
   darkMode: false,
-  emailNotifications: true,
   communitySuggestions: true,
   profileVisibility: 'community',
 }
 
 const SettingsPage = () => {
+  const { theme, setTheme } = useTheme()
+
   const initial = useMemo(() => {
     try {
       const raw = globalThis.localStorage?.getItem(STORAGE_KEY)
-      return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings
+      const parsed = raw ? JSON.parse(raw) : {}
+      return {
+        ...defaultSettings,
+        ...parsed,
+        darkMode: theme === 'dark',
+      }
     } catch {
-      return defaultSettings
+      return {
+        ...defaultSettings,
+        darkMode: theme === 'dark',
+      }
     }
-  }, [])
+  }, [theme])
 
   const [settings, setSettings] = useState(initial)
-  const [saved, setSaved] = useState(false)
+  useEffect(() => {
+    setSettings((prev) => ({ ...prev, darkMode: theme === 'dark' }))
+  }, [theme])
+
+  useEffect(() => {
+    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(settings))
+  }, [settings])
 
   const setField = (field, value) => {
-    setSaved(false)
     setSettings((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const handleSave = () => {
-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(settings))
-    setSaved(true)
+    if (field === 'darkMode') {
+      setTheme(value ? 'dark' : 'light')
+    }
   }
 
   return (
     <div className="settings-page page-container">
       <div className="page-header">
-        <h1>Settings</h1>
-        <p>Controla tu experiencia SmarTrip, notificaciones y privacidad.</p>
+        <h1>Configuracion</h1>
+        <p>Controla tu experiencia en SmarTrip y privacidad. Los cambios se aplican al instante.</p>
       </div>
 
       <div className="settings-grid">
         <Card className="settings-card">
-          <div className="settings-title"><SlidersHorizontal size={16} /> Experience</div>
+          <div className="settings-title"><SlidersHorizontal size={16} /> Experiencia</div>
           <label className="settings-item">
-            <span><Moon size={14} /> Dark mode (preview)</span>
+            <span><Moon size={14} /> Modo oscuro</span>
             <input type="checkbox" checked={settings.darkMode} onChange={(e) => setField('darkMode', e.target.checked)} />
           </label>
           <label className="settings-item">
-            <span><Bell size={14} /> Email notifications</span>
-            <input type="checkbox" checked={settings.emailNotifications} onChange={(e) => setField('emailNotifications', e.target.checked)} />
-          </label>
-          <label className="settings-item">
-            <span>Community suggestions</span>
+            <span>Sugerencias de comunidad</span>
             <input type="checkbox" checked={settings.communitySuggestions} onChange={(e) => setField('communitySuggestions', e.target.checked)} />
           </label>
+          <p className="settings-help">
+            Idioma y notificaciones no se muestran aqui porque todavia no tienen soporte completo del backend.
+          </p>
         </Card>
 
         <Card className="settings-card">
-          <div className="settings-title"><Shield size={16} /> Privacy</div>
+          <div className="settings-title"><Shield size={16} /> Privacidad</div>
           <div className="settings-item-column">
-            <span>Profile visibility</span>
+            <span>Visibilidad del perfil</span>
             <select value={settings.profileVisibility} onChange={(e) => setField('profileVisibility', e.target.value)}>
-              <option value="public">Public</option>
-              <option value="community">Only community</option>
-              <option value="private">Private</option>
+              <option value="public">Publico</option>
+              <option value="community">Solo comunidad</option>
+              <option value="private">Privado</option>
             </select>
           </div>
           <p className="settings-help">
             Estos ajustes se guardan localmente en este dispositivo para una configuracion rapida.
           </p>
         </Card>
-      </div>
-
-      <div className="settings-actions">
-        <button type="button" className="btn btn-primary" onClick={handleSave}>Guardar cambios</button>
-        {saved && <span className="settings-saved">Configuracion guardada.</span>}
       </div>
     </div>
   )

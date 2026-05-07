@@ -60,7 +60,7 @@ export function useUserProfile() {
         const updated = await authService.updateProfile(profile.id, payload)
         setProfile(updated)
         updateUser(updated)
-        setSuccess('Profile updated successfully!')
+        setSuccess('Perfil actualizado correctamente')
         return updated
       } catch (err) {
         setError(extractErrorMessage(err))

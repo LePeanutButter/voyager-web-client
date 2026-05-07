@@ -7,8 +7,8 @@ import { User, Mail, Phone, Edit2, Save, X, Shield, Star } from 'lucide-react'
 import './ProfilePage.css'
 
 const INTERESTS_OPTIONS = [
-  'Adventure', 'Beach', 'Culture', 'Food & Cuisine', 'History',
-  'Luxury', 'Nature', 'Nightlife', 'Photography', 'Sports', 'Wellness', 'Wildlife',
+  'Aventura', 'Playa', 'Cultura', 'Gastronomia', 'Historia',
+  'Lujo', 'Naturaleza', 'Vida nocturna', 'Fotografia', 'Deportes', 'Bienestar', 'Vida silvestre',
 ]
 
 function ProfileSidebar({ profile, displayName, initials, editing, onEdit }) {
@@ -46,7 +46,7 @@ function ProfileSidebar({ profile, displayName, initials, editing, onEdit }) {
 
       {!editing && (
         <button className="btn-primary" style={{ width: '100%', marginTop: '1.25rem' }} onClick={onEdit}>
-          <Edit2 size={15} /> Edit Profile
+          <Edit2 size={15} /> Editar perfil
         </button>
       )}
     </div>
@@ -70,34 +70,34 @@ function ProfileEditingCard({ form, saving, onChange, onToggleInterest, onSave, 
   return (
     <div className="profile-form-card">
       <div className="profile-form-header">
-        <h3>Edit Profile</h3>
+        <h3>Editar perfil</h3>
         <button type="button" className="icon-btn" onClick={onCancel}><X size={18} /></button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className="form-row-2">
           <div className="form-group">
-            <label htmlFor="profile-firstName">First Name</label>
-            <input id="profile-firstName" name="firstName" value={form.firstName} onChange={onChange} placeholder="John" />
+            <label htmlFor="profile-firstName">Nombre</label>
+            <input id="profile-firstName" name="firstName" value={form.firstName} onChange={onChange} placeholder="Juan" />
           </div>
           <div className="form-group">
-            <label htmlFor="profile-lastName">Last Name</label>
-            <input id="profile-lastName" name="lastName" value={form.lastName} onChange={onChange} placeholder="Doe" />
+            <label htmlFor="profile-lastName">Apellido</label>
+            <input id="profile-lastName" name="lastName" value={form.lastName} onChange={onChange} placeholder="Perez" />
           </div>
         </div>
 
         <div className="form-group">
-          <label htmlFor="profile-phone">Phone Number</label>
+          <label htmlFor="profile-phone">Telefono</label>
           <input id="profile-phone" name="phoneNumber" type="tel" value={form.phoneNumber} onChange={onChange} placeholder="+1 555 000 0000" />
         </div>
 
         <div className="form-group">
-          <label htmlFor="profile-bio">Bio</label>
-          <textarea id="profile-bio" name="bio" value={form.bio} onChange={onChange} rows={3} placeholder="Tell other travelers about yourself…" />
+          <label htmlFor="profile-bio">Biografia</label>
+          <textarea id="profile-bio" name="bio" value={form.bio} onChange={onChange} rows={3} placeholder="Cuentale a otros viajeros sobre ti..." />
         </div>
 
         <fieldset className="form-group" style={{ border: 'none', padding: 0, margin: 0 }}>
-          <legend style={{ fontWeight: 500, color: '#495057', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Travel Interests</legend>
+          <legend style={{ fontWeight: 500, color: '#495057', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Intereses de viaje</legend>
           <div className="interests-grid">
             {INTERESTS_OPTIONS.map((interest) => (
               <button
@@ -114,14 +114,14 @@ function ProfileEditingCard({ form, saving, onChange, onToggleInterest, onSave, 
         </fieldset>
 
         <div className="profile-form-actions">
-          <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button>
+          <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
           <button type="button" className="btn-primary" onClick={onSave} disabled={saving}>
             {saving ? (
               <span className="flex items-center gap-2">
-                <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />{' '}{'Saving…'}
+                <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />{' '}{'Guardando…'}
               </span>
             ) : (
-              <span className="flex items-center gap-2"><Save size={15} /> Save Changes</span>
+              <span className="flex items-center gap-2"><Save size={15} /> Guardar cambios</span>
             )}
           </button>
         </div>
@@ -149,13 +149,13 @@ function ProfileViewCard({ profile }) {
   return (
     <div className="profile-view-card">
       <div className="profile-section">
-        <h3>Personal Information</h3>
+        <h3>Informacion personal</h3>
         <div className="profile-fields">
           {[
-            { label: 'First Name', value: profile.firstName, icon: User },
-            { label: 'Last Name', value: profile.lastName, icon: User },
+            { label: 'Nombre', value: profile.firstName, icon: User },
+            { label: 'Apellido', value: profile.lastName, icon: User },
             { label: 'Email', value: profile.email, icon: Mail },
-            { label: 'Phone', value: profile.phoneNumber || '—', icon: Phone },
+            { label: 'Telefono', value: profile.phoneNumber || '—', icon: Phone },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="profile-field">
               <span className="profile-field-label">
@@ -169,14 +169,14 @@ function ProfileViewCard({ profile }) {
 
       {profile.bio && (
         <div className="profile-section">
-          <h3>Bio</h3>
+          <h3>Biografia</h3>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.65 }}>{profile.bio}</p>
         </div>
       )}
 
       {Array.isArray(profile.interests) && profile.interests.length > 0 && (
         <div className="profile-section">
-          <h3>Travel Interests</h3>
+          <h3>Intereses de viaje</h3>
           <div className="interests-display">
             {profile.interests.map((i) => (
               <span key={i} className="interest-chip active">{i}</span>
@@ -229,8 +229,8 @@ function ProfilePageLoaded({
   return (
     <div className="profile-page page-container">
       <div className="page-header">
-        <h1>My Profile</h1>
-        <p>Manage your personal information and travel preferences</p>
+        <h1>Mi perfil</h1>
+        <p>Administra tu informacion personal y tus preferencias de viaje</p>
       </div>
 
       <ErrorBanner variant="error" message={error} onDismiss={clearMessages} />

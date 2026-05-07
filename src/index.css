@@ -142,6 +142,14 @@
   --gradient-card: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
 }
 
+[data-theme="dark"] a {
+  color: #5eebff;
+}
+
+[data-theme="dark"] a:hover {
+  color: #9af5ff;
+}
+
 /* ─── Base ────────────────────────────────────────────────────────────────── */
 html {
   font-size: 16px;
@@ -206,6 +214,11 @@ a:hover { color: #0d83d0; }
 ::selection {
   background: rgba(13, 131, 208, 0.16);
   color: var(--brand-ink);
+}
+
+[data-theme="dark"] ::selection {
+  background: rgba(94, 235, 255, 0.26);
+  color: #0a0f29;
 }
 
 /* ─── Skeleton / Loading ─────────────────────────────────────────────────── */
@@ -542,6 +555,30 @@ button:focus-visible {
   background: var(--color-info-light);
   color: #1d4ed8;
   border: 1px solid #93c5fd;
+}
+
+[data-theme="dark"] .alert-error {
+  background: #3a1116;
+  color: #ffe5e5;
+  border: 1px solid #7f1d1d;
+}
+
+[data-theme="dark"] .alert-success {
+  background: #0d2c25;
+  color: #dcfce7;
+  border: 1px solid #0f5132;
+}
+
+[data-theme="dark"] .alert-warning {
+  background: #35280f;
+  color: #fef3c7;
+  border: 1px solid #7c5a14;
+}
+
+[data-theme="dark"] .alert-info {
+  background: #10243d;
+  color: #e0f2fe;
+  border: 1px solid #1e3a8a;
 }
 
 /* ─── Empty State ────────────────────────────────────────────────────────── */

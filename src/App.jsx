@@ -47,10 +47,13 @@ function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
                 <Route path="travel-planning" element={<TravelPlanning />} />
-                <Route path="business-dashboard" element={<BusinessDashboard />} />
                 <Route path="social" element={<Social />} />
                 <Route path="social/chat/:connectionId" element={<TravelerChatPage />} />
                 <Route path="calendar" element={<CalendarPage />} />
+              </Route>
+
+              <Route element={<ProtectedRoute allowedRoles={['PROVIDER', 'BUSINESS', 'ADMIN']} />}>
+                <Route path="business-dashboard" element={<BusinessDashboard />} />
               </Route>
 
               {/* Private Routes (JWT token required) */}

@@ -1,14 +1,17 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/use-auth.js'
-import { Bell, User, Menu } from 'lucide-react'
+import { useTheme } from '../../contexts/use-theme.js'
+import { User, Menu } from 'lucide-react'
 import './Header.css'
 
 const Header = () => {
   const { user, logout } = useAuth()
+  const { theme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
+  const logoSrc = theme === 'dark' ? '/logo-alt.svg' : '/logo.svg'
 
   const links = user
     ? [
@@ -18,7 +21,7 @@ const Header = () => {
         { to: '/my-travels', label: 'Experiencias' },
       ]
     : [
-        { to: '/', label: 'Home' },
+        { to: '/', label: 'Inicio' },
         { to: '/ai-assistant', label: 'Recomendaciones IA' },
         { to: '/social', label: 'Comunidad' },
       ]
@@ -38,7 +41,7 @@ const Header = () => {
             <Menu size={24} />
           </button>
           <Link to="/" className="logo">
-            <img src="/logo.svg" alt="SmarTrip" className="logo-mark" />
+            <img src={logoSrc} alt="SmarTrip" className="logo-mark" />
           </Link>
         </div>
         
@@ -55,10 +58,6 @@ const Header = () => {
         </nav>
         
         <div className="header-right">
-          <button className="icon-button" aria-label="Notificaciones">
-            <Bell size={20} />
-          </button>
-          
           {user ? (
             <div className="user-menu">
               <button className="user-avatar" onClick={() => navigate('/profile')}>
@@ -66,11 +65,11 @@ const Header = () => {
                 <span>{user.firstName || user.username || 'Perfil'}</span>
               </button>
               <div className="user-dropdown">
-                <Link to="/profile">Profile</Link>
+                <Link to="/profile">Perfil</Link>
                 <Link to="/my-travels">Mis Viajes</Link>
-                <Link to="/travel-plans/create">Create Travel Plan</Link>
+                <Link to="/travel-plans/create">Crear plan de viaje</Link>
                 <Link to="/travel-preferences">Preferencias IA</Link>
-                <button onClick={logout}>Logout</button>
+                <button onClick={logout}>Cerrar sesion</button>
               </div>
             </div>
           ) : (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import { businessService } from '../../services/businessService'
+import ErrorBanner from '../../components/UI/ErrorBanner'
 import { 
   Users, 
   DollarSign, 
@@ -13,95 +14,79 @@ import {
 } from 'lucide-react'
 import './BusinessDashboard.css'
 
-const DEFAULT_STATS = [
-    { label: 'Total Revenue', value: '$45,280', icon: DollarSign, trend: '+12.5%', positive: true },
-    { label: 'Active Bookings', value: '156', icon: Calendar, trend: '+8 this week', positive: true },
-    { label: 'Customer Rating', value: '4.8', icon: Star, trend: '+0.2', positive: true },
-    { label: 'Total Customers', value: '2,847', icon: Users, trend: '+127', positive: true },
-]
-
-const DEFAULT_BOOKINGS = [
-    { id: 1, customer: 'John Smith', service: 'City Tour', date: '2024-06-15', amount: '$250', status: 'confirmed' },
-    { id: 2, customer: 'Sarah Johnson', service: 'Hotel Package', date: '2024-06-18', amount: '$1,200', status: 'pending' },
-    { id: 3, customer: 'Mike Davis', service: 'Airport Transfer', date: '2024-06-20', amount: '$80', status: 'confirmed' },
-    { id: 4, customer: 'Emma Wilson', service: 'Adventure Tour', date: '2024-06-22', amount: '$450', status: 'pending' },
-]
-
-const DEFAULT_SERVICES = [
-    { name: 'City Tours', bookings: 45, revenue: '$11,250', rating: 4.9 },
-    { name: 'Hotel Packages', bookings: 28, revenue: '$28,000', rating: 4.7 },
-    { name: 'Airport Transfers', bookings: 67, revenue: '$5,360', rating: 4.8 },
-    { name: 'Adventure Tours', bookings: 16, revenue: '$7,200', rating: 4.9 },
-]
-
-const DEFAULT_PERFORMANCE = [
-    { month: 'Jan', revenue: 32000, bookings: 120 },
-    { month: 'Feb', revenue: 35000, bookings: 135 },
-    { month: 'Mar', revenue: 38000, bookings: 142 },
-    { month: 'Apr', revenue: 42000, bookings: 158 },
-    { month: 'May', revenue: 45280, bookings: 167 },
-    { month: 'Jun', revenue: 48000, bookings: 175 },
-]
+const defaultDashboard = {
+  stats: [],
+  bookings: [],
+  services: [],
+  performance: [],
+}
 
 const BusinessDashboard = () => {
-  const [businessStats, setBusinessStats] = useState(DEFAULT_STATS)
-  const [recentBookings, setRecentBookings] = useState(DEFAULT_BOOKINGS)
-  const [services, setServices] = useState(DEFAULT_SERVICES)
-  const [performanceData, setPerformanceData] = useState(DEFAULT_PERFORMANCE)
+  const [businessStats, setBusinessStats] = useState(defaultDashboard.stats)
+  const [recentBookings, setRecentBookings] = useState(defaultDashboard.bookings)
+  const [services, setServices] = useState(defaultDashboard.services)
+  const [performanceData, setPerformanceData] = useState(defaultDashboard.performance)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const loadBusinessData = async () => {
+      setLoading(true)
+      setError('')
       try {
-        const [dashboard, bookings, serviceRows, analytics] = await Promise.all([
+        const [dashboardRes, bookingsRes, servicesRes, analyticsRes] = await Promise.allSettled([
           businessService.getDashboardStats(),
           businessService.getBookings({ page: 0, size: 4 }),
           businessService.getServices(),
-          businessService.getAnalytics({ range: '6m' }),
+          businessService.getAnalytics(),
         ])
+        const dashboard = dashboardRes.status === 'fulfilled' ? dashboardRes.value : null
+        const bookings = bookingsRes.status === 'fulfilled' ? bookingsRes.value : []
+        const serviceRows = servicesRes.status === 'fulfilled' ? servicesRes.value : []
+        const analytics = analyticsRes.status === 'fulfilled' ? analyticsRes.value : null
 
         if (dashboard && typeof dashboard === 'object') {
-          const nextStats = [
+          setBusinessStats([
             {
-              label: 'Total Revenue',
+              label: 'Ingresos totales',
               value:
                 dashboard.totalRevenue !== null && dashboard.totalRevenue !== undefined
                   ? `$${dashboard.totalRevenue}`
-                  : DEFAULT_STATS[0].value,
+                  : '$0',
               icon: DollarSign,
-              trend: dashboard.revenueTrend || DEFAULT_STATS[0].trend,
+              trend: dashboard.revenueTrend || '—',
               positive: true,
             },
             {
-              label: 'Active Bookings',
-              value: String(dashboard.activeBookings ?? DEFAULT_STATS[1].value),
+              label: 'Reservas activas',
+              value: String(dashboard.activeBookings ?? 0),
               icon: Calendar,
-              trend: dashboard.bookingsTrend || DEFAULT_STATS[1].trend,
+              trend: dashboard.bookingsTrend || '—',
               positive: true,
             },
             {
-              label: 'Customer Rating',
-              value: String(dashboard.rating ?? DEFAULT_STATS[2].value),
+              label: 'Calificacion de clientes',
+              value: String(dashboard.rating ?? 0),
               icon: Star,
-              trend: dashboard.ratingTrend || DEFAULT_STATS[2].trend,
+              trend: dashboard.ratingTrend || '—',
               positive: true,
             },
             {
-              label: 'Total Customers',
-              value: String(dashboard.totalCustomers ?? DEFAULT_STATS[3].value),
+              label: 'Clientes totales',
+              value: String(dashboard.totalCustomers ?? 0),
               icon: Users,
-              trend: dashboard.customersTrend || DEFAULT_STATS[3].trend,
+              trend: dashboard.customersTrend || '—',
               positive: true,
             },
-          ]
-          setBusinessStats(nextStats)
+          ])
         }
 
         if (Array.isArray(bookings)) {
           setRecentBookings(
             bookings.slice(0, 4).map((row) => ({
               id: row.id,
-              customer: row.customerName || row.customer || 'Customer',
-              service: row.serviceName || row.service || 'Service',
+              customer: row.customerName || row.customer || 'Cliente',
+              service: row.serviceName || row.service || 'Servicio',
               date: row.date || row.createdAt || '—',
               amount:
                 row.amount !== null && row.amount !== undefined ? `$${row.amount}` : '—',
@@ -113,7 +98,7 @@ const BusinessDashboard = () => {
         if (Array.isArray(serviceRows)) {
           setServices(
             serviceRows.map((row) => ({
-              name: row.name || row.serviceName || 'Service',
+              name: row.name || row.serviceName || 'Servicio',
               bookings: row.bookings || 0,
               revenue:
                 row.revenue !== null && row.revenue !== undefined ? `$${row.revenue}` : '$0',
@@ -122,32 +107,42 @@ const BusinessDashboard = () => {
           )
         }
 
-        if (Array.isArray(analytics?.performance)) {
-          setPerformanceData(analytics.performance)
-        }
-      } catch {
-        // Keep safe fallback values when business endpoints are not available.
+        setPerformanceData(Array.isArray(analytics?.performance) ? analytics.performance : [])
+      } catch (err) {
+        setError(err?.message || 'No se pudieron cargar los datos del proveedor.')
+      } finally {
+        setLoading(false)
       }
     }
 
     loadBusinessData()
   }, [])
 
+  if (loading) {
+    return (
+      <div className="loading-center">
+        <div className="spinner" />
+        <p>Cargando panel de negocios...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="business-dashboard">
+      <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />
       <div className="dashboard-header">
         <div className="header-content">
-          <h1>Business Dashboard</h1>
-          <p>Manage your tourism business and track performance</p>
+          <h1>Panel de negocios</h1>
+          <p>Administra tu negocio turistico y da seguimiento a su rendimiento</p>
         </div>
         <div className="header-actions">
           <Button variant="primary">
             <Plus size={16} />
-            Add Service
+            Agregar servicio
           </Button>
           <Button variant="outline">
             <Settings size={16} />
-            Settings
+            Configuracion
           </Button>
         </div>
       </div>
@@ -176,18 +171,18 @@ const BusinessDashboard = () => {
 
       <div className="dashboard-content">
         <div className="dashboard-main">
-          <Card title="Recent Bookings">
+          <Card title="Reservas recientes">
             <div className="bookings-table">
               <div className="table-header">
-                <div>Customer</div>
-                <div>Service</div>
-                <div>Date</div>
-                <div>Amount</div>
-                <div>Status</div>
-                <div>Actions</div>
+                <div>Cliente</div>
+                <div>Servicio</div>
+                <div>Fecha</div>
+                <div>Monto</div>
+                <div>Estado</div>
+                <div>Acciones</div>
               </div>
               <div className="table-body">
-                {recentBookings.map(booking => (
+                {recentBookings.map((booking) => (
                   <div key={booking.id} className="table-row">
                     <div className="customer-info">
                       <div className="customer-name">{booking.customer}</div>
@@ -201,26 +196,31 @@ const BusinessDashboard = () => {
                       </span>
                     </div>
                     <div>
-                      <Button size="small" variant="outline">View</Button>
+                      <Button size="small" variant="outline">Ver</Button>
                     </div>
                   </div>
                 ))}
+                {recentBookings.length === 0 && (
+                  <div className="table-row">
+                    <div>No hay reservas recientes</div>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
 
-          <Card title="Service Performance">
+          <Card title="Rendimiento de servicios">
             <div className="performance-chart">
               <div className="chart-header">
-                <h4>Monthly Revenue & Bookings</h4>
+                <h4>Ingresos y reservas mensuales</h4>
                 <div className="chart-legend">
                   <div className="legend-item">
                     <div className="legend-color revenue"></div>
-                    <span>Revenue</span>
+                    <span>Ingresos</span>
                   </div>
                   <div className="legend-item">
                     <div className="legend-color bookings"></div>
-                    <span>Bookings</span>
+                    <span>Reservas</span>
                   </div>
                 </div>
               </div>
@@ -240,20 +240,23 @@ const BusinessDashboard = () => {
                     <div className="bar-label">{data.month}</div>
                   </div>
                 ))}
+                {performanceData.length === 0 && (
+                  <p style={{ color: 'var(--text-muted)' }}>No hay datos de rendimiento.</p>
+                )}
               </div>
             </div>
           </Card>
         </div>
 
         <div className="dashboard-sidebar">
-          <Card title="Services Overview">
+          <Card title="Resumen de servicios">
             <div className="services-list">
               {services.map((service) => (
                 <div key={service.name} className="service-item">
                   <div className="service-info">
                     <h4>{service.name}</h4>
                     <div className="service-stats">
-                      <span>{service.bookings} bookings</span>
+                      <span>{service.bookings} reservas</span>
                       <span>{service.revenue}</span>
                     </div>
                     <div className="service-rating">
@@ -261,46 +264,47 @@ const BusinessDashboard = () => {
                       <span>{service.rating}</span>
                     </div>
                   </div>
-                  <Button size="small" variant="outline">Manage</Button>
+                  <Button size="small" variant="outline">Gestionar</Button>
                 </div>
               ))}
+              {services.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No hay servicios cargados.</p>}
             </div>
           </Card>
 
-          <Card title="Quick Actions">
+          <Card title="Acciones rapidas">
             <div className="quick-actions">
               <Button variant="primary" className="action-btn">
                 <Plus size={16} />
-                Create Promotion
+                Crear promocion
               </Button>
               <Button variant="outline" className="action-btn">
                 <BarChart3 size={16} />
-                View Reports
+                Ver reportes
               </Button>
               <Button variant="outline" className="action-btn">
                 <Users size={16} />
-                Manage Customers
+                Gestionar clientes
               </Button>
               <Button variant="outline" className="action-btn">
                 <Calendar size={16} />
-                Calendar View
+                Vista de calendario
               </Button>
             </div>
           </Card>
 
-          <Card title="Business Insights">
+          <Card title="Insights de negocio">
             <div className="insights-list">
               <div className="insight-item">
-                <h4>Peak Season Alert</h4>
-                <p>Summer bookings increased by 35% compared to last year</p>
+                <h4>Alerta de temporada alta</h4>
+                <p>Las reservas de verano aumentaron 35% frente al ano pasado</p>
               </div>
               <div className="insight-item">
-                <h4>Top Performing Service</h4>
-                <p>City Tours generate the highest revenue per booking</p>
+                <h4>Servicio con mejor rendimiento</h4>
+                <p>Los tours por la ciudad generan el mayor ingreso por reserva</p>
               </div>
               <div className="insight-item">
-                <h4>Customer Satisfaction</h4>
-                <p>98% of customers rate your services 4+ stars</p>
+                <h4>Satisfaccion de clientes</h4>
+                <p>El 98% de clientes califica tus servicios con 4+ estrellas</p>
               </div>
             </div>
           </Card>

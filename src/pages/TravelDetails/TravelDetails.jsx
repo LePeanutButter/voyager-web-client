@@ -13,10 +13,10 @@ import {
 import './TravelDetails.css'
 
 const statusConfig = {
-  PLANNING:  { label: 'Planning',  cls: 'badge-planning'  },
-  ACTIVE:    { label: 'Active',    cls: 'badge-active'    },
-  COMPLETED: { label: 'Completed', cls: 'badge-completed' },
-  CANCELLED: { label: 'Cancelled', cls: 'badge-cancelled' },
+  PLANNING:  { label: 'Planificando',  cls: 'badge-planning'  },
+  ACTIVE:    { label: 'Activo',        cls: 'badge-active'    },
+  COMPLETED: { label: 'Completado',    cls: 'badge-completed' },
+  CANCELLED: { label: 'Cancelado',     cls: 'badge-cancelled' },
 }
 
 const STATUS_TRANSITIONS = {
@@ -37,8 +37,8 @@ async function persistPlanActivity(planId, isEdit, activity, payload) {
 
 function getActivitySubmitLabel(loading, isEdit) {
   if (loading) return 'Saving…'
-  if (isEdit) return 'Save Changes'
-  return 'Add Activity'
+  if (isEdit) return 'Guardar cambios'
+  return 'Agregar actividad'
 }
 
 /* ── Activity Modal ────────────────────────────────────────────────────────── */
@@ -64,7 +64,7 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name.trim()) {
-      setError('Activity name is required')
+      setError('El nombre de la actividad es obligatorio')
       return
     }
     setLoading(true)
@@ -92,37 +92,37 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
     <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <button type="button" onClick={onClose} aria-label="Close modal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 'none', cursor: 'default' }} />
       <dialog open className="modal-box animate-scaleIn" style={{ maxWidth: 500, position: 'relative', zIndex: 1, margin: 0 }} aria-labelledby="activity-modal-title">
-        <h3 id="activity-modal-title">{isEdit ? 'Edit Activity' : 'Add Activity'}</h3>
+        <h3 id="activity-modal-title">{isEdit ? 'Editar actividad' : 'Agregar actividad'}</h3>
         {error && <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
           <div className="form-group">
-            <label htmlFor="act-name">Activity Name *</label>
-            <input id="act-name" name="name" value={form.name} onChange={handleChange} placeholder="Visit Eiffel Tower" />
+            <label htmlFor="act-name">Nombre de actividad *</label>
+            <input id="act-name" name="name" value={form.name} onChange={handleChange} placeholder="Visitar Torre Eiffel" />
           </div>
           <div className="form-row-2">
             <div className="form-group">
-              <label htmlFor="act-type">Type</label>
-              <input id="act-type" name="type" value={form.type} onChange={handleChange} placeholder="Sightseeing, Food, …" />
+              <label htmlFor="act-type">Tipo</label>
+              <input id="act-type" name="type" value={form.type} onChange={handleChange} placeholder="Turismo, comida, ..." />
             </div>
             <div className="form-group">
-              <label htmlFor="act-cost">Est. Cost ($)</label>
+              <label htmlFor="act-cost">Costo estimado ($)</label>
               <input id="act-cost" name="estimatedCost" type="number" min="0" value={form.estimatedCost} onChange={handleChange} placeholder="0.00" />
             </div>
           </div>
           <div className="form-group">
-            <label htmlFor="act-location">Location</label>
-            <input id="act-location" name="location" value={form.location} onChange={handleChange} placeholder="Paris, France" />
+              <label htmlFor="act-location">Ubicacion</label>
+              <input id="act-location" name="location" value={form.location} onChange={handleChange} placeholder="Paris, Francia" />
           </div>
           <div className="form-group">
-            <label htmlFor="act-description">Description</label>
-            <textarea id="act-description" name="description" value={form.description} onChange={handleChange} rows={2} placeholder="Brief description…" />
+            <label htmlFor="act-description">Descripcion</label>
+            <textarea id="act-description" name="description" value={form.description} onChange={handleChange} rows={2} placeholder="Descripcion breve..." />
           </div>
           <div className="form-group">
-            <label htmlFor="act-notes">Notes</label>
-            <textarea id="act-notes" name="notes" value={form.notes} onChange={handleChange} rows={2} placeholder="Reminders, booking references…" />
+            <label htmlFor="act-notes">Notas</label>
+            <textarea id="act-notes" name="notes" value={form.notes} onChange={handleChange} rows={2} placeholder="Recordatorios, referencias..." />
           </div>
           <div className="modal-actions">
-            <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn-primary" disabled={loading}>
               {btnText}
             </button>
@@ -153,7 +153,7 @@ const ActivityList = ({ activities, onEdit, onDelete }) => {
     return (
       <div className="activities-empty">
         <Activity size={28} />
-        <p>No activities yet — click Add to plan your days!</p>
+        <p>Aun no hay actividades — haz clic en Agregar para planear tus dias.</p>
       </div>
     )
   }
@@ -179,10 +179,10 @@ const ActivityList = ({ activities, onEdit, onDelete }) => {
               <span className="activity-cost">${Number(act.estimatedCost).toLocaleString()}</span>
             )}
             <div style={{ display: 'flex', gap: '0.25rem' }}>
-              <button className="icon-btn" onClick={() => onEdit(act)} title="Edit">
+              <button className="icon-btn" onClick={() => onEdit(act)} title="Editar">
                 <Edit size={14} />
               </button>
-              <button className="icon-btn danger" onClick={() => onDelete(act.id)} title="Delete">
+              <button className="icon-btn danger" onClick={() => onDelete(act.id)} title="Eliminar">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -219,7 +219,7 @@ const CompatibleTravelersList = ({ loading, travelers }) => {
   if (travelers.length === 0) {
     return (
       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>
-        {'Click \u201CFind\u201D to discover travelers with similar plans'}
+        {'Haz clic en “Buscar” para descubrir viajeros con planes similares'}
       </p>
     )
   }
@@ -253,7 +253,7 @@ function TravelDetailsBreadcrumb({ navigate }) {
   return (
     <div className="breadcrumb">
       <button type="button" className="btn-back" onClick={() => navigate('/my-travels')}>
-        <ArrowLeft size={16} /> My Travels
+        <ArrowLeft size={16} /> Mis viajes
       </button>
     </div>
   )
@@ -279,7 +279,7 @@ function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLo
                   onClick={() => handleStatusChange(st)}
                   disabled={statusLoading}
                 >
-                  {statusLoading ? '…' : `Mark ${st.charAt(0) + st.slice(1).toLowerCase()}`}
+                  {statusLoading ? '…' : `Marcar ${st.charAt(0) + st.slice(1).toLowerCase()}`}
                 </button>
               ))}
             </div>
@@ -293,7 +293,7 @@ function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLo
         className="btn-primary"
         onClick={() => navigate(`/travel-plans/${id}/edit`)}
       >
-        <Edit size={16} /> Edit Plan
+        <Edit size={16} /> Editar plan
       </button>
     </div>
   )
@@ -311,12 +311,12 @@ TravelDetailsTopSection.propTypes = {
 
 function PlanInfoCards({ plan }) {
   const cards = [
-    plan.destinationLocation && { icon: MapPin, label: 'Destination', value: plan.destinationLocation },
-    plan.originLocation && { icon: Globe, label: 'Origin', value: plan.originLocation },
-    { icon: Calendar, label: 'Dates', value: `${formatDate(plan.startDate)} – ${formatDate(plan.endDate)}` },
-    plan.numberOfTravelers && { icon: Users, label: 'Travelers', value: `${plan.numberOfTravelers} traveler${plan.numberOfTravelers > 1 ? 's' : ''}` },
-    plan.estimatedBudget && { icon: DollarSign, label: 'Budget', value: `$${Number(plan.estimatedBudget).toLocaleString()}` },
-    plan.createdAt && { icon: Clock, label: 'Created', value: formatDate(plan.createdAt) },
+    plan.destinationLocation && { icon: MapPin, label: 'Destino', value: plan.destinationLocation },
+    plan.originLocation && { icon: Globe, label: 'Origen', value: plan.originLocation },
+    { icon: Calendar, label: 'Fechas', value: `${formatDate(plan.startDate)} – ${formatDate(plan.endDate)}` },
+    plan.numberOfTravelers && { icon: Users, label: 'Viajeros', value: `${plan.numberOfTravelers} viajero${plan.numberOfTravelers > 1 ? 's' : ''}` },
+    plan.estimatedBudget && { icon: DollarSign, label: 'Presupuesto', value: `$${Number(plan.estimatedBudget).toLocaleString()}` },
+    plan.createdAt && { icon: Clock, label: 'Creado', value: formatDate(plan.createdAt) },
   ].filter(Boolean)
 
   return (
@@ -381,7 +381,7 @@ function TravelDetailsView({
             <div className="section-card-header">
               <div className="flex items-center gap-2">
                 <Activity size={18} />
-                <h2>Activities ({activities.length})</h2>
+                <h2>Actividades ({activities.length})</h2>
               </div>
               <button
                 type="button"
@@ -390,7 +390,7 @@ function TravelDetailsView({
                 style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
                 onClick={() => setActiveModal('add')}
               >
-                <Plus size={15} /> Add
+                <Plus size={15} /> Agregar
               </button>
             </div>
             <ActivityList
@@ -406,11 +406,11 @@ function TravelDetailsView({
             <div className="section-card-header">
               <div className="flex items-center gap-2">
                 <UserCheck size={18} />
-                <h2>Compatible Travelers</h2>
+                <h2>Viajeros compatibles</h2>
               </div>
               {compatTravelers.length === 0 && (
                 <button type="button" className="btn-outline-sm" onClick={loadCompatibleTravelers} disabled={compatLoading}>
-                  {compatLoading ? 'Loading…' : 'Find'}
+                  {compatLoading ? 'Cargando…' : 'Buscar'}
                 </button>
               )}
             </div>
@@ -500,7 +500,7 @@ const TravelDetails = () => {
   }
 
   const handleDeleteActivity = async (actId) => {
-    if (globalThis.confirm('Delete this activity?') === false) return
+    if (globalThis.confirm('¿Eliminar esta actividad?') === false) return
     try {
       await travelService.deleteActivity(id, actId)
       setPlan((prev) => ({
@@ -561,7 +561,7 @@ const TravelDetails = () => {
       <div className="page-container">
         <ErrorBanner variant="error" message={error} />
         <button className="btn-ghost" onClick={() => navigate(-1)} style={{ marginTop: '1rem' }}>
-          <ArrowLeft size={16} /> Go Back
+          <ArrowLeft size={16} /> Volver
         </button>
       </div>
     )

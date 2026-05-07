@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import TravelerMatching from '../../components/TravelerMatching/TravelerMatching'
 import './SocialFeatures.css'
 
@@ -8,39 +9,48 @@ import './SocialFeatures.css'
  * and Task 2: Send connection requests
  */
 const TravelerMatchingPage = () => {
-  // Mock data for demonstration
-  const mockTravelPlanId = '1'
+  const [travelPlanId, setTravelPlanId] = useState('')
 
   return (
     <div className="social-features-page">
       <div className="page-header">
-        <h1>Find Compatible Travelers</h1>
-        <p>Connect with travelers who have similar destinations and travel dates</p>
+        <h1>Encuentra viajeros compatibles</h1>
+        <p>Conecta con viajeros que tengan destinos y fechas similares</p>
       </div>
 
       <div className="page-content">
-        <TravelerMatching travelPlanId={mockTravelPlanId} />
+        <div style={{ marginBottom: '1rem' }}>
+          <label htmlFor="tm-plan-id">ID del plan de viaje</label>
+          <input
+            id="tm-plan-id"
+            type="text"
+            value={travelPlanId}
+            onChange={(e) => setTravelPlanId(e.target.value)}
+            placeholder="Ingresa el ID de tu plan"
+          />
+        </div>
+        <TravelerMatching travelPlanId={travelPlanId || undefined} />
       </div>
 
       <div className="page-info">
         <div className="info-card">
-          <h3>How it works</h3>
+          <h3>Como funciona</h3>
           <ol>
-            <li>Select one of your active travel plans</li>
-            <li>Our system finds travelers with the same destination</li>
-            <li>View compatibility scores based on overlapping dates</li>
-            <li>{'Send connection requests to travelers you\u2019d like to meet'}</li>
+            <li>Selecciona uno de tus planes de viaje activos</li>
+            <li>Nuestro sistema encuentra viajeros con el mismo destino</li>
+            <li>Revisa la compatibilidad segun fechas superpuestas</li>
+            <li>{'Envía solicitudes de conexion a viajeros que te gustaria conocer'}</li>
           </ol>
         </div>
 
         <div className="info-card">
-          <h3>Features</h3>
+          <h3>Funciones</h3>
           <ul>
-            <li>✅ Smart matching by destination and dates</li>
-            <li>✅ Compatibility scoring system</li>
-            <li>✅ Detailed traveler profiles</li>
-            <li>✅ Safe connection requests</li>
-            <li>✅ Duplicate request prevention</li>
+            <li>✅ Matching inteligente por destino y fechas</li>
+            <li>✅ Sistema de puntuacion de compatibilidad</li>
+            <li>✅ Perfiles de viajeros detallados</li>
+            <li>✅ Solicitudes de conexion seguras</li>
+            <li>✅ Prevencion de solicitudes duplicadas</li>
           </ul>
         </div>
       </div>

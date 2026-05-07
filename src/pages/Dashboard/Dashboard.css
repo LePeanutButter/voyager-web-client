@@ -120,6 +120,15 @@
   letter-spacing: -0.01em;
 }
 
+.section-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem;
+  overflow: hidden;
+}
+
 .btn-link {
   display: flex;
   align-items: center;
@@ -275,9 +284,10 @@
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.125rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 .trending-info p {

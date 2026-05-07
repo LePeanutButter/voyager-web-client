@@ -10,8 +10,8 @@ const ConnectionRequestsPage = () => {
   return (
     <div className="social-features-page">
       <div className="page-header">
-        <h1>Connection Requests</h1>
-        <p>Manage requests from travelers who want to connect with you</p>
+        <h1>Solicitudes de conexion</h1>
+        <p>Gestiona solicitudes de viajeros que quieren conectar contigo</p>
       </div>
 
       <div className="page-content">
@@ -20,34 +20,34 @@ const ConnectionRequestsPage = () => {
 
       <div className="page-info">
         <div className="info-card">
-          <h3>Managing Requests</h3>
-          <p>When travelers send you connection requests, you can:</p>
+          <h3>Gestion de solicitudes</h3>
+          <p>Cuando los viajeros te envian solicitudes de conexion, puedes:</p>
           <ul>
-            <li><strong>Accept:</strong> Creates a connection and allows you to message each other</li>
-            <li><strong>Reject:</strong> Declines the request and removes it from your pending list</li>
-            <li><strong>Ignore:</strong> Requests remain pending until you take action</li>
+            <li><strong>Aceptar:</strong> crea una conexion y permite que se escriban entre ustedes</li>
+            <li><strong>Rechazar:</strong> declina la solicitud y la quita de pendientes</li>
+            <li><strong>Ignorar:</strong> las solicitudes quedan pendientes hasta que tomes accion</li>
           </ul>
         </div>
 
         <div className="info-card">
-          <h3>Safety Tips</h3>
+          <h3>Consejos de seguridad</h3>
           <ul>
-            <li>✅ Review profiles before accepting requests</li>
-            <li>✅ Check travel plans for compatibility</li>
-            <li>✅ Start with public messages before sharing personal info</li>
-            <li>✅ Report any suspicious behavior</li>
-            <li>✅ Trust your instincts and prioritize safety</li>
+            <li>✅ Revisa perfiles antes de aceptar solicitudes</li>
+            <li>✅ Verifica compatibilidad en los planes de viaje</li>
+            <li>✅ Empieza con mensajes publicos antes de compartir datos personales</li>
+            <li>✅ Reporta cualquier comportamiento sospechoso</li>
+            <li>✅ Confia en tu intuicion y prioriza tu seguridad</li>
           </ul>
         </div>
 
         <div className="info-card">
-          <h3>Benefits</h3>
+          <h3>Beneficios</h3>
           <ul>
-            <li>🌍 Meet travelers with similar interests</li>
-            <li>🤝 Find travel companions for your trips</li>
-            <li>💬 Share tips and experiences</li>
-            <li>🗺️ Plan activities together</li>
-            <li>📱 Stay connected during your travels</li>
+            <li>🌍 Conoce viajeros con intereses similares</li>
+            <li>🤝 Encuentra companeros para tus viajes</li>
+            <li>💬 Comparte consejos y experiencias</li>
+            <li>🗺️ Planifica actividades en conjunto</li>
+            <li>📱 Mantente conectado durante tus viajes</li>
           </ul>
         </div>
       </div>

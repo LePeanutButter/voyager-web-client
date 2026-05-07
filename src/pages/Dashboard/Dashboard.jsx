@@ -91,22 +91,22 @@ const Dashboard = () => {
     const completed = plans.filter((p) => p.status === 'COMPLETED').length
     const destinations = new Set(plans.map((p) => p.destinationLocation).filter(Boolean)).size
     return [
-      { label: 'Total Plans', value: total, icon: Plane, color: 'var(--voyager-blue)', bg: '#dbeafe' },
-      { label: 'Upcoming', value: upcoming, icon: Calendar, color: 'var(--color-success)', bg: '#d1fae5' },
-      { label: 'Completed', value: completed, icon: Star, color: 'var(--accent-gold)', bg: '#fef3c7' },
-      { label: 'Destinations', value: destinations, icon: Globe, color: 'var(--voyager-indigo)', bg: '#ede9fe' },
+      { label: 'Planes totales', value: total, icon: Plane, color: 'var(--voyager-blue)', bg: '#dbeafe' },
+      { label: 'Proximos', value: upcoming, icon: Calendar, color: 'var(--color-success)', bg: '#d1fae5' },
+      { label: 'Completados', value: completed, icon: Star, color: 'var(--accent-gold)', bg: '#fef3c7' },
+      { label: 'Destinos', value: destinations, icon: Globe, color: 'var(--voyager-indigo)', bg: '#ede9fe' },
     ]
   }, [plans])
 
   const recentPlans = plans.slice(0, 3)
-  const firstName = user?.firstName || user?.username || 'Traveler'
+  const firstName = user?.firstName || user?.username || 'Viajero'
   const hasRecentPlans = recentPlans.length > 0
 
   const greeting = () => {
     const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 18) return 'Good afternoon'
-    return 'Good evening'
+    if (h < 12) return 'Buenos dias'
+    if (h < 18) return 'Buenas tardes'
+    return 'Buenas noches'
   }
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
@@ -152,10 +152,10 @@ const Dashboard = () => {
         <div className="empty-state-icon" style={{ width: 64, height: 64 }}>
           <Plane size={28} />
         </div>
-        <h3>No plans yet</h3>
-        <p>Create your first travel plan and start your adventure!</p>
+        <h3>Aun no tienes planes</h3>
+        <p>Crea tu primer plan de viaje y comienza tu aventura.</p>
         <button className={PRIMARY_BUTTON_CLASS} onClick={() => navigate(CREATE_PLAN_ROUTE)}>
-          <Plus size={16} /> Create First Plan
+          <Plus size={16} /> Crear primer plan
         </button>
       </div>
     )
@@ -177,7 +177,7 @@ const Dashboard = () => {
     trendingContent = (
       <div className="trending-empty">
         <TrendingUp size={24} />
-        <p>No trending data available</p>
+        <p>No hay datos de tendencias disponibles</p>
       </div>
     )
   } else {
@@ -188,7 +188,7 @@ const Dashboard = () => {
             <div className="trending-rank">#{index + 1}</div>
             <div className="trending-info">
               <h4>{item.name || item.title || 'Activity'}</h4>
-              <p>{item.category || item.type || 'Travel'}</p>
+              <p>{item.category || item.type || 'Viaje'}</p>
             </div>
             {item.rating && (
               <div className="trending-rating">
@@ -205,15 +205,15 @@ const Dashboard = () => {
   const trendsDigestContent = trendsDigest.length > 0 && (
     <div className="section-card" style={{ marginTop: '1rem' }}>
       <div className="section-header">
-        <h2>Weekly Trends Digest</h2>
+        <h2>Resumen semanal de tendencias</h2>
       </div>
       <div className="trending-list">
         {asArray(trendsDigest).map((item, index) => (
           <div key={item.id ?? item.name ?? item.title ?? index} className="trending-card">
             <div className="trending-rank">#{index + 1}</div>
             <div className="trending-info">
-              <h4>{item.title || item.name || item.destination || 'Trend'}</h4>
-              <p>{item.summary || item.description || item.signal || 'Emerging travel signal'}</p>
+              <h4>{item.title || item.name || item.destination || 'Tendencia'}</h4>
+              <p>{item.summary || item.description || item.signal || 'Senal emergente de viaje'}</p>
             </div>
           </div>
         ))}
@@ -224,15 +224,15 @@ const Dashboard = () => {
   const seasonalityContent = seasonalityHighlights.length > 0 && (
     <div className="section-card" style={{ marginTop: '1rem' }}>
       <div className="section-header">
-        <h2>Seasonality Outlook</h2>
+        <h2>Panorama estacional</h2>
       </div>
       <div className="trending-list">
         {asArray(seasonalityHighlights).map((item, index) => (
           <div key={item.id ?? item.destinationId ?? item.destination ?? index} className="trending-card">
             <div className="trending-rank">#{index + 1}</div>
             <div className="trending-info">
-              <h4>{item.destination || item.destinationId || item.name || 'Destination'}</h4>
-              <p>{item.note || item.summary || item.label || 'Seasonal profile available'}</p>
+              <h4>{item.destination || item.destinationId || item.name || 'Destino'}</h4>
+              <p>{item.note || item.summary || item.label || 'Perfil estacional disponible'}</p>
             </div>
           </div>
         ))}
@@ -243,15 +243,15 @@ const Dashboard = () => {
   const adaptiveFeedContent = adaptiveModules.length > 0 && (
     <div className="section-card" style={{ marginTop: '1rem' }}>
       <div className="section-header">
-        <h2>Adaptive Home Feed</h2>
+        <h2>Feed adaptativo de inicio</h2>
       </div>
       <div className="trending-list">
         {asArray(adaptiveModules).map((item, index) => (
           <div key={item.id ?? item.key ?? item.title ?? index} className="trending-card">
             <div className="trending-rank">#{index + 1}</div>
             <div className="trending-info">
-              <h4>{item.title || item.name || item.key || 'Module'}</h4>
-              <p>{item.subtitle || item.description || item.reason || 'Personalized module'}</p>
+              <h4>{item.title || item.name || item.key || 'Modulo'}</h4>
+              <p>{item.subtitle || item.description || item.reason || 'Modulo personalizado'}</p>
             </div>
           </div>
         ))}
@@ -266,7 +266,7 @@ const Dashboard = () => {
         <div>
           <p className="dashboard-greeting">{greeting()},</p>
           <h1 className="dashboard-name">{firstName} <span className="wave">👋</span></h1>
-          <p className="dashboard-subtitle">Here&apos;s an overview of your travel activity</p>
+          <p className="dashboard-subtitle">Aqui tienes un resumen de tu actividad de viaje</p>
         </div>
         <button
           id="dashboard-new-plan-btn"
@@ -274,7 +274,7 @@ const Dashboard = () => {
           onClick={() => navigate(CREATE_PLAN_ROUTE)}
         >
           <Plus size={18} />
-          New Plan
+          Nuevo plan
         </button>
       </div>
 
@@ -305,9 +305,9 @@ const Dashboard = () => {
         {/* Recent plans */}
         <div className="dashboard-main">
           <div className="section-header">
-            <h2>Recent Plans</h2>
+            <h2>Planes recientes</h2>
             <button className="btn-link" onClick={() => navigate('/my-travels')}>
-              View all <ArrowRight size={15} />
+              Ver todos <ArrowRight size={15} />
             </button>
           </div>
 
@@ -315,14 +315,14 @@ const Dashboard = () => {
 
           {/* Quick actions */}
           <div className="section-header" style={{ marginTop: '2rem' }}>
-            <h2>Quick Actions</h2>
+            <h2>Acciones rapidas</h2>
           </div>
           <div className="quick-actions">
             {[
-              { label: 'Plan a Trip', icon: Plane, action: () => navigate(CREATE_PLAN_ROUTE), primary: true },
-              { label: 'AI Assistant', icon: Zap, action: () => navigate('/ai-assistant') },
-              { label: 'Find Travelers', icon: Users, action: () => navigate('/social') },
-              { label: 'My Profile', icon: Compass, action: () => navigate('/profile') },
+              { label: 'Planear viaje', icon: Plane, action: () => navigate(CREATE_PLAN_ROUTE), primary: true },
+              { label: 'Asistente IA', icon: Zap, action: () => navigate('/ai-assistant') },
+              { label: 'Buscar viajeros', icon: Users, action: () => navigate('/social') },
+              { label: 'Mi perfil', icon: Compass, action: () => navigate('/profile') },
             ].map(({ label, icon: Icon, action, primary }) => (
               <button
                 key={label}
@@ -339,7 +339,7 @@ const Dashboard = () => {
         {/* Sidebar */}
         <div className="dashboard-sidebar">
           <div className="section-header">
-            <h2>Trending Now</h2>
+            <h2>Tendencia actual</h2>
           </div>
 
           {trendingContent}
@@ -353,8 +353,8 @@ const Dashboard = () => {
               <Zap size={22} />
             </div>
             <div>
-              <h4>AI Travel Assistant</h4>
-              <p>Get personalized recommendations</p>
+              <h4>Asistente IA de viajes</h4>
+              <p>Obtén recomendaciones personalizadas</p>
             </div>
             <ArrowRight size={16} />
           </Link>

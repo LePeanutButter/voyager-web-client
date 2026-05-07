@@ -66,8 +66,8 @@ function SocialConnectionsPanel({ connections, user, navigate }) {
     return (
       <div style={EMPTY_STATE_STYLE}>
         <Users size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
-        <h3>No connections yet</h3>
-        <p>Go to the Discover tab to find travelers with similar plans!</p>
+        <h3>Aun no tienes conexiones</h3>
+        <p>Ve a la pestaña Descubrir para encontrar viajeros con planes similares.</p>
       </div>
     )
   }
@@ -107,7 +107,7 @@ function SocialRequestsPanel({ pendingRequests, handleAccept, handleReject }) {
     return (
       <div style={EMPTY_STATE_STYLE}>
         <UserPlus size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
-        <h3>No pending requests</h3>
+        <h3>No hay solicitudes pendientes</h3>
       </div>
     )
   }
@@ -162,14 +162,14 @@ function SocialDiscoverPanel({
       <form onSubmit={handleDiscover} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <input
           type="text"
-          placeholder="Enter a Travel Plan ID to find matches"
+          placeholder="Ingresa el ID de un plan para buscar coincidencias"
           value={discoverPlanId}
           onChange={(e) => setDiscoverPlanId(e.target.value)}
           style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: BORDER_RADIUS_STD, border: BORDER_DEFAULT }}
           required
         />
         <button type="submit" className="btn-primary" disabled={discoverLoading}>
-          {discoverLoading ? 'Searching...' : 'Find Matches'}
+          {discoverLoading ? 'Buscando...' : 'Buscar coincidencias'}
         </button>
       </form>
 
@@ -196,13 +196,13 @@ function SocialDiscoverPanel({
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', color: TEXT_SECONDARY }}>@{match.username}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'var(--color-success-light)', color: 'var(--color-success)', padding: '2px 8px', borderRadius: '12px' }}>
-                    {Math.round(match.compatibilityScore * 100)}% Match
+                    {Math.round(match.compatibilityScore * 100)}% Compatibilidad
                   </span>
                 </div>
               </div>
             </div>
             <button type="button" className="btn-outline-sm" onClick={() => handleSendRequest(match.id)}>
-              <UserPlus size={16} /> Connect
+              <UserPlus size={16} /> Conectar
             </button>
           </div>
         ))}
@@ -249,7 +249,7 @@ const Social = () => {
       setConnections(conns || [])
       setPendingRequests(reqs || [])
     } catch (err) {
-      setError(err?.message || 'Failed to load social data')
+      setError(err?.message || 'No se pudieron cargar los datos sociales')
     } finally {
       setLoading(false)
     }
@@ -266,7 +266,7 @@ const Social = () => {
       const response = await socialService.getSocialFeed(user.id, 0, 20)
       setFeed(normalizeFeedPayload(response))
     } catch (err) {
-      setError(err?.message || 'Failed to load social feed')
+      setError(err?.message || 'No se pudo cargar el feed social')
       setFeed([])
     } finally {
       setFeedLoading(false)
@@ -288,7 +288,7 @@ const Social = () => {
       const results = await socialService.getCompatibleTravelers(discoverPlanId)
       setMatches(results || [])
     } catch (err) {
-      setError(err?.message || 'Failed to find matches. Make sure the Plan ID is valid.')
+      setError(err?.message || 'No se encontraron coincidencias. Verifica que el ID del plan sea valido.')
     } finally {
       setDiscoverLoading(false)
     }
@@ -296,11 +296,11 @@ const Social = () => {
 
   const handleSendRequest = async (recipientId) => {
     try {
-      await socialService.sendConnectionRequest({ recipientId, message: 'Hi! Let\u2019s connect.' })
-      alert('Connection request sent!')
+      await socialService.sendConnectionRequest({ recipientId, message: '¡Hola! Conectemos.' })
+      alert('¡Solicitud de conexion enviada!')
       loadSocialData()
     } catch (err) {
-      alert(err?.message || 'Failed to send request')
+      alert(err?.message || 'No se pudo enviar la solicitud')
     }
   }
 
@@ -309,7 +309,7 @@ const Social = () => {
       await socialService.acceptConnectionRequest(requestId)
       loadSocialData()
     } catch (err) {
-      alert(err?.message || 'Failed to accept')
+      alert(err?.message || 'No se pudo aceptar la solicitud')
     }
   }
 
@@ -318,7 +318,7 @@ const Social = () => {
       await socialService.rejectConnectionRequest(requestId)
       loadSocialData()
     } catch (err) {
-      alert(err?.message || 'Failed to reject')
+      alert(err?.message || 'No se pudo rechazar la solicitud')
     }
   }
 
@@ -334,8 +334,8 @@ const Social = () => {
   return (
     <div className="page-container" style={{ maxWidth: 800 }}>
       <div className="page-header" style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>Traveler Network</h1>
-        <p style={{ color: TEXT_SECONDARY }}>Connect with fellow travelers and find travel buddies.</p>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>Red de viajeros</h1>
+        <p style={{ color: TEXT_SECONDARY }}>Conecta con otros viajeros y encuentra compañeros de viaje.</p>
       </div>
 
       <ErrorBanner variant="error" message={error} onDismiss={() => setError(null)} />
@@ -346,25 +346,25 @@ const Social = () => {
           className={`social-tab ${activeTab === 'connections' ? 'active' : ''}`}
           onClick={() => setActiveTab('connections')}
         >
-          <Users size={18} /> My Connections ({connections.length})
+          <Users size={18} /> Mis conexiones ({connections.length})
         </button>
         <button 
           className={`social-tab ${activeTab === 'requests' ? 'active' : ''}`}
           onClick={() => setActiveTab('requests')}
         >
-          <UserPlus size={18} /> Requests {pendingRequests.length > 0 && <span className="badge-count">{pendingRequests.length}</span>}
+          <UserPlus size={18} /> Solicitudes {pendingRequests.length > 0 && <span className="badge-count">{pendingRequests.length}</span>}
         </button>
         <button 
           className={`social-tab ${activeTab === 'discover' ? 'active' : ''}`}
           onClick={() => setActiveTab('discover')}
         >
-          <Search size={18} /> Discover
+          <Search size={18} /> Descubrir
         </button>
         <button
           className={`social-tab ${activeTab === 'feed' ? 'active' : ''}`}
           onClick={() => setActiveTab('feed')}
         >
-          <MessageCircle size={18} /> Feed
+          <MessageCircle size={18} /> Inicio social
         </button>
       </div>
 
@@ -402,8 +402,8 @@ const Social = () => {
             {!feedLoading && feed.length === 0 && (
               <div style={EMPTY_STATE_STYLE}>
                 <MessageCircle size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
-                <h3>No social feed yet</h3>
-                <p>There are no posts available for your account yet.</p>
+                <h3>Aun no hay feed social</h3>
+                <p>Todavia no hay publicaciones disponibles para tu cuenta.</p>
               </div>
             )}
             {!feedLoading && feed.map((post) => (
@@ -416,8 +416,8 @@ const Social = () => {
                   background: 'var(--surface-bg)',
                 }}
               >
-                <h4 style={{ margin: '0 0 0.5rem' }}>{post.author || 'Traveler'}</h4>
-                <p style={{ margin: 0 }}>{post.content || post.text || 'Post'}</p>
+                <h4 style={{ margin: '0 0 0.5rem' }}>{post.author || 'Viajero'}</h4>
+                <p style={{ margin: 0 }}>{post.content || post.text || 'Publicacion'}</p>
               </div>
             ))}
           </div>

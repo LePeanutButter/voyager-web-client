@@ -181,8 +181,9 @@
 }
 
 .btn-primary:hover {
-  background: #0d83d0;
-  border-color: #0d83d0;
+  background: #03397f;
+  border-color: #03397f;
+  color: #ffffff;
 }
 
 .btn-outline {
@@ -194,6 +195,44 @@
 .btn-outline:hover {
   background: #04459c;
   color: #ffffff;
+}
+
+[data-theme="dark"] .header {
+  background: rgba(10, 15, 41, 0.9);
+  border-bottom: 1px solid rgba(36, 49, 86, 0.9);
+}
+
+[data-theme="dark"] .header.scrolled {
+  background: rgba(10, 15, 41, 0.96);
+}
+
+[data-theme="dark"] .menu-toggle:hover,
+[data-theme="dark"] .nav-chip:hover,
+[data-theme="dark"] .icon-button:hover,
+[data-theme="dark"] .user-avatar:hover,
+[data-theme="dark"] .user-dropdown a:hover,
+[data-theme="dark"] .user-dropdown button:hover {
+  background: #101737;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .user-avatar {
+  background: #111a3a;
+  color: #ccd5e8;
+}
+
+[data-theme="dark"] .user-dropdown {
+  background: #111a3a;
+}
+
+[data-theme="dark"] .btn-outline {
+  color: #5eebff;
+  border-color: rgba(94, 235, 255, 0.45);
+}
+
+[data-theme="dark"] .btn-outline:hover {
+  background: #5eebff;
+  color: #0a0f29;
 }
 
 @media (max-width: 768px) {

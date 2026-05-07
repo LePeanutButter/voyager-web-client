@@ -11,7 +11,7 @@ const TravelPlanning = () => {
   return (
     <div className="loading-center">
       <div className="spinner" />
-      <p>Redirecting to My Travels…</p>
+      <p>Redirigiendo a Mis Viajes…</p>
     </div>
   )
 }

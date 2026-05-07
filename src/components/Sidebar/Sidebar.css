@@ -98,6 +98,22 @@
   margin-bottom: 0;
 }
 
+[data-theme="dark"] .nav-link:hover {
+  background: #101737;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .quick-action-btn {
+  background: #101737;
+  color: #ccd5e8;
+}
+
+[data-theme="dark"] .quick-action-btn:hover {
+  background: #17224a;
+  border-color: rgba(94, 235, 255, 0.3);
+  color: #ffffff;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
