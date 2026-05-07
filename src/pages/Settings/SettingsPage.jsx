@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Moon, Shield, SlidersHorizontal } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Moon, Shield, SlidersHorizontal, Compass } from 'lucide-react'
 import Card from '../../components/UI/Card'
 import { useTheme } from '../../contexts/use-theme.js'
 import './SettingsPage.css'
@@ -56,6 +57,30 @@ const SettingsPage = () => {
       </div>
 
       <div className="settings-grid">
+        <Card className="settings-card">
+          <div className="settings-title"><Compass size={16} /> Preferencias de Viaje</div>
+          <Link 
+            to="/travel-preferences" 
+            className="settings-item settings-link"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '1rem',
+              textDecoration: 'none',
+              color: 'var(--text-primary)',
+              borderRadius: 'var(--border-radius)',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <span>Configurar perfil de viaje</span>
+            <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>→</span>
+          </Link>
+          <p className="settings-help">
+            Responde un cuestionario adaptativo para personalizar tus recomendaciones de viaje.
+          </p>
+        </Card>
+
         <Card className="settings-card">
           <div className="settings-title"><SlidersHorizontal size={16} /> Experiencia</div>
           <label className="settings-item">

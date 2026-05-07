@@ -70,9 +70,17 @@ export const aiService = {
 
   // ─── Preferences (AI) ──────────────────────────────────────────────────────
   // Canonical endpoints in backend: /travel-preferences/questionnaire/*
-  getTravelPreferences: (userId) => aiMicroservice.get(`/users/profile/${userId}`),
+  getTravelPreferences: (userId) => aiMicroservice.get(`/profile/${userId}`),
   startQuestionnaire: (userId) =>
-    aiMicroservice.post('/travel-preferences/questionnaire/step', { userId, answers: [] }),
+    aiMicroservice.post('/travel-preferences/questionnaire/step', { 
+      userId, 
+      answers: [
+        {
+          questionId: "primary_travel_style",
+          selectedOptionIds: []
+        }
+      ]
+    }),
   submitQuestionnaireStep: ({ userId, sessionId, answers }) =>
     aiMicroservice.post('/travel-preferences/questionnaire/step', { userId, sessionId, answers }),
   submitQuestionnaire: (sessionId, formattedAnswers, userId = undefined) =>

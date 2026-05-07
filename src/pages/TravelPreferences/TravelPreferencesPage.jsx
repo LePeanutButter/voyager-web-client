@@ -21,6 +21,9 @@ function TravelPreferencesQuestionnaire({
   onNext,
 }) {
   const progress = ((stepIndex + 1) / questions.length) * 100
+  console.log('Current question object:', currentQuestion)
+  console.log('Current question ID:', currentQuestion?.id)
+  console.log('Current answers:', answers)
   const currentAnswers = answers[currentQuestion?.id] || []
   const canProceed = currentAnswers.length > 0
 
@@ -48,11 +51,15 @@ function TravelPreferencesQuestionnaire({
         <ErrorBanner variant="error" message={error} onDismiss={onDismissError} />
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', lineHeight: 1.4 }}>
-          {currentQuestion.text}
+          {currentQuestion.prompt}
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
           {currentQuestion.options?.map((opt) => {
+            console.log('Option object:', opt)
+            console.log('Option ID:', opt.id)
+            console.log('Option text:', opt.text)
+            console.log('Option label:', opt.label)
             const isSelected = currentAnswers.includes(opt.id)
             return (
               <button
@@ -75,7 +82,7 @@ function TravelPreferencesQuestionnaire({
                   textAlign: 'left',
                 }}
               >
-                <span>{opt.text}</span>
+                <span>{opt.label}</span>
                 {isSelected && <CheckCircle size={18} color="var(--voyager-blue)" />}
               </button>
             )
@@ -149,23 +156,12 @@ const TravelPreferencesPage = () => {
     const init = async () => {
       try {
         setLoading(true)
-        let existingPrefs = null
-        try {
-          existingPrefs = await aiService.getTravelPreferences(userId)
-        } catch (err) {
-          if (err?.response?.status !== 404) {
-            throw err
-          }
-        }
-
-        if (existingPrefs?.isCompleted) {
-          setPreferences(existingPrefs)
-          setIsCompleted(true)
-          setLoading(false)
-          return
-        }
-
+        
+        // Always start questionnaire first, don't check existing preferences
         const session = await aiService.startQuestionnaire(userId)
+        console.log('AI Service Response:', session)
+        console.log('Questions array:', session.questions)
+        console.log('Current question:', session.questions?.[0])
         setSessionId(session.sessionId)
         setQuestions(session.questions || [])
 
@@ -197,33 +193,49 @@ const TravelPreferencesPage = () => {
   }
 
   const handleNext = async () => {
-    if (stepIndex < questions.length - 1) {
-      setStepIndex((step) => step + 1)
-      return
-    }
-
     setSaving(true)
     setError(null)
 
     try {
-      const formattedAnswers = Object.entries(answers).map(([qId, oIds]) => ({
-        questionId: qId,
-        selectedOptionIds: oIds,
-      }))
+      const currentAnswers = answers[currentQuestion?.id] || []
+      const formattedAnswers = [{
+        questionId: currentQuestion?.id,
+        selectedOptionIds: currentAnswers,
+      }]
 
-      await aiService.submitQuestionnaire(sessionId, formattedAnswers, userId)
-      const finalPrefs = await aiService.getTravelPreferences(userId)
+      const response = await aiService.submitQuestionnaireStep({
+        userId,
+        sessionId,
+        answers: formattedAnswers,
+      })
 
-      setPreferences(finalPrefs)
-      setIsCompleted(true)
+      if (response.isComplete) {
+        // Cuestionario completado - enviar todas las respuestas
+        const allFormattedAnswers = Object.entries(answers).map(([qId, oIds]) => ({
+          questionId: qId,
+          selectedOptionIds: oIds,
+        }))
+
+        const response = await aiService.submitQuestionnaire(sessionId, allFormattedAnswers, userId)
+        
+        setPreferences(response)
+        setIsCompleted(true)
+      } else {
+        // Hay más preguntas - actualizar estado
+        setSessionId(response.sessionId)
+        setQuestions(response.questions || [])
+        setStepIndex(0) // Resetear a 0 porque las preguntas nuevas vienen en un array fresco
+      }
     } catch (err) {
-      setError(err?.message || 'No se pudieron guardar las preferencias.')
+      setError(err?.message || 'No se pudieron procesar las respuestas.')
     } finally {
       setSaving(false)
     }
   }
 
   const currentQuestion = questions[stepIndex]
+
+  console.log('Component state:', { loading, isCompleted, questionsLength: questions.length, stepIndex })
 
   if (loading) {
     return (
@@ -259,6 +271,8 @@ const TravelPreferencesPage = () => {
       </div>
     )
   }
+
+  console.log('Rendering questionnaire with currentQuestion:', currentQuestion)
 
   return (
     <TravelPreferencesQuestionnaire

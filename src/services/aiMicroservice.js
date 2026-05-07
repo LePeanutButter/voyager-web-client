@@ -22,6 +22,9 @@ aiMicroservice.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
 
+    // Debug logging
+    console.log('AI Request URL:', config.baseURL + (config.url || ''))
+
     // Convert camelCase request bodies to snake_case for backend
     if (config.data && !(config.data instanceof FormData)) {
       config.data = keysToSnakeCase(config.data)
