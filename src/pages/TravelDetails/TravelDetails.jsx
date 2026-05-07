@@ -516,7 +516,20 @@ const TravelDetails = () => {
     setCompatLoading(true)
     try {
       const result = await travelService.getCompatibleTravelers(id)
-      setCompatTravelers(Array.isArray(result) ? result : [])
+      const travelers = Array.isArray(result) ? result : []
+      const enriched = await Promise.all(
+        travelers.map(async (traveler) => {
+          const travelerId = traveler?.id ?? traveler?.userId
+          if (!travelerId) return traveler
+          try {
+            const summary = await socialService.getTravelerSummary(travelerId)
+            return { ...summary, ...traveler }
+          } catch {
+            return traveler
+          }
+        })
+      )
+      setCompatTravelers(enriched)
     } catch {
       setCompatTravelers([])
     } finally {

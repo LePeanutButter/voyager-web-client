@@ -35,7 +35,7 @@ const GoogleCallbackPage = () => {
 
       try {
         // Inject the Google-issued JWT into the auth context
-        // The user object will be fetched from /users/me automatically
+        // The user object will be fetched from /users/{id} automatically
         await login(null, token)
         navigate('/dashboard', { replace: true })
       } catch (err) {

@@ -3,7 +3,7 @@ import { Client } from '@stomp/stompjs'
 
 /**
  * STOMP over WebSocket for real-time traveler chat (Spring @MessageMapping /app/chat/{id}/sendMessage).
- * Set VITE_WS_BROKER_URL (e.g. ws://localhost:8080/ws) to enable; otherwise chat uses REST only.
+ * Set VITE_WS_BROKER_URL (e.g. ws://localhost:8080/api/v1/ws-chat) to enable; otherwise chat uses REST only.
  */
 export function useTravelerChatSocket(connectionId, { enabled = true, onMessage } = {}) {
   const [connected, setConnected] = useState(false)

@@ -211,7 +211,7 @@ const TravelPreferencesPage = () => {
         selectedOptionIds: oIds,
       }))
 
-      await aiService.submitQuestionnaire(sessionId, formattedAnswers)
+      await aiService.submitQuestionnaire(sessionId, formattedAnswers, userId)
       const finalPrefs = await aiService.getTravelPreferences(userId)
 
       setPreferences(finalPrefs)

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTravelPlans } from '../../hooks/useTravelPlans'
+import { travelService } from '../../services/travelService'
 import { MapPin, Calendar, Users, DollarSign, ArrowLeft } from 'lucide-react'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 
@@ -20,6 +21,8 @@ const CreateTravelPlanPage = () => {
   const navigate = useNavigate()
   const { create: add, error, clearError } = useTravelPlans()
   const [loading, setLoading] = useState(false)
+  const [catalogLoading, setCatalogLoading] = useState(false)
+  const [flightPreview, setFlightPreview] = useState(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -54,6 +57,36 @@ const CreateTravelPlanPage = () => {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePreviewFlights = async () => {
+    if (!formData.originLocation || !formData.destinationLocation || !formData.startDate) return
+    const origin = formData.originLocation.trim().slice(0, 3).toUpperCase()
+    const destination = formData.destinationLocation.trim().slice(0, 3).toUpperCase()
+    if (origin.length !== 3 || destination.length !== 3) {
+      setFlightPreview({ error: 'Origin/Destination must start with a 3-letter IATA/city code.' })
+      return
+    }
+    setCatalogLoading(true)
+    try {
+      const response = await travelService.searchFlights({
+        originLocationCode: origin,
+        destinationLocationCode: destination,
+        departureDate: formData.startDate,
+        adults: Number(formData.numberOfTravelers || 1),
+      })
+      let offers = []
+      if (Array.isArray(response?.data)) {
+        offers = response.data
+      } else if (Array.isArray(response)) {
+        offers = response
+      }
+      setFlightPreview({ count: offers.length, sample: offers[0] || null })
+    } catch (err) {
+      setFlightPreview({ error: err?.message || 'Unable to fetch flight preview' })
+    } finally {
+      setCatalogLoading(false)
     }
   }
 
@@ -195,6 +228,35 @@ const CreateTravelPlanPage = () => {
                 />
               </div>
             </div>
+          </div>
+
+          <div
+            style={{
+              border: CP_BORDER,
+              borderRadius: 'var(--border-radius)',
+              padding: '1rem',
+              background: 'var(--surface-bg)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+              <div>
+                <strong>Flight preview (Catalog API)</strong>
+                <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  Uses `/catalog/flights` with your origin/destination/date.
+                </p>
+              </div>
+              <button type="button" className="btn-outline-sm" onClick={handlePreviewFlights} disabled={catalogLoading}>
+                {catalogLoading ? 'Loading…' : 'Preview Flights'}
+              </button>
+            </div>
+            {flightPreview?.error && (
+              <p style={{ margin: '0.75rem 0 0', color: 'var(--color-danger)' }}>{flightPreview.error}</p>
+            )}
+            {flightPreview && !flightPreview.error && (
+              <p style={{ margin: '0.75rem 0 0', color: 'var(--text-secondary)' }}>
+                {`Found ${flightPreview.count} flight offer(s).`}
+              </p>
+            )}
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>

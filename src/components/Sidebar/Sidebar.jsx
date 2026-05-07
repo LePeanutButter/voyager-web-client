@@ -53,8 +53,8 @@ const Sidebar = () => {
       <div className="sidebar-footer">
         <div className="quick-actions">
           <h4>Quick Actions</h4>
-          <button className="quick-action-btn">Plan New Trip</button>
-          <button className="quick-action-btn">Ask AI Assistant</button>
+          <Link to="/travel-plans/create" className="quick-action-btn">Plan New Trip</Link>
+          <Link to="/ai-assistant" className="quick-action-btn">Ask AI Assistant</Link>
         </div>
       </div>
     </aside>

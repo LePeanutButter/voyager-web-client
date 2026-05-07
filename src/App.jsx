@@ -21,6 +21,11 @@ import TravelerChatPage from './pages/Social/TravelerChatPage'
 import CreateTravelPlanPage from './pages/TravelPlanning/CreateTravelPlanPage'
 import MyTravels from './pages/MyTravels/MyTravels'
 import TravelDetails from './pages/TravelDetails/TravelDetails'
+import PrivacyPolicyPage from './pages/Legal/PrivacyPolicyPage'
+import TermsPage from './pages/Legal/TermsPage'
+import CookiesPage from './pages/Legal/CookiesPage'
+import CalendarPage from './pages/Calendar/CalendarPage'
+import SettingsPage from './pages/Settings/SettingsPage'
 
 function App() {
   return (
@@ -32,7 +37,10 @@ function App() {
               <Route index element={<Home />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />
-                <Route path="auth/google/callback" element={<GoogleCallbackPage />} />
+              <Route path="auth/google/callback" element={<GoogleCallbackPage />} />
+              <Route path="privacy" element={<PrivacyPolicyPage />} />
+              <Route path="terms" element={<TermsPage />} />
+              <Route path="cookies" element={<CookiesPage />} />
               
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>
@@ -42,6 +50,7 @@ function App() {
                 <Route path="business-dashboard" element={<BusinessDashboard />} />
                 <Route path="social" element={<Social />} />
                 <Route path="social/chat/:connectionId" element={<TravelerChatPage />} />
+                <Route path="calendar" element={<CalendarPage />} />
               </Route>
 
               {/* Private Routes (JWT token required) */}
@@ -51,6 +60,7 @@ function App() {
                 <Route path="travel-plans/create" element={<CreateTravelPlanPage />} />
                 <Route path="my-travels" element={<MyTravels />} />
                 <Route path="travel-plans/:id" element={<TravelDetails />} />
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>
           </Routes>

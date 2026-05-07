@@ -1,12 +1,15 @@
 .sidebar {
   width: 280px;
-  background: white;
-  border-right: 1px solid #e9ecef;
+  background: var(--surface-card);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 92px);
   position: sticky;
-  top: 64px;
+  top: 76px;
+  margin-left: 1rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .sidebar-nav {
@@ -29,43 +32,44 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  color: #495057;
+  color: var(--text-secondary);
   text-decoration: none;
   transition: all 0.2s;
-  border-radius: 0;
+  border-radius: 12px;
   position: relative;
 }
 
 .nav-link:hover {
-  background: #f8f9fa;
-  color: #2563eb;
+  background: #f7f9fc;
+  color: #0a0f29;
 }
 
 .nav-link.active {
-  background: #e3f2fd;
-  color: #2563eb;
+  background: #04459c;
+  color: #ffffff;
   font-weight: 500;
 }
 
 .nav-link.active::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: #2563eb;
+  left: 8px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 999px;
+  background: #5eebff;
 }
 
 .sidebar-footer {
   padding: 1rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--border-color);
 }
 
 .quick-actions h4 {
   margin: 0 0 0.75rem 0;
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -75,18 +79,19 @@
   width: 100%;
   padding: 0.5rem;
   margin-bottom: 0.5rem;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  color: #495057;
+  background: #f7f9fc;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.875rem;
 }
 
 .quick-action-btn:hover {
-  background: #e9ecef;
-  border-color: #dee2e6;
+  background: #e6eefb;
+  border-color: rgba(4, 69, 156, 0.26);
+  color: #0a0f29;
 }
 
 .quick-action-btn:last-child {

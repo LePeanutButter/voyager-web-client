@@ -22,6 +22,18 @@ const Dashboard = () => {
   const { plans, loading: plansLoading, error: plansError } = useTravelPlans(true)
   const [trending, setTrending] = useState([])
   const [trendingLoading, setTrendingLoading] = useState(true)
+  const [trendsDigest, setTrendsDigest] = useState([])
+  const [seasonalityHighlights, setSeasonalityHighlights] = useState([])
+  const [adaptiveModules, setAdaptiveModules] = useState([])
+
+  const asArray = (value) => (Array.isArray(value) ? value : [])
+
+  const pickFirstArray = (...candidates) => {
+    for (const value of candidates) {
+      if (Array.isArray(value)) return value
+    }
+    return []
+  }
 
   useEffect(() => {
     aiService.getTrendingActivities(null, 3)
@@ -29,6 +41,48 @@ const Dashboard = () => {
       .catch(() => setTrending([]))
       .finally(() => setTrendingLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!user?.id) return
+    aiService.getWeeklyTrendsDigest()
+      .then((res) => {
+        setTrendsDigest(
+          pickFirstArray(
+            res?.microTrends,
+            res?.trends,
+            res?.items,
+            res?.highlights
+          ).slice(0, 3)
+        )
+      })
+      .catch(() => setTrendsDigest([]))
+
+    aiService.getSeasonalityOverview()
+      .then((res) => {
+        setSeasonalityHighlights(
+          pickFirstArray(
+            res?.destinations,
+            res?.profiles,
+            res?.seasonalityProfiles,
+            res?.items
+          ).slice(0, 3)
+        )
+      })
+      .catch(() => setSeasonalityHighlights([]))
+
+    aiService.getAdaptiveHomeFeed(user.id)
+      .then((res) => {
+        setAdaptiveModules(
+          pickFirstArray(
+            res?.sections,
+            res?.modules,
+            res?.cards,
+            res?.items
+          ).slice(0, 4)
+        )
+      })
+      .catch(() => setAdaptiveModules([]))
+  }, [user?.id])
 
   // Derive stats from real plans
   const stats = useMemo(() => {
@@ -148,6 +202,63 @@ const Dashboard = () => {
     )
   }
 
+  const trendsDigestContent = trendsDigest.length > 0 && (
+    <div className="section-card" style={{ marginTop: '1rem' }}>
+      <div className="section-header">
+        <h2>Weekly Trends Digest</h2>
+      </div>
+      <div className="trending-list">
+        {asArray(trendsDigest).map((item, index) => (
+          <div key={item.id ?? item.name ?? item.title ?? index} className="trending-card">
+            <div className="trending-rank">#{index + 1}</div>
+            <div className="trending-info">
+              <h4>{item.title || item.name || item.destination || 'Trend'}</h4>
+              <p>{item.summary || item.description || item.signal || 'Emerging travel signal'}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const seasonalityContent = seasonalityHighlights.length > 0 && (
+    <div className="section-card" style={{ marginTop: '1rem' }}>
+      <div className="section-header">
+        <h2>Seasonality Outlook</h2>
+      </div>
+      <div className="trending-list">
+        {asArray(seasonalityHighlights).map((item, index) => (
+          <div key={item.id ?? item.destinationId ?? item.destination ?? index} className="trending-card">
+            <div className="trending-rank">#{index + 1}</div>
+            <div className="trending-info">
+              <h4>{item.destination || item.destinationId || item.name || 'Destination'}</h4>
+              <p>{item.note || item.summary || item.label || 'Seasonal profile available'}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const adaptiveFeedContent = adaptiveModules.length > 0 && (
+    <div className="section-card" style={{ marginTop: '1rem' }}>
+      <div className="section-header">
+        <h2>Adaptive Home Feed</h2>
+      </div>
+      <div className="trending-list">
+        {asArray(adaptiveModules).map((item, index) => (
+          <div key={item.id ?? item.key ?? item.title ?? index} className="trending-card">
+            <div className="trending-rank">#{index + 1}</div>
+            <div className="trending-info">
+              <h4>{item.title || item.name || item.key || 'Module'}</h4>
+              <p>{item.subtitle || item.description || item.reason || 'Personalized module'}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
   return (
     <div className="dashboard-page page-container">
       {/* Header */}
@@ -232,6 +343,9 @@ const Dashboard = () => {
           </div>
 
           {trendingContent}
+          {trendsDigestContent}
+          {seasonalityContent}
+          {adaptiveFeedContent}
 
           {/* AI CTA */}
           <Link className="ai-cta-card" to="/ai-assistant">

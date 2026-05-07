@@ -14,11 +14,13 @@ beforeEach(() => vi.clearAllMocks())
 
 describe('usersService', () => {
   it('register login getCurrentUser', async () => {
+    localStorage.setItem('voyager_user', JSON.stringify({ id: 1 }))
     apiMock.post.mockResolvedValue({})
     await usersService.register({})
     await usersService.login({})
     apiMock.get.mockResolvedValue({})
     await usersService.getCurrentUser()
+    expect(apiMock.get).toHaveBeenCalledWith('/users/1')
     await usersService.getUserById(1)
     await usersService.updateUserById(1, {})
   })

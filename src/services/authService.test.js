@@ -12,6 +12,7 @@ import { authService } from './authService'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  localStorage.clear()
 })
 
 describe('authService', () => {
@@ -28,9 +29,10 @@ describe('authService', () => {
   })
 
   it('getCurrentUser', async () => {
+    localStorage.setItem('voyager_user', JSON.stringify({ id: 42 }))
     apiMock.get.mockResolvedValue({})
     await authService.getCurrentUser()
-    expect(apiMock.get).toHaveBeenCalledWith('/users/me')
+    expect(apiMock.get).toHaveBeenCalledWith('/users/42')
   })
 
   it('updateProfile', async () => {

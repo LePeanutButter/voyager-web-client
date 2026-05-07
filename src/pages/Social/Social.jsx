@@ -54,6 +54,13 @@ const FLEX_COL_GAP = { display: 'flex', flexDirection: 'column', gap: '1rem' }
 const FLEX_ROW_GAP = { display: 'flex', alignItems: 'center', gap: '1rem' }
 const USERNAME_SUB_STYLE = { margin: 0, fontSize: '0.875rem', color: TEXT_SECONDARY }
 
+const normalizeFeedPayload = (response) => {
+  if (Array.isArray(response?.content)) return response.content
+  if (Array.isArray(response)) return response
+  if (Array.isArray(response?.data?.content)) return response.data.content
+  return []
+}
+
 function SocialConnectionsPanel({ connections, user, navigate }) {
   if (connections.length === 0) {
     return (
@@ -227,6 +234,8 @@ const Social = () => {
   const [discoverPlanId, setDiscoverPlanId] = useState('')
   const [matches, setMatches] = useState([])
   const [discoverLoading, setDiscoverLoading] = useState(false)
+  const [feed, setFeed] = useState([])
+  const [feedLoading, setFeedLoading] = useState(false)
 
   const loadSocialData = useCallback(async () => {
     if (!user?.id) return
@@ -249,6 +258,26 @@ const Social = () => {
   useEffect(() => {
     loadSocialData()
   }, [loadSocialData])
+
+  const loadFeed = useCallback(async () => {
+    if (!user?.id) return
+    setFeedLoading(true)
+    try {
+      const response = await socialService.getSocialFeed(user.id, 0, 20)
+      setFeed(normalizeFeedPayload(response))
+    } catch (err) {
+      setError(err?.message || 'Failed to load social feed')
+      setFeed([])
+    } finally {
+      setFeedLoading(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (activeTab === 'feed') {
+      loadFeed()
+    }
+  }, [activeTab, loadFeed])
 
   const handleDiscover = async (e) => {
     e.preventDefault()
@@ -331,6 +360,12 @@ const Social = () => {
         >
           <Search size={18} /> Discover
         </button>
+        <button
+          className={`social-tab ${activeTab === 'feed' ? 'active' : ''}`}
+          onClick={() => setActiveTab('feed')}
+        >
+          <MessageCircle size={18} /> Feed
+        </button>
       </div>
 
       {/* Content */}
@@ -354,6 +389,38 @@ const Social = () => {
             matches={matches}
             handleSendRequest={handleSendRequest}
           />
+        )}
+        {activeTab === 'feed' && (
+          <div style={FLEX_COL_GAP}>
+            {feedLoading && (
+              <>
+                <SkeletonLoader variant="text" />
+                <SkeletonLoader variant="text" />
+                <SkeletonLoader variant="text" />
+              </>
+            )}
+            {!feedLoading && feed.length === 0 && (
+              <div style={EMPTY_STATE_STYLE}>
+                <MessageCircle size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
+                <h3>No social feed yet</h3>
+                <p>There are no posts available for your account yet.</p>
+              </div>
+            )}
+            {!feedLoading && feed.map((post) => (
+              <div
+                key={post.id ?? `${post.author}-${post.content}`}
+                style={{
+                  padding: '1rem',
+                  border: BORDER_DEFAULT,
+                  borderRadius: BORDER_RADIUS_STD,
+                  background: 'var(--surface-bg)',
+                }}
+              >
+                <h4 style={{ margin: '0 0 0.5rem' }}>{post.author || 'Traveler'}</h4>
+                <p style={{ margin: 0 }}>{post.content || post.text || 'Post'}</p>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

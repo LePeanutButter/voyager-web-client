@@ -5,7 +5,7 @@ import { extractErrorMessage } from '../utils/errorUtils'
 
 /**
  * Custom hook for reading and updating the current user's profile.
- * Reads from AuthContext first, then validates against /users/me.
+ * Reads from AuthContext first, then validates against /users/{id}.
  */
 export function useUserProfile() {
   const { user: contextUser, updateUser } = useAuth()

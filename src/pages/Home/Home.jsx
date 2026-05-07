@@ -1,102 +1,178 @@
 import { Link } from 'react-router-dom'
 import Button from '../../components/UI/Button'
 import Card from '../../components/UI/Card'
-import { Search, MapPin, Calendar, Users, Star, ArrowRight } from 'lucide-react'
+import { Brain, Users, Sparkles, ArrowRight, Compass, MessageCircle, Plane } from 'lucide-react'
 import './Home.css'
 
 const Home = () => {
-  const features = [
-    {
-      icon: MapPin,
-      title: 'Smart Destinations',
-      description: 'AI-powered destination recommendations based on your preferences'
-    },
-    {
-      icon: Calendar,
-      title: 'Intelligent Planning',
-      description: 'Automated itinerary planning with optimal routes and timing'
-    },
-    {
-      icon: Users,
-      title: 'Community Insights',
-      description: 'Connect with fellow travelers and share experiences'
-    },
-    {
-      icon: Star,
-      title: 'Personalized Service',
-      description: 'Tailored recommendations that match your travel style'
-    }
+  const aiCards = [
+    { title: 'Weekend creativo en CDMX', tags: ['Food', 'Art', 'Night'], reason: 'Basado en tus gustos urbanos y presupuesto' },
+    { title: 'Ruta slow en Lisboa', tags: ['Culture', 'Coffee', 'Walks'], reason: 'Afinado por tu historial de viajes tranquilos' },
+    { title: 'Escapada social en Medellin', tags: ['People', 'Local events'], reason: 'Alto match con viajeros similares' },
+  ]
+
+  const connections = [
+    { name: 'Sofia P.', city: 'Buenos Aires', interests: ['Street Food', 'Live music'] },
+    { name: 'Luca M.', city: 'Milan', interests: ['Design', 'Coffee Routes'] },
+    { name: 'Daniela R.', city: 'Bogota', interests: ['Museums', 'Hiking'] },
   ]
 
   return (
-    <div className="home">
-      <section className="hero">
-        <div className="hero-content">
-          <h1>Discover Your Next Adventure with AI</h1>
-          <p>Plan perfect trips, get intelligent recommendations, and connect with a global travel community</p>
+    <div className="home modern-home">
+      <section className="hero-new">
+        <div className="hero-copy">
+          <p className="eyebrow">AI-first travel intelligence</p>
+          <h1>
+            Recomendaciones inteligentes.
+            <br />
+            Conexiones humanas reales.
+          </h1>
+          <p>
+            SmarTrip entiende tus intereses y convierte contexto + comunidad en experiencias personalizadas en segundos.
+          </p>
           <div className="hero-actions">
-            <Link to="/register">
+            <Link to="/ai-assistant">
               <Button variant="primary" size="large">
-                Get Started Free
+                Explorar recomendaciones
                 <ArrowRight size={20} />
               </Button>
             </Link>
-            <Link to="/ai-assistant">
+            <Link to="/social">
               <Button variant="outline" size="large">
-                Try AI Assistant
+                Conectar con viajeros
               </Button>
             </Link>
           </div>
         </div>
-        <div className="hero-search">
-          <Card>
-            <div className="search-form">
-              <div className="search-input">
-                <Search size={20} />
-                <input type="text" placeholder="Where do you want to go?" />
+
+        <div className="hero-previews">
+          <Card className="preview-card" hover>
+            <div className="preview-head">
+              <Brain size={17} />
+              <span>Feed inteligente</span>
+            </div>
+            <h3>“Plan 4 dias en Barcelona con arte + gastronomia”</h3>
+            <div className="preview-tags">
+              <span>Art</span><span>Food</span><span>Walkable</span>
+            </div>
+          </Card>
+
+          <Card className="preview-card alt" hover>
+            <div className="preview-head">
+              <Users size={17} />
+              <span>Match comunidad</span>
+            </div>
+            <h3>3 viajeros compatibles esta semana</h3>
+            <p>Intereses compartidos y fechas cercanas.</p>
+          </Card>
+        </div>
+      </section>
+
+      <section className="section-block ai-section">
+        <div className="section-heading">
+          <p>IA Recommendations</p>
+          <h2>Tu feed personalizado de experiencias</h2>
+        </div>
+        <div className="ai-grid">
+          {aiCards.map((card) => (
+            <Card key={card.title} hover className="ai-feed-card">
+              <div className="ai-feed-top">
+                <Sparkles size={16} />
+                <span>Recomendacion IA</span>
               </div>
-              <Button variant="primary">Search Destinations</Button>
-            </div>
+              <h3>{card.title}</h3>
+              <p>{card.reason}</p>
+              <div className="preview-tags">
+                {card.tags.map((tag) => <span key={tag}>{tag}</span>)}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-block community-section">
+        <div className="section-heading">
+          <p>Community</p>
+          <h2>Conecta con personas que viajan como tu</h2>
+        </div>
+        <div className="community-grid">
+          {connections.map((person) => (
+            <Card key={person.name} className="profile-card" hover>
+              <div className="profile-top">
+                <div className="profile-avatar">{person.name[0]}</div>
+                <div>
+                  <h3>{person.name}</h3>
+                  <p>{person.city}</p>
+                </div>
+              </div>
+              <div className="preview-tags">
+                {person.interests.map((interest) => <span key={interest}>{interest}</span>)}
+              </div>
+              <button type="button" className="inline-action">
+                <MessageCircle size={14} /> Ver compatibilidad
+              </button>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-block trips-section">
+        <div className="section-heading">
+          <p>Experiences</p>
+          <h2>La compra y gestion de viajes, como complemento natural</h2>
+        </div>
+        <div className="trip-cards">
+          <Card hover className="trip-card">
+            <Compass size={20} />
+            <h3>Diseña itinerarios</h3>
+            <p>Planifica por bloques, intereses y presupuesto.</p>
+          </Card>
+          <Card hover className="trip-card">
+            <Plane size={20} />
+            <h3>Compara opciones</h3>
+            <p>Integra vuelos/hoteles sin perder foco en la experiencia.</p>
+          </Card>
+          <Card hover className="trip-card">
+            <Users size={20} />
+            <h3>Coordina con otros</h3>
+            <p>Comparte actividades y colabora en tiempo real.</p>
           </Card>
         </div>
       </section>
 
-      <section className="features">
-        <div className="container">
-          <h2>Why Choose TourismAI?</h2>
-          <div className="features-grid">
-            {features.map((feature, index) => {
-              const Icon = feature.icon
-              return (
-                <Card key={index} hover>
-                  <div className="feature-card">
-                    <div className="feature-icon">
-                      <Icon size={32} />
-                    </div>
-                    <h3>{feature.title}</h3>
-                    <p>{feature.description}</p>
-                  </div>
-                </Card>
-              )
-            })}
+      <section className="section-block proof-section">
+        <div className="section-heading">
+          <p>Social proof</p>
+          <h2>Viajeros que deciden mejor con IA + comunidad</h2>
+        </div>
+        <div className="proof-grid">
+          <Card className="quote-card" hover>
+            <p>“En menos de 2 minutos tuve recomendaciones que si encajaban conmigo.”</p>
+            <span>- Camila, Product Designer</span>
+          </Card>
+          <Card className="quote-card" hover>
+            <p>“Lo mejor es conectar con gente compatible sin ruido de red social tradicional.”</p>
+            <span>- Matteo, Remote Consultant</span>
+          </Card>
+          <Card className="quote-card" hover>
+            <p>“Siento que la plataforma entiende mi estilo y no solo vende paquetes.”</p>
+            <span>- Valentina, Traveler</span>
+          </Card>
+        </div>
+      </section>
+
+      <section className="section-block cta-final">
+        <Card className="cta-panel">
+          <h2>Empieza con recomendaciones inteligentes hoy</h2>
+          <div className="hero-actions">
+            <Link to="/register">
+              <Button variant="primary" size="large">Crear cuenta</Button>
+            </Link>
+            <Link to="/ai-assistant">
+              <Button variant="outline" size="large">Abrir asistente IA</Button>
+            </Link>
           </div>
-        </div>
-      </section>
-
-      <section className="cta">
-        <div className="container">
-          <Card>
-            <div className="cta-content">
-              <h2>Ready to Transform Your Travel Experience?</h2>
-              <p>Join thousands of travelers using AI to plan their perfect trips</p>
-              <Link to="/register">
-                <Button variant="primary" size="large">
-                  Start Your Journey
-                </Button>
-              </Link>
-            </div>
-          </Card>
-        </div>
+        </Card>
       </section>
     </div>
   )

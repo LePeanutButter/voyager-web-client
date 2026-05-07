@@ -4,87 +4,89 @@
   justify-content: center;
   gap: 0.5rem;
   border: none;
-  border-radius: 8px;
-  font-weight: 500;
+  border-radius: 14px;
+  font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s ease;
   outline: none;
   position: relative;
   overflow: hidden;
 }
 
 .btn:focus {
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 0 3px rgba(4, 69, 156, 0.2);
 }
 
 /* Variants */
 .btn-primary {
-  background: #2563eb;
+  background: #04459c;
   color: white;
+  box-shadow: 0 10px 22px rgba(4, 69, 156, 0.22);
 }
 
 .btn-primary:hover:not(.btn-disabled):not(.btn-loading) {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background: #0d83d0;
+  transform: translateY(-1.5px);
+  box-shadow: 0 12px 26px rgba(13, 131, 208, 0.28);
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
+  background: #f7f9fc;
+  color: #0a0f29;
+  border: 1px solid #dfe7f2;
 }
 
 .btn-secondary:hover:not(.btn-disabled):not(.btn-loading) {
-  background: #5a6268;
-  transform: translateY(-1px);
+  background: #edf2f9;
+  transform: translateY(-1.5px);
 }
 
 .btn-outline {
   background: transparent;
-  color: #2563eb;
-  border: 1px solid #2563eb;
+  color: #04459c;
+  border: 1px solid rgba(4, 69, 156, 0.35);
 }
 
 .btn-outline:hover:not(.btn-disabled):not(.btn-loading) {
-  background: #2563eb;
-  color: white;
-  transform: translateY(-1px);
+  background: #04459c;
+  color: #ffffff;
+  transform: translateY(-1.5px);
 }
 
 .btn-ghost {
   background: transparent;
-  color: #495057;
+  color: #5b6475;
 }
 
 .btn-ghost:hover:not(.btn-disabled):not(.btn-loading) {
-  background: #f8f9fa;
-  color: #2563eb;
+  background: #f7f9fc;
+  color: #0a0f29;
 }
 
 .btn-danger {
-  background: #dc3545;
+  background: #de1113;
   color: white;
 }
 
 .btn-danger:hover:not(.btn-disabled):not(.btn-loading) {
-  background: #c82333;
-  transform: translateY(-1px);
+  background: #c70f11;
+  transform: translateY(-1.5px);
 }
 
 /* Sizes */
 .btn-small {
-  padding: 0.375rem 0.75rem;
+  padding: 0.45rem 0.85rem;
   font-size: 0.875rem;
 }
 
 .btn-medium {
-  padding: 0.5rem 1rem;
+  padding: 0.65rem 1.1rem;
   font-size: 0.875rem;
 }
 
 .btn-large {
-  padding: 0.75rem 1.5rem;
+  padding: 0.88rem 1.5rem;
   font-size: 1rem;
 }
 

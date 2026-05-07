@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
+import { businessService } from '../../services/businessService'
 import { 
   Users, 
   DollarSign, 
@@ -11,36 +13,125 @@ import {
 } from 'lucide-react'
 import './BusinessDashboard.css'
 
-const BusinessDashboard = () => {
-  const businessStats = [
+const DEFAULT_STATS = [
     { label: 'Total Revenue', value: '$45,280', icon: DollarSign, trend: '+12.5%', positive: true },
     { label: 'Active Bookings', value: '156', icon: Calendar, trend: '+8 this week', positive: true },
     { label: 'Customer Rating', value: '4.8', icon: Star, trend: '+0.2', positive: true },
     { label: 'Total Customers', value: '2,847', icon: Users, trend: '+127', positive: true },
-  ]
+]
 
-  const recentBookings = [
+const DEFAULT_BOOKINGS = [
     { id: 1, customer: 'John Smith', service: 'City Tour', date: '2024-06-15', amount: '$250', status: 'confirmed' },
     { id: 2, customer: 'Sarah Johnson', service: 'Hotel Package', date: '2024-06-18', amount: '$1,200', status: 'pending' },
     { id: 3, customer: 'Mike Davis', service: 'Airport Transfer', date: '2024-06-20', amount: '$80', status: 'confirmed' },
     { id: 4, customer: 'Emma Wilson', service: 'Adventure Tour', date: '2024-06-22', amount: '$450', status: 'pending' },
-  ]
+]
 
-  const services = [
+const DEFAULT_SERVICES = [
     { name: 'City Tours', bookings: 45, revenue: '$11,250', rating: 4.9 },
     { name: 'Hotel Packages', bookings: 28, revenue: '$28,000', rating: 4.7 },
     { name: 'Airport Transfers', bookings: 67, revenue: '$5,360', rating: 4.8 },
     { name: 'Adventure Tours', bookings: 16, revenue: '$7,200', rating: 4.9 },
-  ]
+]
 
-  const performanceData = [
+const DEFAULT_PERFORMANCE = [
     { month: 'Jan', revenue: 32000, bookings: 120 },
     { month: 'Feb', revenue: 35000, bookings: 135 },
     { month: 'Mar', revenue: 38000, bookings: 142 },
     { month: 'Apr', revenue: 42000, bookings: 158 },
     { month: 'May', revenue: 45280, bookings: 167 },
     { month: 'Jun', revenue: 48000, bookings: 175 },
-  ]
+]
+
+const BusinessDashboard = () => {
+  const [businessStats, setBusinessStats] = useState(DEFAULT_STATS)
+  const [recentBookings, setRecentBookings] = useState(DEFAULT_BOOKINGS)
+  const [services, setServices] = useState(DEFAULT_SERVICES)
+  const [performanceData, setPerformanceData] = useState(DEFAULT_PERFORMANCE)
+
+  useEffect(() => {
+    const loadBusinessData = async () => {
+      try {
+        const [dashboard, bookings, serviceRows, analytics] = await Promise.all([
+          businessService.getDashboardStats(),
+          businessService.getBookings({ page: 0, size: 4 }),
+          businessService.getServices(),
+          businessService.getAnalytics({ range: '6m' }),
+        ])
+
+        if (dashboard && typeof dashboard === 'object') {
+          const nextStats = [
+            {
+              label: 'Total Revenue',
+              value:
+                dashboard.totalRevenue !== null && dashboard.totalRevenue !== undefined
+                  ? `$${dashboard.totalRevenue}`
+                  : DEFAULT_STATS[0].value,
+              icon: DollarSign,
+              trend: dashboard.revenueTrend || DEFAULT_STATS[0].trend,
+              positive: true,
+            },
+            {
+              label: 'Active Bookings',
+              value: String(dashboard.activeBookings ?? DEFAULT_STATS[1].value),
+              icon: Calendar,
+              trend: dashboard.bookingsTrend || DEFAULT_STATS[1].trend,
+              positive: true,
+            },
+            {
+              label: 'Customer Rating',
+              value: String(dashboard.rating ?? DEFAULT_STATS[2].value),
+              icon: Star,
+              trend: dashboard.ratingTrend || DEFAULT_STATS[2].trend,
+              positive: true,
+            },
+            {
+              label: 'Total Customers',
+              value: String(dashboard.totalCustomers ?? DEFAULT_STATS[3].value),
+              icon: Users,
+              trend: dashboard.customersTrend || DEFAULT_STATS[3].trend,
+              positive: true,
+            },
+          ]
+          setBusinessStats(nextStats)
+        }
+
+        if (Array.isArray(bookings)) {
+          setRecentBookings(
+            bookings.slice(0, 4).map((row) => ({
+              id: row.id,
+              customer: row.customerName || row.customer || 'Customer',
+              service: row.serviceName || row.service || 'Service',
+              date: row.date || row.createdAt || '—',
+              amount:
+                row.amount !== null && row.amount !== undefined ? `$${row.amount}` : '—',
+              status: row.status || 'pending',
+            }))
+          )
+        }
+
+        if (Array.isArray(serviceRows)) {
+          setServices(
+            serviceRows.map((row) => ({
+              name: row.name || row.serviceName || 'Service',
+              bookings: row.bookings || 0,
+              revenue:
+                row.revenue !== null && row.revenue !== undefined ? `$${row.revenue}` : '$0',
+              rating: row.rating || 0,
+            }))
+          )
+        }
+
+        if (Array.isArray(analytics?.performance)) {
+          setPerformanceData(analytics.performance)
+        }
+      } catch {
+        // Keep safe fallback values when business endpoints are not available.
+      }
+    }
+
+    loadBusinessData()
+  }, [])
 
   return (
     <div className="business-dashboard">
@@ -62,10 +153,10 @@ const BusinessDashboard = () => {
       </div>
 
       <div className="stats-grid">
-        {businessStats.map((stat, index) => {
+        {businessStats.map((stat) => {
           const Icon = stat.icon
           return (
-            <Card key={index} hover>
+            <Card key={stat.label} hover>
               <div className="stat-card">
                 <div className="stat-icon">
                   <Icon size={24} />
@@ -134,8 +225,8 @@ const BusinessDashboard = () => {
                 </div>
               </div>
               <div className="chart-container">
-                {performanceData.map((data, index) => (
-                  <div key={index} className="chart-bar">
+                {performanceData.map((data) => (
+                  <div key={data.month} className="chart-bar">
                     <div className="bar-group">
                       <div 
                         className="bar revenue-bar" 
@@ -157,8 +248,8 @@ const BusinessDashboard = () => {
         <div className="dashboard-sidebar">
           <Card title="Services Overview">
             <div className="services-list">
-              {services.map((service, index) => (
-                <div key={index} className="service-item">
+              {services.map((service) => (
+                <div key={service.name} className="service-item">
                   <div className="service-info">
                     <h4>{service.name}</h4>
                     <div className="service-stats">

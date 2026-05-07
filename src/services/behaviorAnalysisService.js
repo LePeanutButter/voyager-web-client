@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { TOKEN_KEY } from './api'
 
 // Create separate API instance for AI service
 const aiApi = axios.create({
@@ -17,7 +18,9 @@ const aiApi = axios.create({
 // Request interceptor to add auth token
 aiApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('smartrip_token') || localStorage.getItem('token')
+    const token = localStorage.getItem(TOKEN_KEY)
+      || localStorage.getItem('smartrip_token')
+      || localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -90,7 +93,7 @@ export const InteractionType = {
  */
 export const trackUserBehavior = async (trackingData) => {
   try {
-    const response = await aiApi.post('/api/v1/behavior-analysis/track', trackingData);
+    const response = await aiApi.post('/behavior-analysis/track', trackingData);
     return response;
   } catch (error) {
     console.error('Error tracking user behavior:', error);
@@ -109,7 +112,7 @@ export const trackUserBehavior = async (trackingData) => {
  */
 export const analyzeUserBehavior = async (analysisData) => {
   try {
-    const response = await aiApi.post('/api/v1/behavior-analysis/analyze', analysisData);
+    const response = await aiApi.post('/behavior-analysis/analyze', analysisData);
     return response;
   } catch (error) {
     console.error('Error analyzing user behavior:', error);
@@ -125,7 +128,7 @@ export const analyzeUserBehavior = async (analysisData) => {
  */
 export const getBehaviorSummary = async (userId, days = 30) => {
   try {
-    const response = await aiApi.get(`/api/v1/behavior-analysis/summary/${userId}`, {
+    const response = await aiApi.get(`/behavior-analysis/summary/${userId}`, {
       params: { days }
     });
     return response;
@@ -142,7 +145,7 @@ export const getBehaviorSummary = async (userId, days = 30) => {
  */
 export const batchTrackBehavior = async (trackingRequests) => {
   try {
-    const response = await aiApi.post('/api/v1/behavior-analysis/batch-track', trackingRequests);
+    const response = await aiApi.post('/behavior-analysis/batch-track', trackingRequests);
     return response;
   } catch (error) {
     console.error('Error batch tracking behavior:', error);
@@ -158,7 +161,7 @@ export const batchTrackBehavior = async (trackingRequests) => {
  */
 export const getDetectedPatterns = async (userId, days = 7) => {
   try {
-    const response = await aiApi.get(`/api/v1/behavior-analysis/patterns/${userId}`, {
+    const response = await aiApi.get(`/behavior-analysis/patterns/${userId}`, {
       params: { days }
     });
     return response;
@@ -175,7 +178,7 @@ export const getDetectedPatterns = async (userId, days = 7) => {
  */
 export const clearUserBehaviorData = async (userId) => {
   try {
-    const response = await aiApi.delete(`/api/v1/behavior-analysis/clear/${userId}`);
+    const response = await aiApi.delete(`/behavior-analysis/clear/${userId}`);
     return response;
   } catch (error) {
     console.error('Error clearing behavior data:', error);
@@ -208,8 +211,8 @@ export class BehaviorTracker {
       context: {
         ...options.context,
         timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        url: window.location.href
+        userAgent: globalThis.navigator?.userAgent,
+        url: globalThis.location?.href
       }
     };
 
