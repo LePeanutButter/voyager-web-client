@@ -28,6 +28,7 @@ export const getCompatibleTravelers = async (travelPlanId) => {
  */
 export const sendConnectionRequest = async (requestData) => {
   try {
+    console.log('socialService.sendConnectionRequest payload:', requestData)
     const response = await api.post('/social/connections', requestData)
     return response
   } catch (error) {

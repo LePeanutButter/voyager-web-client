@@ -115,12 +115,14 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: ACTIONS.SET_LOADING, payload: true })
     try {
       const loginResponse = await authService.login(credentials)
+      console.log('Login response:', loginResponse)
       const token = loginResponse?.token
       const rawUser = loginResponse?.user
 
       if (!token) throw new Error('No token received from server')
 
       const user = sanitizeUser(rawUser)
+      console.log('Sanitized user:', user)
       localStorage.setItem(TOKEN_KEY, token)
       if (user) localStorage.setItem('voyager_user', JSON.stringify(user))
       dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })

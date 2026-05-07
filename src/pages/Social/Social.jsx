@@ -74,7 +74,8 @@ function SocialConnectionsPanel({ connections, user, navigate }) {
   return (
     <div style={FLEX_COL_GAP}>
       {connections.map((conn) => {
-        const otherUser = conn.senderId === user.id ? conn.recipient : conn.sender
+        console.log('Connection object in My Connections:', conn)
+        const otherUser = conn.userId === user.id ? conn : conn
         return (
           <div key={conn.id} style={CONNECTION_ROW_STYLE}>
             <div style={FLEX_ROW_GAP}>
@@ -117,11 +118,11 @@ function SocialRequestsPanel({ pendingRequests, handleAccept, handleReject }) {
         <div key={req.id} style={CONNECTION_ROW_STYLE}>
           <div style={FLEX_ROW_GAP}>
             <div style={AVATAR_CIRCLE_STYLE}>
-              {(req.sender?.firstName?.[0] || req.sender?.username?.[0] || '?').toUpperCase()}
+              {(req.requesterName?.[0] || req.requesterUsername?.[0] || '?').toUpperCase()}
             </div>
             <div>
-              <h4 style={H4_CONNECTION_NAME_STYLE}>{req.sender?.firstName} {req.sender?.lastName}</h4>
-              <p style={USERNAME_SUB_STYLE}>@{req.sender?.username}</p>
+              <h4 style={H4_CONNECTION_NAME_STYLE}>{req.requesterName || 'Usuario'}</h4>
+              <p style={USERNAME_SUB_STYLE}>@{req.requesterUsername || 'usuario'}</p>
               {req.message && (
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', fontStyle: 'italic' }}>
                   <q cite="#">{req.message}</q>
@@ -201,7 +202,7 @@ function SocialDiscoverPanel({
                 </div>
               </div>
             </div>
-            <button type="button" className="btn-outline-sm" onClick={() => handleSendRequest(match.id)}>
+            <button type="button" className="btn-outline-sm" onClick={() => handleSendRequest(match.userId)}>
               <UserPlus size={16} /> Conectar
             </button>
           </div>
@@ -296,10 +297,13 @@ const Social = () => {
 
   const handleSendRequest = async (recipientId) => {
     try {
-      await socialService.sendConnectionRequest({ recipientId, message: '¡Hola! Conectemos.' })
+      const payload = { recipientId, message: '¡Hola! Conectemos.' }
+      console.log('Sending connection request payload:', payload)
+      await socialService.sendConnectionRequest(payload)
       alert('¡Solicitud de conexion enviada!')
       loadSocialData()
     } catch (err) {
+      console.error('Connection request error:', err)
       alert(err?.message || 'No se pudo enviar la solicitud')
     }
   }

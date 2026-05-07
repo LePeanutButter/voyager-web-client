@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTravelPlans } from '../../hooks/useTravelPlans'
+import { travelService } from '../../services/travelService'
 import { MapPin, Calendar, Users, DollarSign, ArrowLeft } from 'lucide-react'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 
@@ -83,11 +84,17 @@ const CreateTravelPlanPage = () => {
     try {
       const payload = {
         ...formData,
+        startDate: formData.startDate ? `${formData.startDate}T00:00:00` : undefined,
+        endDate: formData.endDate ? `${formData.endDate}T23:59:59` : undefined,
         numberOfTravelers: formData.numberOfTravelers ? Number(formData.numberOfTravelers) : undefined,
         estimatedBudget: formData.estimatedBudget ? Number(formData.estimatedBudget) : undefined,
       }
       
       const newPlan = await add(payload)
+      
+      // Cambiar estado a ACTIVE automáticamente
+      await travelService.updateStatus(newPlan.id, 'ACTIVE')
+      
       navigate(`/travel-plans/${newPlan.id}`)
     } catch (err) {
       console.error(err)

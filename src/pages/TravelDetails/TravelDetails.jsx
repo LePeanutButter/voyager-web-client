@@ -286,6 +286,9 @@ function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLo
           )}
         </div>
         <h1 style={{ marginBottom: '0.5rem' }}>{plan.title}</h1>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+          ID del plan: <strong>{id}</strong>
+        </p>
         {plan.description && <p>{plan.description}</p>}
       </div>
       <button
