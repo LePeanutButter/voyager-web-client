@@ -26,6 +26,7 @@ import TermsPage from './pages/Legal/TermsPage'
 import CookiesPage from './pages/Legal/CookiesPage'
 import CalendarPage from './pages/Calendar/CalendarPage'
 import SettingsPage from './pages/Settings/SettingsPage'
+import BehaviorAnalysisPage from './pages/BehaviorAnalysis/BehaviorAnalysisPage'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
                 <Route path="travel-planning" element={<TravelPlanning />} />
                 <Route path="social" element={<Social />} />
                 <Route path="social/chat/:connectionId" element={<TravelerChatPage />} />
+                <Route path="behavior-analysis" element={<BehaviorAnalysisPage />} />
                 <Route path="calendar" element={<CalendarPage />} />
               </Route>
 

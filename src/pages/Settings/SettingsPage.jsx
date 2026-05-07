@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Moon, Shield, SlidersHorizontal, Compass } from 'lucide-react'
+import { Moon, Shield, SlidersHorizontal, Compass, Brain } from 'lucide-react'
 import Card from '../../components/UI/Card'
 import { useTheme } from '../../contexts/use-theme.js'
 import './SettingsPage.css'
@@ -77,7 +77,31 @@ const SettingsPage = () => {
             <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>→</span>
           </Link>
           <p className="settings-help">
-            Responde un cuestionario adaptativo para personalizar tus recomendaciones de viaje.
+            Responde al cuestionario adaptativo para personalizar tus recomendaciones de viaje.
+          </p>
+        </Card>
+
+        <Card className="settings-card">
+          <div className="settings-title"><Brain size={16} /> Análisis de Comportamiento</div>
+          <Link 
+            to="/behavior-analysis" 
+            className="settings-item settings-link"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '1rem',
+              textDecoration: 'none',
+              color: 'var(--text-primary)',
+              borderRadius: 'var(--border-radius)',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <span>Ver análisis de comportamiento</span>
+            <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>→</span>
+          </Link>
+          <p className="settings-help">
+            Analiza tus patrones de uso y preferencias implícitas basadas en tu actividad.
           </p>
         </Card>
 
