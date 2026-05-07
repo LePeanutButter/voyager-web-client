@@ -47,10 +47,9 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
   const [form, setForm] = useState({
     name: activity?.name || '',
     description: activity?.description || '',
-    type: activity?.type || '',
     location: activity?.location || '',
-    estimatedCost: activity?.estimatedCost ?? '',
-    notes: activity?.notes || '',
+    startTime: activity?.startTime ? String(activity.startTime).slice(0, 16) : '',
+    endTime: activity?.endTime ? String(activity.endTime).slice(0, 16) : '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -67,16 +66,24 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
       setError('El nombre de la actividad es obligatorio')
       return
     }
+    if (!form.startTime) {
+      setError('La hora de inicio es obligatoria')
+      return
+    }
+    if (!form.endTime) {
+      setError('La hora de fin es obligatoria')
+      return
+    }
     setLoading(true)
     try {
       const payload = {
         name: form.name.trim(),
         description: form.description?.trim() || undefined,
-        type: form.type?.trim() || undefined,
         location: form.location?.trim() || undefined,
-        estimatedCost: form.estimatedCost === '' ? undefined : Number(form.estimatedCost),
-        notes: form.notes?.trim() || undefined,
+        startTime: form.startTime ? new Date(form.startTime).toISOString() : undefined,
+        endTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
       }
+      console.log('Creating activity payload:', payload)
       const result = await persistPlanActivity(planId, isEdit, activity, payload)
       onSaved(result, isEdit)
     } catch (err) {
@@ -101,12 +108,12 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
           </div>
           <div className="form-row-2">
             <div className="form-group">
-              <label htmlFor="act-type">Tipo</label>
-              <input id="act-type" name="type" value={form.type} onChange={handleChange} placeholder="Turismo, comida, ..." />
+              <label htmlFor="act-start">Hora inicio *</label>
+              <input id="act-start" name="startTime" type="datetime-local" value={form.startTime} onChange={handleChange} required />
             </div>
             <div className="form-group">
-              <label htmlFor="act-cost">Costo estimado ($)</label>
-              <input id="act-cost" name="estimatedCost" type="number" min="0" value={form.estimatedCost} onChange={handleChange} placeholder="0.00" />
+              <label htmlFor="act-end">Hora fin *</label>
+              <input id="act-end" name="endTime" type="datetime-local" value={form.endTime} onChange={handleChange} required />
             </div>
           </div>
           <div className="form-group">
@@ -116,10 +123,6 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
           <div className="form-group">
             <label htmlFor="act-description">Descripcion</label>
             <textarea id="act-description" name="description" value={form.description} onChange={handleChange} rows={2} placeholder="Descripcion breve..." />
-          </div>
-          <div className="form-group">
-            <label htmlFor="act-notes">Notas</label>
-            <textarea id="act-notes" name="notes" value={form.notes} onChange={handleChange} rows={2} placeholder="Recordatorios, referencias..." />
           </div>
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
