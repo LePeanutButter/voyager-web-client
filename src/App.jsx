@@ -19,6 +19,7 @@ import TravelPreferencesPage from './pages/TravelPreferences/TravelPreferencesPa
 import Social from './pages/Social/Social'
 import TravelerChatPage from './pages/Social/TravelerChatPage'
 import CreateTravelPlanPage from './pages/TravelPlanning/CreateTravelPlanPage'
+import EditTravelPlanPage from './pages/TravelPlanning/EditTravelPlanPage'
 import MyTravels from './pages/MyTravels/MyTravels'
 import TravelDetails from './pages/TravelDetails/TravelDetails'
 import PrivacyPolicyPage from './pages/Legal/PrivacyPolicyPage'
@@ -63,6 +64,7 @@ function App() {
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="travel-preferences" element={<TravelPreferencesPage />} />
                 <Route path="travel-plans/create" element={<CreateTravelPlanPage />} />
+                <Route path="travel-plans/:id/edit" element={<EditTravelPlanPage />} />
                 <Route path="my-travels" element={<MyTravels />} />
                 <Route path="travel-plans/:id" element={<TravelDetails />} />
                 <Route path="settings" element={<SettingsPage />} />

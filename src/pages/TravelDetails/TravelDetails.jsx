@@ -2,15 +2,17 @@ import { useState, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { useParams, useNavigate } from 'react-router-dom'
 import { travelService } from '../../services/travelService'
+import { socialService } from '../../services/socialService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
 import { extractErrorMessage } from '../../utils/errorUtils'
 import {
   MapPin, Calendar, Users, DollarSign, ArrowLeft,
   Edit, Plus, Trash2, Globe, Clock,
-  Activity, UserCheck
+  Activity, UserCheck, Settings
 } from 'lucide-react'
 import './TravelDetails.css'
+import QuickEditModal from '../../components/TravelPlan/QuickEditModal'
 
 const statusConfig = {
   PLANNING:  { label: 'Planificando',  cls: 'badge-planning'  },
@@ -266,7 +268,7 @@ TravelDetailsBreadcrumb.propTypes = {
   navigate: PropTypes.func.isRequired,
 }
 
-function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLoading, handleStatusChange }) {
+function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLoading, handleStatusChange, onQuickEdit }) {
   return (
     <div className="details-header">
       <div>
@@ -294,13 +296,17 @@ function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLo
         </p>
         {plan.description && <p>{plan.description}</p>}
       </div>
-      <button
-        type="button"
-        className="btn-primary"
-        onClick={() => navigate(`/travel-plans/${id}/edit`)}
-      >
-        <Edit size={16} /> Editar plan
-      </button>
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={onQuickEdit}
+          title="Editar detalles rápidos"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <Edit size={16} /> Editar plan
+        </button>
+      </div>
     </div>
   )
 }
@@ -313,6 +319,7 @@ TravelDetailsTopSection.propTypes = {
   transitions: PropTypes.arrayOf(PropTypes.string).isRequired,
   statusLoading: PropTypes.bool.isRequired,
   handleStatusChange: PropTypes.func.isRequired,
+  onQuickEdit: PropTypes.func.isRequired,
 }
 
 function PlanInfoCards({ plan }) {
@@ -359,6 +366,7 @@ function TravelDetailsView({
   compatTravelers,
   compatLoading,
   loadCompatibleTravelers,
+  onQuickEdit,
 }) {
   const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
   const transitions = STATUS_TRANSITIONS[plan.status] || []
@@ -375,6 +383,7 @@ function TravelDetailsView({
         transitions={transitions}
         statusLoading={statusLoading}
         handleStatusChange={handleStatusChange}
+        onQuickEdit={onQuickEdit}
       />
 
       <ErrorBanner variant="error" message={error} onDismiss={() => setError(null)} />
@@ -452,6 +461,7 @@ TravelDetailsView.propTypes = {
   compatTravelers: PropTypes.array.isRequired,
   compatLoading: PropTypes.bool.isRequired,
   loadCompatibleTravelers: PropTypes.func.isRequired,
+  onQuickEdit: PropTypes.func.isRequired,
 }
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
@@ -461,10 +471,11 @@ const TravelDetails = () => {
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeModal, setActiveModal] = useState(null) // null | 'add' | activityObj
+  const [activeModal, setActiveModal] = useState(null) // null | 'add' | activityObj | 'quick-edit'
   const [statusLoading, setStatusLoading] = useState(false)
   const [compatTravelers, setCompatTravelers] = useState([])
   const [compatLoading, setCompatLoading] = useState(false)
+  const [showQuickEdit, setShowQuickEdit] = useState(false)
 
   const fetchPlan = useCallback(async () => {
     setLoading(true)
@@ -516,6 +527,10 @@ const TravelDetails = () => {
     } catch (err) {
       setError(extractErrorMessage(err))
     }
+  }
+
+  const handleQuickEditUpdate = (updatedData) => {
+    setPlan(prev => ({ ...prev, ...updatedData }))
   }
 
   const loadCompatibleTravelers = async () => {
@@ -576,22 +591,32 @@ const TravelDetails = () => {
   if (!plan) return null
 
   return (
-    <TravelDetailsView
-      plan={plan}
-      id={id}
-      navigate={navigate}
-      error={error}
-      setError={setError}
-      activeModal={activeModal}
-      setActiveModal={setActiveModal}
-      statusLoading={statusLoading}
-      handleStatusChange={handleStatusChange}
-      handleActivitySaved={handleActivitySaved}
-      handleDeleteActivity={handleDeleteActivity}
-      compatTravelers={compatTravelers}
-      compatLoading={compatLoading}
-      loadCompatibleTravelers={loadCompatibleTravelers}
-    />
+    <>
+      <TravelDetailsView
+        plan={plan}
+        id={id}
+        navigate={navigate}
+        error={error}
+        setError={setError}
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+        statusLoading={statusLoading}
+        handleStatusChange={handleStatusChange}
+        handleActivitySaved={handleActivitySaved}
+        handleDeleteActivity={handleDeleteActivity}
+        compatTravelers={compatTravelers}
+        compatLoading={compatLoading}
+        loadCompatibleTravelers={loadCompatibleTravelers}
+        onQuickEdit={() => setShowQuickEdit(true)}
+      />
+      <QuickEditModal
+        isOpen={showQuickEdit}
+        onClose={() => setShowQuickEdit(false)}
+        planId={id}
+        currentData={plan}
+        onUpdate={handleQuickEditUpdate}
+      />
+    </>
   )
 }
 

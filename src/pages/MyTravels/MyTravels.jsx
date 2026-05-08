@@ -5,7 +5,7 @@ import { TravelCardSkeleton } from '../../components/UI/SkeletonLoader'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import {
   Plane, MapPin, Calendar, Users, DollarSign,
-  Plus, Clock, Trash2, ArrowRight, Filter
+  Plus, Clock, Trash2, ArrowRight, Filter, Edit
 } from 'lucide-react'
 import './MyTravels.css'
 
@@ -145,12 +145,14 @@ const MyTravels = () => {
                     <Clock size={12} />
                     <span>{formatDate(plan.createdAt)}</span>
                   </div>
-                  <button
-                    className="btn-view-details"
-                    onClick={() => navigate(`/travel-plans/${plan.id}`)}
-                  >
-                    Detalles <ArrowRight size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      className="btn-view-details"
+                      onClick={() => navigate(`/travel-plans/${plan.id}`)}
+                    >
+                      Detalles <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
