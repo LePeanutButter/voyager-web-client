@@ -7,7 +7,7 @@ const Footer = () => {
       <div className="footer-container">
         <div className="footer-content">
           <div className="footer-section">
-            <img src="/logo-alt.svg" alt="SmarTrip" className="footer-logo" />
+            <img src="/logo-alt.png" alt="SmarTrip" className="footer-logo" />
             <p>Recomendaciones inteligentes, conexiones humanas y experiencias personalizadas en un solo producto.</p>
           </div>
           

@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/use-auth.js'
 import { socialService } from '../../services/socialService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
-import { Users, Search, MessageCircle, UserPlus, Check, X } from 'lucide-react'
+import { Users, Search, MessageCircle, UserPlus, Check, X, Trash2 } from 'lucide-react'
 import './Social.css'
 
 const BORDER_DEFAULT = '1px solid var(--border-color)'
@@ -61,7 +61,7 @@ const normalizeFeedPayload = (response) => {
   return []
 }
 
-function SocialConnectionsPanel({ connections, user, navigate }) {
+function SocialConnectionsPanel({ connections, user, navigate, onDeleteConnection }) {
   if (connections.length === 0) {
     return (
       <div style={EMPTY_STATE_STYLE}>
@@ -87,20 +87,45 @@ function SocialConnectionsPanel({ connections, user, navigate }) {
                 <p style={USERNAME_SUB_STYLE}>@{otherUser?.username}</p>
               </div>
             </div>
-            <button type="button" className="btn-primary" onClick={() => navigate(`/social/chat/${conn.id}`)}>
-              <MessageCircle size={16} /> Chat
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="button" className="btn-primary" onClick={() => navigate(`/social/chat/${conn.id}`)}>
+                <MessageCircle size={16} /> Chat
+              </button>
+              <button 
+                type="button" 
+                className="btn-ghost" 
+                onClick={() => handleDeleteConnection(conn.id, otherUser?.firstName || otherUser?.username)}
+                style={{ padding: '0.5rem', color: 'var(--color-danger)' }}
+                title="Eliminar conexión"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         )
       })}
     </div>
   )
+
+  async function handleDeleteConnection(connectionId, userName) {
+    if (window.confirm(`¿Estás seguro de que quieres eliminar la conexión con ${userName}?`)) {
+      try {
+        await socialService.removeConnection(connectionId)
+        alert('Conexión eliminada exitosamente')
+        onDeleteConnection() // Refresh the connections list
+      } catch (err) {
+        console.error('Error removing connection:', err)
+        alert(err?.message || 'No se pudo eliminar la conexión')
+      }
+    }
+  }
 }
 
 SocialConnectionsPanel.propTypes = {
   connections: PropTypes.arrayOf(PropTypes.object).isRequired,
   user: PropTypes.shape({ id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]) }).isRequired,
   navigate: PropTypes.func.isRequired,
+  onDeleteConnection: PropTypes.func.isRequired,
 }
 
 function SocialRequestsPanel({ pendingRequests, handleAccept, handleReject }) {
@@ -375,7 +400,12 @@ const Social = () => {
       {/* Content */}
       <div style={PANEL_SURFACE_STYLE}>
         {activeTab === 'connections' && (
-          <SocialConnectionsPanel connections={connections} user={user} navigate={navigate} />
+          <SocialConnectionsPanel 
+            connections={connections} 
+            user={user} 
+            navigate={navigate} 
+            onDeleteConnection={loadSocialData}
+          />
         )}
         {activeTab === 'requests' && (
           <SocialRequestsPanel

@@ -115,19 +115,6 @@ export const getUserConnections = async (userId) => {
   }
 }
 
-/**
- * @param {number|string} connectionId
- * @returns {Promise<void>}
- */
-export const removeConnection = async (connectionId) => {
-  try {
-    await api.delete(`/social/connections/${connectionId}`)
-  } catch (error) {
-    console.error('Error removing connection:', error)
-    throw error
-  }
-}
-
 const unwrapPageContent = (body) => {
   if (!body) return []
   if (Array.isArray(body)) return body
@@ -151,6 +138,20 @@ export const getConversationMessages = async (connectionId, userId, page = 0, si
     return { messages, raw: response }
   } catch (error) {
     console.error('Error fetching conversation messages:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a connection.
+ * @param {number} connectionId - ID of the connection to delete
+ * @returns {Promise<void>}
+ */
+export const removeConnection = async (connectionId) => {
+  try {
+    await api.delete(`/social/connections/${connectionId}`)
+  } catch (error) {
+    console.error('Error removing connection:', error)
     throw error
   }
 }

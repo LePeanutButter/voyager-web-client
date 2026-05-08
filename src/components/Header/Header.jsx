@@ -11,7 +11,7 @@ const Header = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
-  const logoSrc = theme === 'dark' ? '/logo-alt.svg' : '/logo.svg'
+  const logoSrc = theme === 'dark' ? '/logo-alt.png' : '/logo.png'
 
   const links = user
     ? [
