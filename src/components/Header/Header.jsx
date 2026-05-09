@@ -1,30 +1,40 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../contexts/use-auth.js'
+import { useAdaptiveUI } from '../../contexts/adaptive-ui-provider.jsx'
 import { useTheme } from '../../contexts/use-theme.js'
+import { buildAdaptiveHeaderLinks } from '../../utils/adaptiveUiNav'
 import { User, Menu } from 'lucide-react'
 import './Header.css'
 
 const Header = () => {
   const { user, logout } = useAuth()
+  const { menuData } = useAdaptiveUI()
   const { theme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
   const logoSrc = theme === 'dark' ? '/logo-alt.png' : '/logo.png'
 
-  const links = user
-    ? [
-        { to: '/dashboard', label: 'Inicio' },
-        { to: '/ai-assistant', label: 'IA' },
-        { to: '/social', label: 'Comunidad' },
-        { to: '/my-travels', label: 'Experiencias' },
-      ]
-    : [
+  const links = useMemo(() => {
+    if (!user) {
+      return [
         { to: '/', label: 'Inicio' },
         { to: '/ai-assistant', label: 'Recomendaciones IA' },
         { to: '/social', label: 'Comunidad' },
       ]
+    }
+    const adaptive = buildAdaptiveHeaderLinks(menuData, 5)
+    if (adaptive?.length) {
+      return adaptive
+    }
+    return [
+      { to: '/dashboard', label: 'Inicio' },
+      { to: '/ai-assistant', label: 'IA' },
+      { to: '/social', label: 'Comunidad' },
+      { to: '/my-travels', label: 'Experiencias' },
+    ]
+  }, [user, menuData])
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(globalThis.scrollY > 8)

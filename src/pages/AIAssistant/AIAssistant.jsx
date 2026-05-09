@@ -35,11 +35,15 @@ const AIAssistant = () => {
     clearError,
   } = useAIChat(userId)
 
+  const focusChatInput = () => {
+    inputRef.current?.focus({ preventScroll: true })
+  }
+
   const handleSend = async () => {
     const text = inputValue.trim()
     if (!text || loading) return
     setInputValue('')
-    inputRef.current?.focus()
+    focusChatInput()
     await sendMessage(text)
   }
 
@@ -52,7 +56,7 @@ const AIAssistant = () => {
 
   const handleSuggestion = (text) => {
     setInputValue(text)
-    inputRef.current?.focus()
+    focusChatInput()
   }
 
   const handleFeedback = async (msgId, activityId, rating) => {
@@ -84,7 +88,7 @@ const AIAssistant = () => {
           </div>
           <div>
             <h1>Asistente IA de viajes</h1>
-            <p>Impulsado por IA avanzada — pregunta lo que quieras sobre tus viajes</p>
+            <p>IA local (Ollama + memoria en servidor) — ideal para planificación y contexto conversacional</p>
           </div>
         </div>
         <div className="ai-header-actions">
@@ -147,14 +151,24 @@ const AIAssistant = () => {
                           <div className="msg-feedback">
                             <button
                               className={`feedback-btn ${feedbackGiven[msg.id] === 'up' ? 'active' : ''}`}
-                              onClick={() => handleFeedback(msg.id, null, 5)}
+                              onClick={() =>
+                                handleFeedback(
+                                  msg.id,
+                                  msg.metadata?.rankedItems?.[0]?.id || null,
+                                  5
+                                )}
                               title="Util"
                             >
                               <ThumbsUp size={13} />
                             </button>
                             <button
                               className={`feedback-btn ${feedbackGiven[msg.id] === 'down' ? 'active red' : ''}`}
-                              onClick={() => handleFeedback(msg.id, null, 1)}
+                              onClick={() =>
+                                handleFeedback(
+                                  msg.id,
+                                  msg.metadata?.rankedItems?.[0]?.id || null,
+                                  1
+                                )}
                               title="No util"
                             >
                               <ThumbsDown size={13} />

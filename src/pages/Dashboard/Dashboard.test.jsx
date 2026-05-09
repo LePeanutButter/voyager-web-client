@@ -4,7 +4,15 @@ import { MemoryRouter } from 'react-router-dom'
 import Dashboard from './Dashboard'
 
 vi.mock('../../contexts/use-auth.js', () => ({
-  useAuth: () => ({ user: { firstName: 'Test', username: 't' } }),
+  useAuth: () => ({ user: { id: '1', firstName: 'Test', username: 't' } }),
+}))
+
+vi.mock('../../contexts/adaptive-ui-provider.jsx', () => ({
+  useAdaptiveUI: () => ({
+    feedLayout: { sections: [], primaryTheme: null, recommendationThemeWeights: {} },
+    loadError: null,
+    clearLoadError: vi.fn(),
+  }),
 }))
 
 vi.mock('../../hooks/useTravelPlans', () => ({
@@ -20,7 +28,11 @@ vi.mock('../../hooks/useTravelPlans', () => ({
 
 vi.mock('../../services/aiService', () => ({
   aiService: {
-    getTrendingActivities: vi.fn().mockResolvedValue({ activities: [{ id: 1, name: 'A' }] }),
+    getTrendsDashboard: vi.fn().mockResolvedValue({
+      emergingDestinations: [{ destinationId: 'd1', name: 'A', country: 'X', tags: [], surgeRatio: 0.5 }],
+    }),
+    getWeeklyTrendsDigest: vi.fn().mockResolvedValue({ microTrends: [] }),
+    getSeasonalityOverview: vi.fn().mockResolvedValue({ destinations: [] }),
   },
 }))
 
@@ -33,7 +45,7 @@ describe('Dashboard', () => {
         <Dashboard />
       </MemoryRouter>,
     )
-    await waitFor(() => expect(screen.getByText(/good/i)).toBeInTheDocument())
-    expect(screen.getByText(/total plans/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/Buenas|Buenos/i)).toBeInTheDocument())
+    expect(screen.getByText(/planes totales/i)).toBeInTheDocument()
   })
 })

@@ -1,21 +1,117 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../../components/UI/Button'
 import Card from '../../components/UI/Card'
-import { Brain, Users, Sparkles, ArrowRight, Compass, MessageCircle, Plane } from 'lucide-react'
+import { useAuth } from '../../contexts/use-auth.js'
+import { aiService } from '../../services/aiService'
+import { Brain, Users, Sparkles, ArrowRight, Compass, MessageCircle, Plane, Loader2 } from 'lucide-react'
 import './Home.css'
+import { destinationExplorePath } from '../../utils/destinationExploreNavigation'
 
-const Home = () => {
-  const aiCards = [
-    { title: 'Weekend creativo en CDMX', tags: ['Comida', 'Arte', 'Noche'], reason: 'Basado en tus gustos urbanos y presupuesto' },
-    { title: 'Ruta slow en Lisboa', tags: ['Cultura', 'Cafe', 'Caminatas'], reason: 'Afinado por tu historial de viajes tranquilos' },
-    { title: 'Escapada social en Medellin', tags: ['Personas', 'Eventos locales'], reason: 'Alta compatibilidad con viajeros similares' },
-  ]
+const asArray = (v) => (Array.isArray(v) ? v : [])
 
-  const connections = [
-    { name: 'Sofia P.', city: 'Buenos Aires', interests: ['Comida callejera', 'Musica en vivo'] },
-    { name: 'Luca M.', city: 'Milan', interests: ['Diseno', 'Rutas de cafe'] },
-    { name: 'Daniela R.', city: 'Bogota', interests: ['Museos', 'Senderismo'] },
-  ]
+function Home() {
+  const { user } = useAuth()
+  const [recoLoading, setRecoLoading] = useState(true)
+  const [recoError, setRecoError] = useState(null)
+  const [recoCards, setRecoCards] = useState([])
+
+  const [buddiesLoading, setBuddiesLoading] = useState(false)
+  const [buddies, setBuddies] = useState([])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setRecoLoading(false)
+      setRecoError(null)
+      setRecoCards([])
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      setRecoLoading(true)
+      setRecoError(null)
+      try {
+        const [dash, digest] = await Promise.all([
+          aiService.getTrendsDashboard(),
+          aiService.getWeeklyTrendsDigest(),
+        ])
+        if (cancelled) return
+
+        const emerging = asArray(dash?.emergingDestinations)
+        const micro = asArray(digest?.microTrends)
+
+        const fromEmerging = emerging.map((d) => ({
+          key: `em-${d.destinationId ?? d.name}`,
+          title: d.name || d.destinationId || 'Destino',
+          reason: d.dashboardLabel || d.summary || `Interes en alza (${(d.country || '').trim() || 'región'})`,
+          tags: asArray(d.tags).slice(0, 4),
+          exploreHref: destinationExplorePath({
+            loc: d.name || d.destinationId,
+            country: d.country,
+            destId: d.destinationId,
+          }),
+        }))
+
+        const fromMicro = micro.map((m) => {
+          const g = m.geo
+          const loc = (g?.name || '').trim()
+          const country = (g?.country || '').trim()
+          const exploreHref =
+            loc || country
+              ? destinationExplorePath({
+                  loc: loc || country,
+                  country: loc ? country : undefined,
+                  destId: g?.destinationId || m.trendId,
+                })
+              : null
+          return {
+            key: `micro-${m.trendId ?? m.title}`,
+            title: m.title || 'Tendencia',
+            reason: m.suggestedAction || 'Oportunidad detectada en el digest semanal',
+            tags: asArray(m.affectedSegments).slice(0, 4),
+            exploreHref,
+          }
+        })
+
+        const merged = [...fromEmerging, ...fromMicro].slice(0, 6)
+        setRecoCards(merged)
+      } catch (e) {
+        if (!cancelled) {
+          setRecoError(e?.message || 'No se pudieron cargar tendencias desde el servicio de IA.')
+          setRecoCards([])
+        }
+      } finally {
+        if (!cancelled) setRecoLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setBuddies([])
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      setBuddiesLoading(true)
+      try {
+        const res = await aiService.getBuddyRecommendations(String(user.id), null, 6)
+        if (cancelled) return
+        const recs = asArray(res?.recommendations)
+        setBuddies(recs)
+      } catch {
+        if (!cancelled) setBuddies([])
+      } finally {
+        if (!cancelled) setBuddiesLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
 
   return (
     <div className="home modern-home">
@@ -70,21 +166,48 @@ const Home = () => {
 
       <section className="section-block ai-section">
         <div className="section-heading">
-          <p>Recomendaciones IA</p>
-          <h2>Tu feed personalizado de experiencias</h2>
+          <p>Tendencias en vivo</p>
+          <h2>Datos desde el motor de tendencias (IA)</h2>
         </div>
+        {!user?.id && (
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            <Link to="/login">Inicia sesion</Link> para cargar tendencias personalizadas desde IA.
+          </p>
+        )}
+        {recoLoading && (
+          <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+            <Loader2 size={18} className="animate-spin" /> Cargando destinos y microtendencias…
+          </p>
+        )}
+        {recoError && !recoLoading && (
+          <p style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{recoError}</p>
+        )}
+        {!recoLoading && recoCards.length === 0 && !recoError && (
+          <p style={{ color: 'var(--text-secondary)' }}>
+            Aun no hay senales emergentes. Los operadores pueden ingerir datos en{' '}
+            <code>/trends/ingest/signals</code> del servicio de IA.
+          </p>
+        )}
         <div className="ai-grid">
-          {aiCards.map((card) => (
-            <Card key={card.title} hover className="ai-feed-card">
+          {recoCards.map((card) => (
+            <Card key={card.key} hover className="ai-feed-card">
               <div className="ai-feed-top">
                 <Sparkles size={16} />
-                <span>Recomendacion IA</span>
+                <span>Tendencia / recomendacion</span>
               </div>
               <h3>{card.title}</h3>
               <p>{card.reason}</p>
-              <div className="preview-tags">
-                {card.tags.map((tag) => <span key={tag}>{tag}</span>)}
-              </div>
+              {card.tags.length > 0 && (
+                <div className="preview-tags">
+                  {card.tags.map((tag) => <span key={tag}>{tag}</span>)}
+                </div>
+              )}
+              {card.exploreHref ? (
+                <Link to={card.exploreHref} className="inline-action" style={{ marginTop: '0.75rem', display: 'inline-flex' }}>
+                  Ver catálogo y planes
+                  <ArrowRight size={14} />
+                </Link>
+              ) : null}
             </Card>
           ))}
         </div>
@@ -95,24 +218,41 @@ const Home = () => {
           <p>Comunidad</p>
           <h2>Conecta con personas que viajan como tu</h2>
         </div>
+        {!user?.id && (
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            <Link to="/login">Inicia sesion</Link> para ver sugerencias reales de viajeros compatibles (API de matching).
+          </p>
+        )}
+        {user?.id && buddiesLoading && (
+          <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+            <Loader2 size={18} className="animate-spin" /> Cargando sugerencias de la IA…
+          </p>
+        )}
+        {user?.id && !buddiesLoading && buddies.length === 0 && (
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Aun no hay recomendaciones de compañeros. Completa tu perfil o visita{' '}
+            <Link to="/social">Comunidad</Link>.
+          </p>
+        )}
         <div className="community-grid">
-          {connections.map((person) => (
-            <Card key={person.name} className="profile-card" hover>
-              <div className="profile-top">
-                <div className="profile-avatar">{person.name[0]}</div>
-                <div>
-                  <h3>{person.name}</h3>
-                  <p>{person.city}</p>
+          {buddies.map((b) => {
+            const name = b.name || 'Viajero'
+            const score = typeof b.compatibilityScore === 'number' ? Math.round(b.compatibilityScore * 100) : null
+            return (
+              <Card key={String(b.userId ?? name)} className="profile-card" hover>
+                <div className="profile-top">
+                  <div className="profile-avatar">{name[0]}</div>
+                  <div>
+                    <h3>{name}</h3>
+                    {score != null && <p>{score}% compatibilidad</p>}
+                  </div>
                 </div>
-              </div>
-              <div className="preview-tags">
-                {person.interests.map((interest) => <span key={interest}>{interest}</span>)}
-              </div>
-              <button type="button" className="inline-action">
-                <MessageCircle size={14} /> Ver compatibilidad
-              </button>
-            </Card>
-          ))}
+                <Link to="/social" className="inline-action" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <MessageCircle size={14} /> Ir a comunidad
+                </Link>
+              </Card>
+            )
+          })}
         </div>
       </section>
 

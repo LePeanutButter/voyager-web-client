@@ -72,7 +72,17 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    if (name === 'startDate') {
+      setFormData((prev) => {
+        const next = { ...prev, startDate: value }
+        if (prev.endDate && value && prev.endDate < value) {
+          next.endDate = value
+        }
+        return next
+      })
+      return
+    }
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = async (e) => {

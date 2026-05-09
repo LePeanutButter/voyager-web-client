@@ -9,10 +9,15 @@ import { extractErrorMessage } from '../../utils/errorUtils'
 import {
   MapPin, Calendar, Users, DollarSign, ArrowLeft,
   Edit, Plus, Trash2, Globe, Clock,
-  Activity, UserCheck, Settings
+  Activity, UserCheck,
 } from 'lucide-react'
 import './TravelDetails.css'
 import QuickEditModal from '../../components/TravelPlan/QuickEditModal'
+import { CatalogDestinationsPanel } from '../../components/Catalog/CatalogDestinationsPanel'
+import {
+  planDayStartDatetimeLocal,
+  planDayEndDatetimeLocal,
+} from '../../utils/planActivityDatetimeBounds'
 
 const statusConfig = {
   PLANNING:  { label: 'Planificando',  cls: 'badge-planning'  },
@@ -44,21 +49,63 @@ function getActivitySubmitLabel(loading, isEdit) {
 }
 
 /* ── Activity Modal ────────────────────────────────────────────────────────── */
-const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
-  const isEdit = Boolean(activity)
+const ActivityModal = ({ planId, plan = null, activity, prefill, onClose, onSaved }) => {
+  const isEdit = Boolean(activity?.id)
+  const defaultLocation =
+    activity?.location ||
+    prefill?.location ||
+    (!isEdit && plan?.destinationLocation) ||
+    ''
+
   const [form, setForm] = useState({
-    name: activity?.name || '',
-    description: activity?.description || '',
-    location: activity?.location || '',
-    startTime: activity?.startTime ? String(activity.startTime).slice(0, 16) : '',
-    endTime: activity?.endTime ? String(activity.endTime).slice(0, 16) : '',
+    name: activity?.name || prefill?.name || '',
+    description: activity?.description || prefill?.description || '',
+    location: defaultLocation,
+    startTime:
+      activity?.startTime
+        ? String(activity.startTime).slice(0, 16)
+        : prefill?.startTime || '',
+    endTime:
+      activity?.endTime
+        ? String(activity.endTime).slice(0, 16)
+        : prefill?.endTime || '',
   })
+
+  useEffect(() => {
+    if (isEdit || !prefill) return
+    setForm((prev) => ({
+      ...prev,
+      name: prefill.name || prev.name,
+      description: prefill.description || prev.description,
+      location: prefill.location || prev.location,
+      startTime: prefill.startTime || prev.startTime,
+      endTime: prefill.endTime || prev.endTime,
+    }))
+  }, [prefill, isEdit])
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const planStartMin = plan?.startDate ? planDayStartDatetimeLocal(plan.startDate) : ''
+  const planEndMax = plan?.endDate ? planDayEndDatetimeLocal(plan.endDate) : ''
+  const hasPlanRange = Boolean(planStartMin && planEndMax)
+
+  const endInputMin = form.startTime || planStartMin || undefined
+
   const handleChange = (e) => {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [name]: value }
+      if (name === 'startTime') {
+        if (value && prev.endTime && prev.endTime < value) {
+          next.endTime = value
+        }
+      }
+      if (name === 'endTime' && prev.startTime && value && value < prev.startTime) {
+        next.endTime = prev.startTime
+      }
+      return next
+    })
     setError('')
   }
 
@@ -76,6 +123,28 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
       setError('La hora de fin es obligatoria')
       return
     }
+    const startMs = new Date(form.startTime).getTime()
+    const endMs = new Date(form.endTime).getTime()
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
+      setError('Las fechas no son válidas')
+      return
+    }
+    if (endMs < startMs) {
+      setError('La hora de fin no puede ser anterior a la de inicio')
+      return
+    }
+    if (hasPlanRange) {
+      const rangeStart = new Date(planStartMin).getTime()
+      const rangeEnd = new Date(planEndMax).getTime()
+      if (startMs < rangeStart || startMs > rangeEnd) {
+        setError('El inicio de la actividad debe estar dentro de las fechas del viaje')
+        return
+      }
+      if (endMs < rangeStart || endMs > rangeEnd) {
+        setError('El fin de la actividad debe estar dentro de las fechas del viaje')
+        return
+      }
+    }
     setLoading(true)
     try {
       const payload = {
@@ -85,7 +154,6 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
         startTime: form.startTime ? new Date(form.startTime).toISOString() : undefined,
         endTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
       }
-      console.log('Creating activity payload:', payload)
       const result = await persistPlanActivity(planId, isEdit, activity, payload)
       onSaved(result, isEdit)
     } catch (err) {
@@ -98,41 +166,82 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
   const btnText = getActivitySubmitLabel(loading, isEdit)
 
   return (
-    <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <button type="button" onClick={onClose} aria-label="Close modal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 'none', cursor: 'default' }} />
-      <dialog open className="modal-box animate-scaleIn" style={{ maxWidth: 500, position: 'relative', zIndex: 1, margin: 0 }} aria-labelledby="activity-modal-title">
-        <h3 id="activity-modal-title">{isEdit ? 'Editar actividad' : 'Agregar actividad'}</h3>
-        {error && <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          <div className="form-group">
-            <label htmlFor="act-name">Nombre de actividad *</label>
-            <input id="act-name" name="name" value={form.name} onChange={handleChange} placeholder="Visitar Torre Eiffel" />
-          </div>
-          <div className="form-row-2">
+    <div className="activity-modal-overlay">
+      <button type="button" className="activity-modal-backdrop" onClick={onClose} aria-label="Cerrar" />
+      <dialog open className="activity-modal-panel animate-scaleIn" aria-labelledby="activity-modal-title">
+        <div className="activity-modal-body">
+          <h3 id="activity-modal-title">{isEdit ? 'Editar actividad' : 'Agregar actividad'}</h3>
+          {error && <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />}
+          {hasPlanRange && (
+            <p className="activity-modal-hint">
+              Las actividades deben quedar entre el {formatDate(plan.startDate)} y el {formatDate(plan.endDate)}.
+            </p>
+          )}
+          <form className="activity-modal-form" onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="act-start">Hora inicio *</label>
-              <input id="act-start" name="startTime" type="datetime-local" value={form.startTime} onChange={handleChange} required />
+              <label htmlFor="act-name">Nombre de actividad *</label>
+              <input id="act-name" name="name" value={form.name} onChange={handleChange} placeholder="Visitar Torre Eiffel" />
+            </div>
+            <div className="form-row-2 activity-modal-datetime-row">
+              <div className="form-group">
+                <label htmlFor="act-start">Hora inicio *</label>
+                <input
+                  id="act-start"
+                  name="startTime"
+                  type="datetime-local"
+                  value={form.startTime}
+                  onChange={handleChange}
+                  min={planStartMin || undefined}
+                  max={planEndMax || undefined}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="act-end">Hora fin *</label>
+                <input
+                  id="act-end"
+                  name="endTime"
+                  type="datetime-local"
+                  value={form.endTime}
+                  onChange={handleChange}
+                  min={endInputMin}
+                  max={planEndMax || undefined}
+                  required
+                />
+              </div>
             </div>
             <div className="form-group">
-              <label htmlFor="act-end">Hora fin *</label>
-              <input id="act-end" name="endTime" type="datetime-local" value={form.endTime} onChange={handleChange} required />
+              <label htmlFor="act-location">Ubicación</label>
+              <input
+                id="act-location"
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder={plan?.destinationLocation || 'Ciudad o lugar'}
+              />
             </div>
-          </div>
-          <div className="form-group">
-              <label htmlFor="act-location">Ubicacion</label>
-              <input id="act-location" name="location" value={form.location} onChange={handleChange} placeholder="Paris, Francia" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="act-description">Descripcion</label>
-            <textarea id="act-description" name="description" value={form.description} onChange={handleChange} rows={2} placeholder="Descripcion breve..." />
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {btnText}
-            </button>
-          </div>
-        </form>
+            <div className="form-group">
+              <label htmlFor="act-description">Descripción</label>
+              <textarea
+                id="act-description"
+                name="description"
+                className="activity-modal-textarea"
+                value={form.description}
+                onChange={handleChange}
+                rows={4}
+                placeholder="Descripción breve…"
+              />
+            </div>
+            <div className="activity-modal-actions">
+              <button type="button" className="btn-ghost" onClick={onClose}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {btnText}
+              </button>
+            </div>
+          </form>
+        </div>
       </dialog>
     </div>
   )
@@ -140,14 +249,28 @@ const ActivityModal = ({ planId, activity, onClose, onSaved }) => {
 
 ActivityModal.propTypes = {
   planId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  plan: PropTypes.shape({
+    startDate: PropTypes.string,
+    endDate: PropTypes.string,
+    destinationLocation: PropTypes.string,
+  }),
   activity: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     name: PropTypes.string,
     description: PropTypes.string,
     type: PropTypes.string,
     location: PropTypes.string,
+    startTime: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    endTime: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     estimatedCost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     notes: PropTypes.string,
+  }),
+  prefill: PropTypes.shape({
+    name: PropTypes.string,
+    description: PropTypes.string,
+    location: PropTypes.string,
+    startTime: PropTypes.string,
+    endTime: PropTypes.string,
   }),
   onClose: PropTypes.func.isRequired,
   onSaved: PropTypes.func.isRequired,
@@ -252,6 +375,16 @@ const CompatibleTravelersList = ({ loading, travelers }) => {
 CompatibleTravelersList.propTypes = {
   loading: PropTypes.bool.isRequired,
   travelers: PropTypes.array.isRequired,
+}
+
+function catalogDefaultTimes(plan) {
+  const day = plan?.startDate
+    ? String(plan.startDate).slice(0, 10)
+    : new Date().toISOString().slice(0, 10)
+  return {
+    startTime: `${day}T10:00`,
+    endTime: `${day}T13:00`,
+  }
 }
 
 function TravelDetailsBreadcrumb({ navigate }) {
@@ -359,6 +492,8 @@ function TravelDetailsView({
   setError,
   activeModal,
   setActiveModal,
+  activityPrefill,
+  setActivityPrefill,
   statusLoading,
   handleStatusChange,
   handleActivitySaved,
@@ -367,6 +502,7 @@ function TravelDetailsView({
   compatLoading,
   loadCompatibleTravelers,
   onQuickEdit,
+  onPickCatalogActivity,
 }) {
   const sc = statusConfig[plan.status] || { label: plan.status, cls: 'badge-planning' }
   const transitions = STATUS_TRANSITIONS[plan.status] || []
@@ -403,7 +539,10 @@ function TravelDetailsView({
                 id="add-activity-btn"
                 className="btn-primary"
                 style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                onClick={() => setActiveModal('add')}
+                onClick={() => {
+                  setActivityPrefill(null)
+                  setActiveModal('add')
+                }}
               >
                 <Plus size={15} /> Agregar
               </button>
@@ -414,6 +553,8 @@ function TravelDetailsView({
               onDelete={handleDeleteActivity}
             />
           </div>
+
+          <CatalogDestinationsPanel plan={plan} onPickCatalogActivity={onPickCatalogActivity} />
         </div>
 
         <div>
@@ -437,8 +578,13 @@ function TravelDetailsView({
       {activeModal ? (
         <ActivityModal
           planId={id}
+          plan={plan}
           activity={activeModal === 'add' ? null : activeModal}
-          onClose={() => setActiveModal(null)}
+          prefill={activeModal === 'add' ? activityPrefill : null}
+          onClose={() => {
+            setActiveModal(null)
+            setActivityPrefill(null)
+          }}
           onSaved={handleActivitySaved}
         />
       ) : null}
@@ -454,6 +600,8 @@ TravelDetailsView.propTypes = {
   setError: PropTypes.func.isRequired,
   activeModal: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   setActiveModal: PropTypes.func.isRequired,
+  activityPrefill: PropTypes.object,
+  setActivityPrefill: PropTypes.func.isRequired,
   statusLoading: PropTypes.bool.isRequired,
   handleStatusChange: PropTypes.func.isRequired,
   handleActivitySaved: PropTypes.func.isRequired,
@@ -462,6 +610,7 @@ TravelDetailsView.propTypes = {
   compatLoading: PropTypes.bool.isRequired,
   loadCompatibleTravelers: PropTypes.func.isRequired,
   onQuickEdit: PropTypes.func.isRequired,
+  onPickCatalogActivity: PropTypes.func.isRequired,
 }
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
@@ -476,6 +625,7 @@ const TravelDetails = () => {
   const [compatTravelers, setCompatTravelers] = useState([])
   const [compatLoading, setCompatLoading] = useState(false)
   const [showQuickEdit, setShowQuickEdit] = useState(false)
+  const [activityPrefill, setActivityPrefill] = useState(null)
 
   const fetchPlan = useCallback(async () => {
     setLoading(true)
@@ -531,6 +681,17 @@ const TravelDetails = () => {
 
   const handleQuickEditUpdate = (updatedData) => {
     setPlan(prev => ({ ...prev, ...updatedData }))
+  }
+
+  const handlePickCatalogActivity = (act) => {
+    if (!plan) return
+    setActivityPrefill({
+      name: act.name,
+      description: act.description || '',
+      location: plan.destinationLocation || '',
+      ...catalogDefaultTimes(plan),
+    })
+    setActiveModal('add')
   }
 
   const loadCompatibleTravelers = async () => {
@@ -600,6 +761,8 @@ const TravelDetails = () => {
         setError={setError}
         activeModal={activeModal}
         setActiveModal={setActiveModal}
+        activityPrefill={activityPrefill}
+        setActivityPrefill={setActivityPrefill}
         statusLoading={statusLoading}
         handleStatusChange={handleStatusChange}
         handleActivitySaved={handleActivitySaved}
@@ -608,6 +771,7 @@ const TravelDetails = () => {
         compatLoading={compatLoading}
         loadCompatibleTravelers={loadCompatibleTravelers}
         onQuickEdit={() => setShowQuickEdit(true)}
+        onPickCatalogActivity={handlePickCatalogActivity}
       />
       <QuickEditModal
         isOpen={showQuickEdit}

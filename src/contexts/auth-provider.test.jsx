@@ -9,8 +9,13 @@ const authSvc = vi.hoisted(() => ({
   register: vi.fn(),
 }))
 
+const provisionAi = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+
 vi.mock('../services/authService', () => ({ authService: authSvc }))
 vi.mock('../services/api', () => ({ TOKEN_KEY: 'voyager_token' }))
+vi.mock('../services/voyagerCrossService', () => ({
+  provisionUserAcrossAiServices: provisionAi,
+}))
 
   function LoginProbe() {
     const { login, loading, isAuthenticated, user } = useAuth()
@@ -67,6 +72,7 @@ describe('AuthProvider', () => {
       screen.getByRole('button', { name: 'go' }).click()
     })
     await waitFor(() => expect(screen.getByTestId('auth').textContent).toBe('e@e.com'))
+    expect(provisionAi).toHaveBeenCalled()
   })
 
   it('restore session succeeds with token', async () => {
@@ -87,6 +93,7 @@ describe('AuthProvider', () => {
     )
     await waitFor(() => expect(screen.getByTestId('auth').textContent).toBe('ok@ok.com'))
     expect(localStorage.getItem('voyager_user')).toContain('ok@ok.com')
+    expect(provisionAi).toHaveBeenCalled()
   })
 
   it('login with prebuilt user and token', async () => {
@@ -118,6 +125,41 @@ describe('AuthProvider', () => {
     })
     await waitFor(() => expect(screen.getByTestId('d-auth').textContent).toBe('d@d.com'))
     expect(localStorage.getItem('voyager_token')).toBe('direct-tok')
+    expect(provisionAi).toHaveBeenCalled()
+  })
+
+  it('login with token only fetches user then provisions IA', async () => {
+    authSvc.getCurrentUser.mockResolvedValue({
+      id: 99,
+      email: 'tok@tok.com',
+      username: 'tok',
+      firstName: 'T',
+      lastName: 'K',
+      role: 'USER',
+    })
+    function TokenLoginProbe() {
+      const { login, user } = useAuth()
+      return (
+        <div>
+          <span data-testid="tok-em">{user?.email ?? 'none'}</span>
+          <button type="button" onClick={() => login(null, 'oauth-jwt')}>
+            oauth
+          </button>
+        </div>
+      )
+    }
+    render(
+      <AuthProvider>
+        <TokenLoginProbe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('tok-em').textContent).toBe('none'))
+    await act(async () => {
+      screen.getByRole('button', { name: 'oauth' }).click()
+    })
+    await waitFor(() => expect(screen.getByTestId('tok-em').textContent).toBe('tok@tok.com'))
+    expect(authSvc.getCurrentUser).toHaveBeenCalled()
+    expect(provisionAi).toHaveBeenCalled()
   })
 
   it('logout and updateUser clearError', async () => {

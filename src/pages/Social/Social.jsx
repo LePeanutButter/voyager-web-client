@@ -3,9 +3,11 @@ import PropTypes from 'prop-types'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/use-auth.js'
 import { socialService } from '../../services/socialService'
+import { travelService } from '../../services/travelService'
+import { aiService } from '../../services/aiService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
-import { Users, Search, MessageCircle, UserPlus, Check, X, Trash2 } from 'lucide-react'
+import { Users, Search, MessageCircle, UserPlus, Check, X, Trash2, Sparkles, MapPin, Calendar } from 'lucide-react'
 import './Social.css'
 
 const BORDER_DEFAULT = '1px solid var(--border-color)'
@@ -54,14 +56,35 @@ const FLEX_COL_GAP = { display: 'flex', flexDirection: 'column', gap: '1rem' }
 const FLEX_ROW_GAP = { display: 'flex', alignItems: 'center', gap: '1rem' }
 const USERNAME_SUB_STYLE = { margin: 0, fontSize: '0.875rem', color: TEXT_SECONDARY }
 
-const normalizeFeedPayload = (response) => {
-  if (Array.isArray(response?.content)) return response.content
-  if (Array.isArray(response)) return response
-  if (Array.isArray(response?.data?.content)) return response.data.content
-  return []
+const getConnectionRecordId = (conn) => conn?.id ?? conn?.connectionId ?? null
+
+const normalizeConnectionPeer = (conn = {}) => ({
+  id:
+    conn?.connectedUserId ??
+    conn?.otherUserId ??
+    conn?.peerUserId ??
+    conn?.userId ??
+    conn?.id ??
+    null,
+  firstName: conn?.firstName ?? conn?.connectedUserName ?? conn?.displayName ?? conn?.travelerName ?? 'Viajero',
+  lastName: conn?.lastName ?? '',
+  username: conn?.username ?? conn?.connectedUsername ?? conn?.peerUsername ?? 'usuario',
+})
+
+async function handleDeleteConnection(connectionId, userName, onDeleteConnection) {
+  if (globalThis.confirm(`¿Estás seguro de que quieres eliminar la conexión con ${userName}?`)) {
+    try {
+      await socialService.removeConnection(connectionId)
+      globalThis.alert('Conexión eliminada exitosamente')
+      onDeleteConnection()
+    } catch (err) {
+      console.error('Error removing connection:', err)
+      globalThis.alert(err?.message || 'No se pudo eliminar la conexión')
+    }
+  }
 }
 
-function SocialConnectionsPanel({ connections, user, navigate, onDeleteConnection }) {
+function SocialConnectionsPanel({ connections, navigate, onDeleteConnection }) {
   if (connections.length === 0) {
     return (
       <div style={EMPTY_STATE_STYLE}>
@@ -74,10 +97,10 @@ function SocialConnectionsPanel({ connections, user, navigate, onDeleteConnectio
   return (
     <div style={FLEX_COL_GAP}>
       {connections.map((conn) => {
-        console.log('Connection object in My Connections:', conn)
-        const otherUser = conn.userId === user.id ? conn : conn
+        const otherUser = normalizeConnectionPeer(conn)
+        const connectionId = getConnectionRecordId(conn)
         return (
-          <div key={conn.id} style={CONNECTION_ROW_STYLE}>
+          <div key={connectionId ?? `${otherUser.username}-${otherUser.id}`} style={CONNECTION_ROW_STYLE}>
             <div style={FLEX_ROW_GAP}>
               <div style={AVATAR_CIRCLE_STYLE}>
                 {(otherUser?.firstName?.[0] || otherUser?.username?.[0] || '?').toUpperCase()}
@@ -88,13 +111,24 @@ function SocialConnectionsPanel({ connections, user, navigate, onDeleteConnectio
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button type="button" className="btn-primary" onClick={() => navigate(`/social/chat/${conn.id}`)}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => navigate(`/social/chat/${connectionId}`)}
+                disabled={!connectionId}
+              >
                 <MessageCircle size={16} /> Chat
               </button>
               <button 
                 type="button" 
                 className="btn-ghost" 
-                onClick={() => handleDeleteConnection(conn.id, otherUser?.firstName || otherUser?.username)}
+                disabled={!connectionId}
+                onClick={() =>
+                  handleDeleteConnection(
+                    connectionId,
+                    otherUser?.firstName || otherUser?.username,
+                    onDeleteConnection
+                  )}
                 style={{ padding: '0.5rem', color: 'var(--color-danger)' }}
                 title="Eliminar conexión"
               >
@@ -106,24 +140,10 @@ function SocialConnectionsPanel({ connections, user, navigate, onDeleteConnectio
       })}
     </div>
   )
-
-  async function handleDeleteConnection(connectionId, userName) {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar la conexión con ${userName}?`)) {
-      try {
-        await socialService.removeConnection(connectionId)
-        alert('Conexión eliminada exitosamente')
-        onDeleteConnection() // Refresh the connections list
-      } catch (err) {
-        console.error('Error removing connection:', err)
-        alert(err?.message || 'No se pudo eliminar la conexión')
-      }
-    }
-  }
 }
 
 SocialConnectionsPanel.propTypes = {
   connections: PropTypes.arrayOf(PropTypes.object).isRequired,
-  user: PropTypes.shape({ id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]) }).isRequired,
   navigate: PropTypes.func.isRequired,
   onDeleteConnection: PropTypes.func.isRequired,
 }
@@ -175,75 +195,271 @@ SocialRequestsPanel.propTypes = {
   handleReject: PropTypes.func.isRequired,
 }
 
+function formatDiscoverDate(v) {
+  if (v == null || v === '') return null
+  try {
+    const d = new Date(v)
+    if (Number.isNaN(d.getTime())) return null
+    return d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return null
+  }
+}
+
+const safeParseJson = (value) => {
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+const resolveRecommendations = (buddyPayload) => {
+  const normalized = safeParseJson(buddyPayload)
+  const maybeData = safeParseJson(normalized?.data)
+  const container = maybeData && typeof maybeData === 'object' ? maybeData : normalized
+  const recs = container?.recommendations ?? normalized?.recommendations ?? []
+  return Array.isArray(recs) ? recs : []
+}
+
+function mergeDiscoveryMatches(compatList, buddyPayload, planDestination) {
+  const byId = new Map()
+  const addBackend = (m) => {
+    const uid = m.userId ?? m.user_id ?? m.id
+    if (uid == null) return
+    byId.set(String(uid), {
+      userId: uid,
+      firstName: m.firstName ?? m.first_name ?? 'Viajero',
+      lastName: m.lastName ?? m.last_name ?? '',
+      username: m.username ?? `user_${uid}`,
+      compatibilityScore: Number(m.compatibilityScore ?? m.compatibility_score ?? 0),
+      travelPlanTitle: m.travelPlanTitle ?? m.travel_plan_title ?? null,
+      destinationLocation: m.destinationLocation ?? m.destination_location ?? null,
+      travelStartDate: m.travelStartDate ?? m.travel_start_date ?? null,
+      travelEndDate: m.travelEndDate ?? m.travel_end_date ?? null,
+      source: 'backend',
+    })
+  }
+  for (const m of compatList || []) addBackend(m)
+
+  const recs = resolveRecommendations(buddyPayload)
+
+  for (const r of recs) {
+    const uid = r.userId ?? r.user_id ?? r.id
+    if (uid == null) continue
+    const id = String(uid)
+    if (byId.has(id)) continue
+    const name = String(r.name || '').trim()
+    const parts = name.split(/\s+/)
+    const fn = parts[0] || 'Viajero'
+    const ln = parts.slice(1).join(' ')
+    byId.set(id, {
+      userId: uid,
+      firstName: fn,
+      lastName: ln,
+      username: r.username ?? `user_${id}`,
+      compatibilityScore: Number(r.compatibilityScore ?? r.compatibility_score ?? 0.75),
+      travelPlanTitle: null,
+      destinationLocation: planDestination || null,
+      travelStartDate: null,
+      travelEndDate: null,
+      source: 'ai',
+    })
+  }
+
+  return Array.from(byId.values()).sort(
+    (a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0)
+  )
+}
+
 function SocialDiscoverPanel({
-  discoverPlanId,
-  setDiscoverPlanId,
-  handleDiscover,
+  myPlans,
+  selectedPlanId,
+  setSelectedPlanId,
   discoverLoading,
+  aiMatches,
   matches,
   handleSendRequest,
+  onRefresh,
+  onViewProfile,
 }) {
   return (
     <div>
-      <form onSubmit={handleDiscover} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-        <input
-          type="text"
-          placeholder="Ingresa el ID de un plan para buscar coincidencias"
-          value={discoverPlanId}
-          onChange={(e) => setDiscoverPlanId(e.target.value)}
-          style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: BORDER_RADIUS_STD, border: BORDER_DEFAULT }}
-          required
-        />
-        <button type="submit" className="btn-primary" disabled={discoverLoading}>
-          {discoverLoading ? 'Buscando...' : 'Buscar coincidencias'}
-        </button>
-      </form>
+      <p style={{ color: TEXT_SECONDARY, marginBottom: '1.25rem', lineHeight: 1.5 }}>
+        Elige uno de <strong>tus planes</strong>: cargamos automáticamente viajeros compatibles (backend) y
+        sugerencias del servicio de IA. Puedes actualizar cuando cambies de plan.
+      </p>
+
+      {myPlans.length === 0 ? (
+        <div style={{ ...EMPTY_STATE_STYLE, padding: '2rem 1rem' }}>
+          <Search size={40} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
+          <h3>Crea un plan para ver recomendaciones</h3>
+          <p style={{ color: TEXT_MUTED }}>En Mis viajes puedes añadir un destino; aquí aparecerán coincidencias sin buscar por ID.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+          <div style={{ flex: '1 1 220px' }}>
+            <label htmlFor="discover-plan-select" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.375rem', color: TEXT_SECONDARY }}>
+              Plan de viaje
+            </label>
+            <select
+              id="discover-plan-select"
+              value={selectedPlanId}
+              onChange={(e) => setSelectedPlanId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: BORDER_RADIUS_STD,
+                border: BORDER_DEFAULT,
+                background: 'var(--surface-card)',
+                fontSize: '0.9375rem',
+              }}
+            >
+              {myPlans.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.title || `Plan ${p.id}`}
+                  {p.destinationLocation ? ` — ${p.destinationLocation}` : ''} (id {p.id})
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="button" className="btn-outline-sm" onClick={onRefresh} disabled={discoverLoading || !selectedPlanId}>
+            {discoverLoading ? 'Actualizando…' : 'Actualizar sugerencias'}
+          </button>
+        </div>
+      )}
 
       <div style={FLEX_COL_GAP}>
-        {matches.map((match) => (
-          <div
-            key={match.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '1.25rem',
-              border: BORDER_DEFAULT,
-              borderRadius: BORDER_RADIUS_STD,
-              background: 'var(--surface-bg)',
-            }}
-          >
-            <div style={FLEX_ROW_GAP}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--color-info-light)', color: 'var(--voyager-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem' }}>
-                {(match.firstName?.[0] || match.username?.[0] || '?').toUpperCase()}
-              </div>
-              <div>
-                <h4 style={{ margin: '0 0 0.25rem', fontSize: '1.1rem' }}>{match.firstName} {match.lastName}</h4>
-                <p style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', color: TEXT_SECONDARY }}>@{match.username}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'var(--color-success-light)', color: 'var(--color-success)', padding: '2px 8px', borderRadius: '12px' }}>
-                    {Math.round(match.compatibilityScore * 100)}% Compatibilidad
-                  </span>
+        {aiMatches.length > 0 && (
+          <div className="social-discover-ai-row">
+            <div className="social-discover-ai-title">
+              <Sparkles size={15} /> Recomendados por IA para este plan
+            </div>
+            <div className="social-discover-ai-cards">
+              {aiMatches.map((match) => {
+                const uid = match.userId ?? match.user_id
+                return (
+                  <button
+                    key={`ai-${uid}`}
+                    type="button"
+                    className="social-discover-ai-card"
+                    onClick={() => onViewProfile(match)}
+                  >
+                    <span className="social-discover-ai-name">
+                      {match.firstName} {match.lastName}
+                    </span>
+                    <span className="social-discover-ai-user">@{match.username}</span>
+                    <span className="social-discover-ai-score">
+                      {Math.round(Math.min(1, Math.max(0, match.compatibilityScore || 0)) * 100)}% match
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {matches.map((match) => {
+          const uid = match.userId ?? match.user_id
+          const startL = formatDiscoverDate(match.travelStartDate)
+          const endL = formatDiscoverDate(match.travelEndDate)
+          const dateLine =
+            startL && endL ? `${startL} – ${endL}` : startL || endL || null
+          return (
+            <button
+              type="button"
+              key={String(uid)}
+              className="social-discover-item"
+              onClick={() => onViewProfile(match)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                padding: '1.25rem',
+                border: BORDER_DEFAULT,
+                borderRadius: BORDER_RADIUS_STD,
+                background: 'var(--surface-bg)',
+                flexWrap: 'wrap',
+                width: '100%',
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ ...FLEX_ROW_GAP, flex: '1 1 240px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--color-info-light)', color: 'var(--voyager-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem' }}>
+                  {(match.firstName?.[0] || match.username?.[0] || '?').toUpperCase()}
+                </div>
+                <div>
+                  <h4 style={{ margin: '0 0 0.25rem', fontSize: '1.1rem' }}>
+                    {match.firstName} {match.lastName}
+                  </h4>
+                  <p style={{ margin: '0 0 0.35rem', fontSize: '0.875rem', color: TEXT_SECONDARY }}>
+                    @{match.username}
+                  </p>
+                  {match.travelPlanTitle && (
+                    <p style={{ margin: '0 0 0.25rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Plan: {match.travelPlanTitle}
+                    </p>
+                  )}
+                  {match.destinationLocation && (
+                    <p style={{ margin: '0 0 0.25rem', fontSize: '0.8125rem', color: TEXT_SECONDARY, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <MapPin size={14} /> {match.destinationLocation}
+                    </p>
+                  )}
+                  {dateLine && (
+                    <p style={{ margin: '0 0 0.25rem', fontSize: '0.8125rem', color: TEXT_SECONDARY, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Calendar size={14} /> {dateLine}
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'var(--color-success-light)', color: 'var(--color-success)', padding: '2px 8px', borderRadius: '12px' }}>
+                      {Math.round(Math.min(1, Math.max(0, match.compatibilityScore || 0)) * 100)}% compatibilidad
+                    </span>
+                    {match.source === 'ai' && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, background: 'var(--color-info-light)', color: 'var(--voyager-blue)', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Sparkles size={12} /> IA
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <button type="button" className="btn-outline-sm" onClick={() => handleSendRequest(match.userId)}>
-              <UserPlus size={16} /> Conectar
+              <button
+                type="button"
+                className="btn-outline-sm"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  handleSendRequest(uid)
+                }}
+                disabled={!uid}
+              >
+                <UserPlus size={16} /> Conectar
+              </button>
             </button>
-          </div>
-        ))}
+          )
+        })}
       </div>
+
+      {!discoverLoading && myPlans.length > 0 && matches.length === 0 && (
+        <p style={{ textAlign: 'center', color: TEXT_MUTED, marginTop: '1.5rem', fontSize: '0.875rem' }}>
+          No hay sugerencias para este plan. Prueba otro viaje o actualiza más tarde.
+        </p>
+      )}
     </div>
   )
 }
 
 SocialDiscoverPanel.propTypes = {
-  discoverPlanId: PropTypes.string.isRequired,
-  setDiscoverPlanId: PropTypes.func.isRequired,
-  handleDiscover: PropTypes.func.isRequired,
+  myPlans: PropTypes.arrayOf(PropTypes.object).isRequired,
+  selectedPlanId: PropTypes.string.isRequired,
+  setSelectedPlanId: PropTypes.func.isRequired,
   discoverLoading: PropTypes.bool.isRequired,
+  aiMatches: PropTypes.arrayOf(PropTypes.object).isRequired,
   matches: PropTypes.arrayOf(PropTypes.object).isRequired,
   handleSendRequest: PropTypes.func.isRequired,
+  onRefresh: PropTypes.func.isRequired,
+  onViewProfile: PropTypes.func.isRequired,
 }
 
 const Social = () => {
@@ -256,12 +472,14 @@ const Social = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Discover state
-  const [discoverPlanId, setDiscoverPlanId] = useState('')
+  // Discover state (planes del usuario + sugerencias automáticas)
+  const [myPlans, setMyPlans] = useState([])
+  const [selectedPlanId, setSelectedPlanId] = useState('')
+  const [aiMatches, setAiMatches] = useState([])
   const [matches, setMatches] = useState([])
   const [discoverLoading, setDiscoverLoading] = useState(false)
-  const [feed, setFeed] = useState([])
-  const [feedLoading, setFeedLoading] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [activeTravelerProfile, setActiveTravelerProfile] = useState(null)
 
   const loadSocialData = useCallback(async () => {
     if (!user?.id) return
@@ -285,40 +503,86 @@ const Social = () => {
     loadSocialData()
   }, [loadSocialData])
 
-  const loadFeed = useCallback(async () => {
-    if (!user?.id) return
-    setFeedLoading(true)
-    try {
-      const response = await socialService.getSocialFeed(user.id, 0, 20)
-      setFeed(normalizeFeedPayload(response))
-    } catch (err) {
-      setError(err?.message || 'No se pudo cargar el feed social')
-      setFeed([])
-    } finally {
-      setFeedLoading(false)
-    }
-  }, [user?.id])
-
   useEffect(() => {
-    if (activeTab === 'feed') {
-      loadFeed()
+    if (activeTab !== 'discover' || !user?.id) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const list = await travelService.list()
+        if (cancelled) return
+        const arr = Array.isArray(list) ? list : []
+        setMyPlans(arr)
+        setSelectedPlanId((prev) => {
+          if (prev && arr.some((p) => String(p.id) === String(prev))) return prev
+          return arr[0] ? String(arr[0].id) : ''
+        })
+      } catch {
+        if (!cancelled) {
+          setMyPlans([])
+          setSelectedPlanId('')
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
     }
-  }, [activeTab, loadFeed])
+  }, [activeTab, user?.id])
 
-  const handleDiscover = async (e) => {
-    e.preventDefault()
-    if (!discoverPlanId) return
+  const fetchDiscoverMatches = useCallback(async () => {
+    if (!user?.id || !selectedPlanId) {
+      setMatches([])
+      return
+    }
     setDiscoverLoading(true)
     setError(null)
     try {
-      const results = await socialService.getCompatibleTravelers(discoverPlanId)
-      setMatches(results || [])
+      const planMeta = myPlans.find((p) => String(p.id) === String(selectedPlanId))
+      const dest = planMeta?.destinationLocation || ''
+      const [compat, buddies] = await Promise.all([
+        socialService.getCompatibleTravelers(selectedPlanId).catch(() => []),
+        aiService.getBuddyRecommendations(String(user.id), dest || null, 15).catch(() => ({})),
+      ])
+      const merged = mergeDiscoveryMatches(
+        Array.isArray(compat) ? compat : [],
+        buddies,
+        dest
+      )
+      const onlyAi = merged.filter((m) => m.source === 'ai').slice(0, 4)
+      const aiIds = new Set(onlyAi.map((m) => String(m.userId ?? m.user_id)))
+      const ranked = [...onlyAi, ...merged.filter((m) => !aiIds.has(String(m.userId ?? m.user_id)))]
+      setAiMatches(onlyAi)
+      setMatches(ranked)
     } catch (err) {
-      setError(err?.message || 'No se encontraron coincidencias. Verifica que el ID del plan sea valido.')
+      setError(err?.message || 'No se pudieron cargar las sugerencias.')
+      setAiMatches([])
+      setMatches([])
     } finally {
       setDiscoverLoading(false)
     }
+  }, [user?.id, selectedPlanId, myPlans])
+
+  const openTravelerProfile = async (traveler) => {
+    const travelerId = traveler?.userId ?? traveler?.user_id ?? traveler?.id
+    setActiveTravelerProfile({
+      ...traveler,
+      summary: null,
+    })
+    if (!travelerId) return
+    setProfileLoading(true)
+    try {
+      const summary = await socialService.getTravelerSummary(travelerId)
+      setActiveTravelerProfile((prev) => (prev ? { ...prev, summary } : prev))
+    } catch {
+      // fallback silencioso: se mantiene info base del match
+    } finally {
+      setProfileLoading(false)
+    }
   }
+
+  useEffect(() => {
+    if (activeTab !== 'discover' || !selectedPlanId || !user?.id) return
+    fetchDiscoverMatches()
+  }, [activeTab, selectedPlanId, user?.id, fetchDiscoverMatches])
 
   const handleSendRequest = async (recipientId) => {
     try {
@@ -389,12 +653,6 @@ const Social = () => {
         >
           <Search size={18} /> Descubrir
         </button>
-        <button
-          className={`social-tab ${activeTab === 'feed' ? 'active' : ''}`}
-          onClick={() => setActiveTab('feed')}
-        >
-          <MessageCircle size={18} /> Inicio social
-        </button>
       </div>
 
       {/* Content */}
@@ -402,7 +660,6 @@ const Social = () => {
         {activeTab === 'connections' && (
           <SocialConnectionsPanel 
             connections={connections} 
-            user={user} 
             navigate={navigate} 
             onDeleteConnection={loadSocialData}
           />
@@ -416,47 +673,55 @@ const Social = () => {
         )}
         {activeTab === 'discover' && (
           <SocialDiscoverPanel
-            discoverPlanId={discoverPlanId}
-            setDiscoverPlanId={setDiscoverPlanId}
-            handleDiscover={handleDiscover}
+            myPlans={myPlans}
+            selectedPlanId={selectedPlanId}
+            setSelectedPlanId={setSelectedPlanId}
             discoverLoading={discoverLoading}
+            aiMatches={aiMatches}
             matches={matches}
             handleSendRequest={handleSendRequest}
+            onRefresh={fetchDiscoverMatches}
+            onViewProfile={openTravelerProfile}
           />
         )}
-        {activeTab === 'feed' && (
-          <div style={FLEX_COL_GAP}>
-            {feedLoading && (
+      </div>
+
+      {activeTravelerProfile && (
+        <dialog open className="social-profile-overlay">
+          <div className="social-profile-modal">
+            <div className="social-profile-head">
+              <h3>
+                {activeTravelerProfile.firstName} {activeTravelerProfile.lastName}
+              </h3>
+              <button type="button" className="btn-ghost" onClick={() => setActiveTravelerProfile(null)}>
+                Cerrar
+              </button>
+            </div>
+            <p className="social-profile-username">@{activeTravelerProfile.username}</p>
+            <p className="social-profile-line">
+              Compatibilidad: {Math.round(Math.min(1, Math.max(0, activeTravelerProfile.compatibilityScore || 0)) * 100)}%
+            </p>
+            {activeTravelerProfile.destinationLocation && (
+              <p className="social-profile-line">Destino: {activeTravelerProfile.destinationLocation}</p>
+            )}
+            {profileLoading ? (
+              <p className="social-profile-line">Cargando perfil...</p>
+            ) : (
               <>
-                <SkeletonLoader variant="text" />
-                <SkeletonLoader variant="text" />
-                <SkeletonLoader variant="text" />
+                {activeTravelerProfile?.summary?.bio && (
+                  <p className="social-profile-bio">{activeTravelerProfile.summary.bio}</p>
+                )}
+                {Array.isArray(activeTravelerProfile?.summary?.interests) &&
+                activeTravelerProfile.summary.interests.length > 0 ? (
+                  <p className="social-profile-line">
+                    Intereses: {activeTravelerProfile.summary.interests.join(', ')}
+                  </p>
+                ) : null}
               </>
             )}
-            {!feedLoading && feed.length === 0 && (
-              <div style={EMPTY_STATE_STYLE}>
-                <MessageCircle size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
-                <h3>Aun no hay feed social</h3>
-                <p>Todavia no hay publicaciones disponibles para tu cuenta.</p>
-              </div>
-            )}
-            {!feedLoading && feed.map((post) => (
-              <div
-                key={post.id ?? `${post.author}-${post.content}`}
-                style={{
-                  padding: '1rem',
-                  border: BORDER_DEFAULT,
-                  borderRadius: BORDER_RADIUS_STD,
-                  background: 'var(--surface-bg)',
-                }}
-              >
-                <h4 style={{ margin: '0 0 0.5rem' }}>{post.author || 'Viajero'}</h4>
-                <p style={{ margin: 0 }}>{post.content || post.text || 'Publicacion'}</p>
-              </div>
-            ))}
           </div>
-        )}
-      </div>
+        </dialog>
+      )}
     </div>
   )
 }

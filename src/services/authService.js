@@ -2,14 +2,18 @@ import api, { TOKEN_KEY } from './api'
 import { decodeJwtPayload, getNumericId, safeJsonParse } from '../utils/jwt'
 
 const getStoredUserId = () => {
-  const storedUser = safeJsonParse(localStorage.getItem('voyager_user') || '')
-  const idFromStoredUser = getNumericId(storedUser?.id)
-  if (idFromStoredUser != null) return idFromStoredUser
-
   const token = localStorage.getItem(TOKEN_KEY)
-  if (!token) return null
-  const payload = decodeJwtPayload(token)
-  return getNumericId(payload?.userId) ?? getNumericId(payload?.id) ?? getNumericId(payload?.sub)
+  if (token) {
+    const payload = decodeJwtPayload(token)
+    const fromJwt =
+      getNumericId(payload?.userId) ??
+      getNumericId(payload?.id) ??
+      getNumericId(payload?.sub)
+    if (fromJwt != null) return fromJwt
+  }
+
+  const storedUser = safeJsonParse(localStorage.getItem('voyager_user') || '')
+  return getNumericId(storedUser?.id)
 }
 
 /**

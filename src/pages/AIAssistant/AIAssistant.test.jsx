@@ -27,6 +27,6 @@ describe('AIAssistant', () => {
 
   it('renders assistant header', () => {
     render(<AIAssistant />)
-    expect(screen.getByRole('heading', { name: /AI Travel Assistant/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Asistente IA de viajes/i })).toBeInTheDocument()
   })
 })

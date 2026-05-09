@@ -11,6 +11,8 @@
   width: min(1440px, 100%);
   margin: 0 auto;
   gap: 1rem;
+  /* Misma separación visual hacia el footer que el padding inferior del main (el aside no tenía este aire) */
+  padding-bottom: 2.25rem;
 }
 
 .main-content {
@@ -23,6 +25,7 @@
 @media (max-width: 768px) {
   .layout-content {
     flex-direction: column;
+    padding-bottom: 1rem;
   }
   
   .main-content {

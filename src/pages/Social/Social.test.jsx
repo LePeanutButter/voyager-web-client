@@ -16,7 +16,17 @@ const socialSvc = vi.hoisted(() => ({
   rejectConnectionRequest: vi.fn(),
 }))
 
+const travelSvc = vi.hoisted(() => ({
+  list: vi.fn().mockResolvedValue([]),
+}))
+
+const aiSvc = vi.hoisted(() => ({
+  getBuddyRecommendations: vi.fn().mockResolvedValue({ recommendations: [] }),
+}))
+
 vi.mock('../../services/socialService', () => ({ socialService: socialSvc }))
+vi.mock('../../services/travelService', () => ({ travelService: travelSvc }))
+vi.mock('../../services/aiService', () => ({ aiService: aiSvc }))
 
 describe('Social', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -27,6 +37,6 @@ describe('Social', () => {
         <Social />
       </MemoryRouter>,
     )
-    await waitFor(() => expect(screen.getByText(/traveler network/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Red de viajeros/i)).toBeInTheDocument())
   })
 })

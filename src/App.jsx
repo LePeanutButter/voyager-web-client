@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/auth-provider.jsx'
+import { AdaptiveUIProvider } from './contexts/adaptive-ui-provider.jsx'
 import { ThemeProvider } from './contexts/theme-provider.jsx'
 import Layout from './components/Layout/Layout'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
@@ -9,7 +10,6 @@ import PrivateRoute from './components/PrivateRoute'
 import Home from './pages/Home/Home'
 import Dashboard from './pages/Dashboard/Dashboard'
 import AIAssistant from './pages/AIAssistant/AIAssistant'
-import TravelPlanning from './pages/TravelPlanning/TravelPlanning'
 import BusinessDashboard from './pages/BusinessDashboard/BusinessDashboard'
 import LoginPage from './pages/Auth/LoginPage'
 import RegisterPage from './pages/Auth/RegisterPage'
@@ -22,6 +22,7 @@ import CreateTravelPlanPage from './pages/TravelPlanning/CreateTravelPlanPage'
 import EditTravelPlanPage from './pages/TravelPlanning/EditTravelPlanPage'
 import MyTravels from './pages/MyTravels/MyTravels'
 import TravelDetails from './pages/TravelDetails/TravelDetails'
+import DestinationExplorePage from './pages/DestinationExplore/DestinationExplorePage'
 import PrivacyPolicyPage from './pages/Legal/PrivacyPolicyPage'
 import TermsPage from './pages/Legal/TermsPage'
 import CookiesPage from './pages/Legal/CookiesPage'
@@ -34,6 +35,7 @@ function App() {
     <Router>
       <ThemeProvider>
         <AuthProvider>
+          <AdaptiveUIProvider>
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
@@ -48,7 +50,6 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
-                <Route path="travel-planning" element={<TravelPlanning />} />
                 <Route path="social" element={<Social />} />
                 <Route path="social/chat/:connectionId" element={<TravelerChatPage />} />
                 <Route path="behavior-analysis" element={<BehaviorAnalysisPage />} />
@@ -67,10 +68,12 @@ function App() {
                 <Route path="travel-plans/:id/edit" element={<EditTravelPlanPage />} />
                 <Route path="my-travels" element={<MyTravels />} />
                 <Route path="travel-plans/:id" element={<TravelDetails />} />
+                <Route path="explore/destination" element={<DestinationExplorePage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>
           </Routes>
+          </AdaptiveUIProvider>
         </AuthProvider>
       </ThemeProvider>
     </Router>

@@ -89,7 +89,7 @@ function TravelPreferencesQuestionnaire({
           })}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="travel-prefs-footer-actions">
           <button
             type="button"
             className="btn-primary"
@@ -257,9 +257,11 @@ const TravelPreferencesPage = () => {
           Tu perfil de viaje ha sido analizado. Estas categorizado como{' '}
           <strong style={{ color: 'var(--text-primary)', margin: '0 0.25rem' }}>{preferences?.travelerCategory || 'Explorador'}</strong>.
         </p>
-        <button type="button" className="btn-primary" onClick={() => navigate('/dashboard')}>
-          Ir al panel
-        </button>
+        <div className="travel-prefs-complete-actions">
+          <button type="button" className="btn-primary" onClick={() => navigate('/dashboard')}>
+            Ir al panel
+          </button>
+        </div>
       </div>
     )
   }

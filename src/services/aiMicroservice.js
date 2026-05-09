@@ -3,12 +3,19 @@ import { extractErrorMessage } from '../utils/errorUtils'
 import { keysToCamelCase, keysToSnakeCase } from '../utils/caseMapper'
 import { TOKEN_KEY } from './api'
 
+const AI_MICROSERVICE_TIMEOUT_MS =
+  Number(import.meta.env?.VITE_AI_MICROSERVICE_TIMEOUT_MS) > 0
+    ? Number(import.meta.env.VITE_AI_MICROSERVICE_TIMEOUT_MS)
+    : 300000
+
 /**
  * Axios instance for voyager-ai-service (FastAPI).
+ * Timeout alto por defecto: Ollama en CPU puede tardar 60s+ solo en cargar el modelo antes de responder.
+ * Override: VITE_AI_MICROSERVICE_TIMEOUT_MS (ms).
  */
 const aiMicroservice = axios.create({
   baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || '/api/v1',
-  timeout: 30000, 
+  timeout: AI_MICROSERVICE_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -56,6 +63,8 @@ function maybeRetryAiRequest(config, error, client) {
 
 function clearAiSessionIfUnauthorized(status) {
   if (status !== 401) return
+  const hadToken = Boolean(localStorage.getItem(TOKEN_KEY))
+  if (!hadToken) return
   localStorage.removeItem(TOKEN_KEY)
   if (globalThis.location?.pathname?.includes('/login')) return
   globalThis.location.href = '/login'

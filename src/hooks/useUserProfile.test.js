@@ -18,6 +18,10 @@ const authSvc = vi.hoisted(() => ({
 
 vi.mock('../services/authService', () => ({ authService: authSvc }))
 
+vi.mock('../services/voyagerCrossService', () => ({
+  provisionUserAcrossAiServices: vi.fn().mockResolvedValue(undefined),
+}))
+
 describe('useUserProfile', () => {
   beforeEach(() => {
     vi.clearAllMocks()

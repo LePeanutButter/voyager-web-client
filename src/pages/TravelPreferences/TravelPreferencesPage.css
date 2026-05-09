@@ -78,3 +78,14 @@
     padding: 2rem 1.5rem 4rem;
   }
 }
+
+/* CTA centrado en el cuestionario y en la pantalla de éxito */
+.travel-prefs-footer-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.travel-prefs-complete-actions {
+  display: flex;
+  justify-content: center;
+}

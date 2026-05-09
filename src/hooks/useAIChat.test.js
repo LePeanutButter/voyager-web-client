@@ -2,22 +2,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 
 const aiMock = vi.hoisted(() => ({
-  getHistory: vi.fn(),
-  chat: vi.fn(),
-  clearHistory: vi.fn(),
-  submitRecommendationFeedback: vi.fn(),
+  getLocalChatHistory: vi.fn(),
+  sendLocalChatMessage: vi.fn(),
+  submitLocalRecommendationFeedback: vi.fn(),
+  getTrendsDashboard: vi.fn().mockResolvedValue({ emergingDestinations: [] }),
+  rankWithLocalRecommendations: vi.fn(),
 }))
 
 vi.mock('../services/aiService', () => ({ aiService: aiMock }))
+
+vi.mock('../utils/localAiSession', () => ({
+  getOrCreateLocalChatSessionId: vi.fn((uid) => `session-${uid}`),
+  rotateLocalChatSessionId: vi.fn((uid) => `session-rotated-${uid}`),
+}))
 
 import { useAIChat } from './useAIChat'
 
 beforeEach(() => {
   vi.clearAllMocks()
-  aiMock.getHistory.mockResolvedValue({ messages: [{ role: 'user', content: 'hi' }] })
-  aiMock.chat.mockResolvedValue({ message: 'hello' })
-  aiMock.clearHistory.mockResolvedValue(undefined)
-  aiMock.submitRecommendationFeedback.mockResolvedValue(undefined)
+  aiMock.getLocalChatHistory.mockImplementation((sessionId) => {
+    if (String(sessionId).includes('rotated')) {
+      return Promise.resolve({ messages: [] })
+    }
+    return Promise.resolve({ messages: [{ role: 'user', content: 'hi' }] })
+  })
+  aiMock.sendLocalChatMessage.mockResolvedValue({ reply: 'hello' })
+  aiMock.submitLocalRecommendationFeedback.mockResolvedValue(undefined)
 })
 
 describe('useAIChat', () => {
@@ -28,7 +38,7 @@ describe('useAIChat', () => {
   })
 
   it('welcome on history failure', async () => {
-    aiMock.getHistory.mockRejectedValueOnce(new Error('404'))
+    aiMock.getLocalChatHistory.mockRejectedValueOnce(new Error('404'))
     const { result } = renderHook(() => useAIChat('2'))
     await waitFor(() => expect(result.current.loadingHistory).toBe(false))
     expect(result.current.messages[0].type).toBe('ai')
@@ -40,7 +50,7 @@ describe('useAIChat', () => {
     await act(async () => {
       await result.current.sendMessage('trip')
     })
-    expect(aiMock.chat).toHaveBeenCalled()
+    expect(aiMock.sendLocalChatMessage).toHaveBeenCalled()
   })
 
   it('sendMessage noop without userId', async () => {
@@ -48,7 +58,7 @@ describe('useAIChat', () => {
     await act(async () => {
       await result.current.sendMessage('x')
     })
-    expect(aiMock.chat).not.toHaveBeenCalled()
+    expect(aiMock.sendLocalChatMessage).not.toHaveBeenCalled()
   })
 
   it('clearHistory and submitFeedback', async () => {
@@ -57,11 +67,14 @@ describe('useAIChat', () => {
     await act(async () => {
       await result.current.clearHistory()
     })
-    expect(result.current.messages).toEqual([])
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    expect(result.current.messages).toHaveLength(1)
+    expect(result.current.messages[0].type).toBe('ai')
+    expect(result.current.messages[0].content).toMatch(/nueva|Voyager IA/i)
     await act(async () => {
       await result.current.submitFeedback('m1', 'act1', 5)
     })
-    expect(aiMock.submitRecommendationFeedback).toHaveBeenCalled()
+    expect(aiMock.submitLocalRecommendationFeedback).toHaveBeenCalled()
     act(() => result.current.clearError())
   })
 })

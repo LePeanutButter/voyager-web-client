@@ -6,7 +6,10 @@ const apiMock = vi.hoisted(() => ({
   put: vi.fn(),
 }))
 
-vi.mock('./api', () => ({ default: apiMock }))
+vi.mock('./api', () => ({
+  default: apiMock,
+  TOKEN_KEY: 'voyager_token',
+}))
 
 import { authService } from './authService'
 
@@ -33,6 +36,14 @@ describe('authService', () => {
     apiMock.get.mockResolvedValue({})
     await authService.getCurrentUser()
     expect(apiMock.get).toHaveBeenCalledWith('/users/42')
+  })
+
+  it('getCurrentUser prefers userId from JWT over stale voyager_user', async () => {
+    localStorage.setItem('voyager_token', 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjk5fQ.signature')
+    localStorage.setItem('voyager_user', JSON.stringify({ id: 42 }))
+    apiMock.get.mockResolvedValue({})
+    await authService.getCurrentUser()
+    expect(apiMock.get).toHaveBeenCalledWith('/users/99')
   })
 
   it('updateProfile', async () => {

@@ -1,54 +1,60 @@
 import aiMicroservice from './aiMicroservice'
 
 /**
- * AI service — wraps all voyager-ai-service (FastAPI) endpoints.
- * All inputs and outputs use camelCase. 
- * The aiMicroservice interceptor handles snake_case conversion for backend transport.
+ * Cliente del voyager-ai-service (FastAPI), prefijo `/api/v1`.
+ * Contrato hacia el front: camelCase; el interceptor de `aiMicroservice` pasa bodies/params a snake_case.
+ *
+ * Chat y ranking “IA local” viven en `/local` (Ollama + SQLite de memoria + recomendaciones con candidatos del cliente).
+ * El router histórico `/recommendations/*` ya no existe en el servicio refactorizado.
+ *
+ * Contratos alineados con `postman/Voyager-AI-Service.postman_collection.json` (salud en `{{rootUrl}}`, resto en `{{baseUrl}}`).
  */
 export const aiService = {
-  // ─── Chat ──────────────────────────────────────────────────────────────────
+  // ─── Ingesta base (Postman 01 — obligatorio para demos / operadores) ───────
 
-  chat: (userId, message) =>
-    aiMicroservice.post('/chat', { userId, message }),
+  ingestTrendSignals: (payload) => aiMicroservice.post('/trends/ingest/signals', payload),
+  ingestTrendSegments: (payload) => aiMicroservice.post('/trends/ingest/segments', payload),
+  ingestSeasonalityProfiles: (payload) => aiMicroservice.post('/seasonality/ingest/profiles', payload),
+  ingestMatchingProfiles: (payload) => aiMicroservice.post('/matching/profiles/ingest', payload),
 
-  getHistory: (userId) => 
-    aiMicroservice.get(`/chat/${userId}/history`),
+  // ─── IA local (stack principal) ────────────────────────────────────────────
 
-  clearHistory: (userId) => 
-    aiMicroservice.delete(`/chat/${userId}/history`),
+  /**
+   * @param {{ userId: string, sessionId: string, message: string }} payload
+   */
+  sendLocalChatMessage: (payload) => aiMicroservice.post('/local/chat/message', payload),
 
-  // ─── Recommendations ───────────────────────────────────────────────────────
-
-  getPersonalizedRecommendations: ({ userId, ...rest }) =>
-    aiMicroservice.post('/recommendations/personalized', { userId, ...rest }),
-
-  getPopularActivities: (location, limit = 10) =>
-    aiMicroservice.get(`/recommendations/popular/${encodeURIComponent(location)}`, {
+  /**
+   * @param {string} sessionId
+   * @param {number} [limit]
+   */
+  getLocalChatHistory: (sessionId, limit = 50) =>
+    aiMicroservice.get(`/local/chat/history/${encodeURIComponent(sessionId)}`, {
       params: { limit },
     }),
 
-  getTrendingActivities: (category = null, limit = 10) =>
-    aiMicroservice.get('/recommendations/trending', {
-      params: { ...(category ? { category } : {}), limit },
+  /**
+   * Ranking con candidatos reales enviados por el cliente (ver OpenAPI / README).
+   * @param {{ userId: string, query: string, limit?: number, candidates: Array<{ id: string, name: string, category: string, price?: number, contentText?: string }> }} payload
+   */
+  rankWithLocalRecommendations: (payload) => aiMicroservice.post('/local/recommendations', payload),
+
+  /**
+   * Feedback para ítems rankeados por `/local/recommendations`.
+   */
+  submitLocalRecommendationFeedback: (userId, itemId, rating) =>
+    aiMicroservice.post('/local/recommendations/feedback', null, {
+      params: { userId, itemId, rating },
     }),
 
-  getSimilarActivities: (activityId, limit = 5) =>
-    aiMicroservice.get(`/recommendations/similar/${activityId}`, {
-      params: { limit },
-    }),
+  // ─── Chat “travel planner” (ChatService / LLM) — opcional ─────────────────
+  // Misma superficie que antes, por si se usa detrás de proxy o A/B.
 
-  getCategories: () => 
-    aiMicroservice.get('/recommendations/categories'),
+  chat: (userId, message) => aiMicroservice.post('/chat', { userId, message }),
 
-  submitRecommendationFeedback: (userId, activityId, rating, feedbackText = null) =>
-    aiMicroservice.post('/recommendations/feedback', null, {
-      params: {
-        userId,
-        activityId,
-        rating,
-        ...(feedbackText ? { feedbackText } : {}),
-      },
-    }),
+  getHistory: (userId) => aiMicroservice.get(`/chat/${userId}/history`),
+
+  clearHistory: (userId) => aiMicroservice.delete(`/chat/${userId}/history`),
 
   // ─── Matching ──────────────────────────────────────────────────────────────
 
@@ -68,35 +74,6 @@ export const aiService = {
       },
     }),
 
-  // ─── Preferences (AI) ──────────────────────────────────────────────────────
-  // Canonical endpoints in backend: /travel-preferences/questionnaire/*
-  getTravelPreferences: (userId) => aiMicroservice.get(`/profile/${userId}`),
-  startQuestionnaire: (userId) =>
-    aiMicroservice.post('/travel-preferences/questionnaire/step', { 
-      userId, 
-      answers: [
-        {
-          questionId: "primary_travel_style",
-          selectedOptionIds: []
-        }
-      ]
-    }),
-  submitQuestionnaireStep: ({ userId, sessionId, answers }) =>
-    aiMicroservice.post('/travel-preferences/questionnaire/step', { userId, sessionId, answers }),
-  submitQuestionnaire: (sessionId, formattedAnswers, userId = undefined) =>
-    aiMicroservice.post('/travel-preferences/questionnaire/submit', {
-      userId,
-      sessionId,
-      answers: formattedAnswers,
-    }),
-
-  // ─── Recommendations: endpoints faltantes ─────────────────────────────────
-  getPersonalizedDestinations: (payload) =>
-    aiMicroservice.post('/recommendations/destinations/personalized', payload),
-  getContextualActivities: (payload) =>
-    aiMicroservice.post('/recommendations/activities/contextual', payload),
-
-  // ─── Matching: cobertura total ─────────────────────────────────────────────
   findTravelPartners: (payload) => aiMicroservice.post('/matching/find', payload),
   initiateConnection: (userId, targetUserId, message = null) =>
     aiMicroservice.post(`/matching/connect/${userId}/${targetUserId}`, null, {
@@ -113,12 +90,37 @@ export const aiService = {
   submitConnectionOutcome: (payload) =>
     aiMicroservice.post('/matching/learning/connection-outcome', payload),
 
-  // ─── Trends ────────────────────────────────────────────────────────────────
+  // ─── Preferencias de viaje ─────────────────────────────────────────────────
+
+  getTravelPreferences: (userId) => aiMicroservice.get(`/users/profile/${userId}`),
+  startQuestionnaire: (userId) =>
+    aiMicroservice.post('/travel-preferences/questionnaire/step', {
+      userId,
+      answers: [
+        {
+          questionId: 'primary_travel_style',
+          selectedOptionIds: [],
+        },
+      ],
+    }),
+  submitQuestionnaireStep: ({ userId, sessionId, answers }) =>
+    aiMicroservice.post('/travel-preferences/questionnaire/step', { userId, sessionId, answers }),
+  submitQuestionnaire: (sessionId, formattedAnswers, userId = undefined) =>
+    aiMicroservice.post('/travel-preferences/questionnaire/submit', {
+      userId,
+      sessionId,
+      answers: formattedAnswers,
+    }),
+
+  // ─── Tendencias (sustituye “actividades trending” del antiguo router) ────
+
   getTrendsDashboard: () => aiMicroservice.get('/trends/dashboard'),
   getSegmentInsights: (segmentId) => aiMicroservice.get(`/trends/segments/${segmentId}/insights`),
+  /** Digest semanal — en API: GET `/trends/weekly-digest` (la colección Postman usa esta ruta). */
   getWeeklyTrendsDigest: () => aiMicroservice.get('/trends/weekly-digest'),
 
-  // ─── Seasonality ───────────────────────────────────────────────────────────
+  // ─── Estacionalidad ───────────────────────────────────────────────────────
+
   getSeasonalityOverview: (referenceMonth = null) =>
     aiMicroservice.get('/seasonality/overview', {
       params: referenceMonth ? { referenceMonth } : {},
@@ -130,10 +132,12 @@ export const aiService = {
     aiMicroservice.post('/seasonality/visibility-adjustments', payload),
 
   // ─── Adaptive UI ───────────────────────────────────────────────────────────
+
   getAdaptiveMenu: (userId) => aiMicroservice.get(`/adaptive-ui/menu/${userId}`),
   getAdaptiveHomeFeed: (userId) => aiMicroservice.get(`/adaptive-ui/home-feed/${userId}`),
 
-  // ─── AI Users endpoints ────────────────────────────────────────────────────
+  // ─── Usuarios (perfil IA) ──────────────────────────────────────────────────
+
   createUserProfile: (payload) => aiMicroservice.post('/users/profile', payload),
   getUserProfile: (userId) => aiMicroservice.get(`/users/profile/${userId}`),
   updateUserProfile: (userId, payload) => aiMicroservice.put(`/users/profile/${userId}`, payload),
@@ -143,8 +147,4 @@ export const aiService = {
   getUserHistory: (userId, limit = 50) =>
     aiMicroservice.get(`/users/history/${userId}`, { params: { limit } }),
   getUserInsights: (userId) => aiMicroservice.get(`/users/insights/${userId}`),
-
-  // ─── Service-level health ──────────────────────────────────────────────────
-  getServiceRoot: () => aiMicroservice.get('/'),
-  getServiceHealth: () => aiMicroservice.get('/health'),
 }

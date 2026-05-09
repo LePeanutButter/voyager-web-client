@@ -12,6 +12,8 @@ vi.mock('../../services/travelService', () => ({
     addActivity: vi.fn(),
     updateActivity: vi.fn(),
     getCompatibleTravelers: vi.fn().mockResolvedValue([]),
+    getActivitiesByGeo: vi.fn().mockResolvedValue({ data: [] }),
+    getHotelsByCity: vi.fn().mockResolvedValue({ data: [] }),
   },
 }))
 
