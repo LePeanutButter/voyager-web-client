@@ -58,10 +58,36 @@ export const aiService = {
 
   // ─── Matching ──────────────────────────────────────────────────────────────
 
-  getBuddyRecommendations: (userId, location = null, limit = 10) =>
-    aiMicroservice.get(`/matching/recommendations/${userId}`, {
-      params: { limit, ...(location ? { location } : {}) },
-    }),
+  /**
+   * @param {string} userId
+   * @param {string | null | { location?: string | null, seekerFootprint?: string[] | null, limit?: number }} locationOrOptions
+   * @param {number} [limitArg]
+   */
+  getBuddyRecommendations: (userId, locationOrOptions = null, limitArg = 10) => {
+    let location = null
+    let seekerFootprint = null
+    let limit = limitArg
+    if (
+      locationOrOptions != null &&
+      typeof locationOrOptions === 'object' &&
+      !Array.isArray(locationOrOptions)
+    ) {
+      location = locationOrOptions.location ?? null
+      seekerFootprint = locationOrOptions.seekerFootprint ?? locationOrOptions.seeker_footprint ?? null
+      limit = locationOrOptions.limit ?? limitArg
+    } else {
+      location = locationOrOptions
+    }
+    const params = { limit }
+    if (location) params.location = location
+    if (seekerFootprint) {
+      const fp = Array.isArray(seekerFootprint)
+        ? seekerFootprint.filter(Boolean).join(',')
+        : String(seekerFootprint)
+      if (fp) params.seekerFootprint = fp
+    }
+    return aiMicroservice.get(`/matching/recommendations/${encodeURIComponent(userId)}`, { params })
+  },
 
   getCompatibilityScore: (userId, targetUserId) =>
     aiMicroservice.get(`/matching/compatibility/${userId}/${targetUserId}`),

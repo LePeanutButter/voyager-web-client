@@ -218,7 +218,73 @@
 .icon-btn.danger:hover { background: var(--color-danger-light); color: var(--color-danger); }
 
 /* Compatible travelers */
+.travel-details-compat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+a.travel-details-social-link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.travel-details-compat-notice {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem;
+  padding: 0 0.25rem;
+}
+
 .compat-list { display: flex; flex-direction: column; padding: 0.75rem 0; }
+
+.compat-item--row {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.compat-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.compat-item-text {
+  min-width: 0;
+}
+
+.compat-footprint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0.35rem 0 0;
+  line-height: 1.35;
+}
+
+.compat-ia-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: var(--color-info-light);
+  color: var(--voyager-blue);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.compat-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
 
 .compat-item {
   display: flex;
@@ -247,12 +313,8 @@
 .compat-item h4 { font-size: 0.9rem; font-weight: 600; margin: 0 0 0.125rem; color: var(--text-primary); }
 .compat-item p { font-size: 0.8125rem; color: var(--text-secondary); margin: 0; }
 
-.compat-score {
-  margin-left: auto;
-  font-size: 0.875rem;
-  font-weight: 800;
-  color: var(--color-success);
-  flex-shrink: 0;
+.compat-item-actions .compat-score {
+  margin-left: 0;
 }
 
 /* form row for modal */

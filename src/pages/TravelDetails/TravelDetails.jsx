@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../../contexts/use-auth.js'
 import { travelService } from '../../services/travelService'
 import { socialService } from '../../services/socialService'
+import { aiService } from '../../services/aiService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
 import { extractErrorMessage } from '../../utils/errorUtils'
 import {
   MapPin, Calendar, Users, DollarSign, ArrowLeft,
   Edit, Plus, Trash2, Globe, Clock,
-  Activity, UserCheck,
+  Activity, UserCheck, UserPlus, Sparkles,
 } from 'lucide-react'
 import './TravelDetails.css'
 import QuickEditModal from '../../components/TravelPlan/QuickEditModal'
@@ -18,6 +20,7 @@ import {
   planDayStartDatetimeLocal,
   planDayEndDatetimeLocal,
 } from '../../utils/planActivityDatetimeBounds'
+import { mergeDiscoveryMatches, normalizeTravelerListResponse } from '../../utils/planTravelerMatches'
 
 const statusConfig = {
   PLANNING:  { label: 'Planificando',  cls: 'badge-planning'  },
@@ -327,7 +330,7 @@ ActivityList.propTypes = {
   onDelete: PropTypes.func.isRequired,
 }
 
-const CompatibleTravelersList = ({ loading, travelers }) => {
+const CompatibleTravelersList = ({ loading, travelers, onConnect, connectingId }) => {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -347,27 +350,49 @@ const CompatibleTravelersList = ({ loading, travelers }) => {
   if (travelers.length === 0) {
     return (
       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>
-        {'Haz clic en “Buscar” para descubrir viajeros con planes similares'}
+        {'Haz clic en “Buscar” para cargar viajeros compatibles (planes solapados + sugerencias IA).'}
       </p>
     )
   }
 
   return (
     <div className="compat-list">
-      {travelers.map((t) => (
-        <div key={t.id ?? t.username ?? `${t.firstName}-${t.lastName}`} className="compat-item">
-          <div className="compat-avatar">
-            {(t.firstName || t.username || '?')[0].toUpperCase()}
+      {travelers.map((t) => {
+        const uid = t.userId ?? t.user_id ?? t.id
+        const shared = t.sharedDestinations?.length ? t.sharedDestinations : t.shared_destinations
+        return (
+          <div key={uid ?? t.username ?? `${t.firstName}-${t.lastName}`} className="compat-item compat-item--row">
+            <div className="compat-item-main">
+              <div className="compat-avatar">
+                {(t.firstName || t.username || '?')[0].toUpperCase()}
+              </div>
+              <div className="compat-item-text">
+                <h4>{t.firstName} {t.lastName}</h4>
+                <p>@{t.username}</p>
+                {Array.isArray(shared) && shared.length > 0 && (
+                  <p className="compat-footprint">Huella en común: {shared.join(', ')}</p>
+                )}
+                {(t.source === 'ai' || t.source === 'both') && (
+                  <span className="compat-ia-badge"><Sparkles size={11} /> IA</span>
+                )}
+              </div>
+            </div>
+            <div className="compat-item-actions">
+              {t.compatibilityScore != null && (
+                <span className="compat-score">{Math.round(Math.min(1, Math.max(0, t.compatibilityScore)) * 100)}%</span>
+              )}
+              <button
+                type="button"
+                className="btn-outline-sm"
+                disabled={!uid || connectingId === uid}
+                onClick={() => onConnect(uid)}
+              >
+                <UserPlus size={14} /> {connectingId === uid ? 'Enviando…' : 'Conectar'}
+              </button>
+            </div>
           </div>
-          <div>
-            <h4>{t.firstName} {t.lastName}</h4>
-            <p>@{t.username}</p>
-          </div>
-          {t.compatibilityScore != null && (
-            <span className="compat-score">{Math.round(t.compatibilityScore * 100)}%</span>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -375,6 +400,8 @@ const CompatibleTravelersList = ({ loading, travelers }) => {
 CompatibleTravelersList.propTypes = {
   loading: PropTypes.bool.isRequired,
   travelers: PropTypes.array.isRequired,
+  onConnect: PropTypes.func.isRequired,
+  connectingId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 }
 
 function catalogDefaultTimes(plan) {
@@ -500,7 +527,10 @@ function TravelDetailsView({
   handleDeleteActivity,
   compatTravelers,
   compatLoading,
+  compatNotice,
   loadCompatibleTravelers,
+  compatConnectingId,
+  onConnectTraveler,
   onQuickEdit,
   onPickCatalogActivity,
 }) {
@@ -564,13 +594,30 @@ function TravelDetailsView({
                 <UserCheck size={18} />
                 <h2>Viajeros compatibles</h2>
               </div>
-              {compatTravelers.length === 0 && (
-                <button type="button" className="btn-outline-sm" onClick={loadCompatibleTravelers} disabled={compatLoading}>
-                  {compatLoading ? 'Cargando…' : 'Buscar'}
-                </button>
-              )}
+              <div className="travel-details-compat-actions">
+                {compatTravelers.length === 0 ? (
+                  <button type="button" className="btn-outline-sm" onClick={loadCompatibleTravelers} disabled={compatLoading}>
+                    {compatLoading ? 'Cargando…' : 'Buscar'}
+                  </button>
+                ) : (
+                  <button type="button" className="btn-outline-sm" onClick={loadCompatibleTravelers} disabled={compatLoading}>
+                    {compatLoading ? 'Cargando…' : 'Actualizar'}
+                  </button>
+                )}
+                <Link to="/social" state={{ focusPlanId: id }} className="btn-outline-sm travel-details-social-link">
+                  Red de viajeros
+                </Link>
+              </div>
             </div>
-            <CompatibleTravelersList loading={compatLoading} travelers={compatTravelers} />
+            {compatNotice && (
+              <p className="travel-details-compat-notice" role="status">{compatNotice}</p>
+            )}
+            <CompatibleTravelersList
+              loading={compatLoading}
+              travelers={compatTravelers}
+              onConnect={onConnectTraveler}
+              connectingId={compatConnectingId}
+            />
           </div>
         </div>
       </div>
@@ -608,7 +655,10 @@ TravelDetailsView.propTypes = {
   handleDeleteActivity: PropTypes.func.isRequired,
   compatTravelers: PropTypes.array.isRequired,
   compatLoading: PropTypes.bool.isRequired,
+  compatNotice: PropTypes.string,
   loadCompatibleTravelers: PropTypes.func.isRequired,
+  compatConnectingId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onConnectTraveler: PropTypes.func.isRequired,
   onQuickEdit: PropTypes.func.isRequired,
   onPickCatalogActivity: PropTypes.func.isRequired,
 }
@@ -617,6 +667,7 @@ TravelDetailsView.propTypes = {
 const TravelDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -624,6 +675,8 @@ const TravelDetails = () => {
   const [statusLoading, setStatusLoading] = useState(false)
   const [compatTravelers, setCompatTravelers] = useState([])
   const [compatLoading, setCompatLoading] = useState(false)
+  const [compatNotice, setCompatNotice] = useState(null)
+  const [compatConnectingId, setCompatConnectingId] = useState(null)
   const [showQuickEdit, setShowQuickEdit] = useState(false)
   const [activityPrefill, setActivityPrefill] = useState(null)
 
@@ -694,15 +747,35 @@ const TravelDetails = () => {
     setActiveModal('add')
   }
 
-  const loadCompatibleTravelers = async () => {
+  const loadCompatibleTravelers = useCallback(async () => {
+    if (!plan) return
     setCompatLoading(true)
+    setCompatNotice(null)
     try {
-      const result = await travelService.getCompatibleTravelers(id)
-      const travelers = Array.isArray(result) ? result : []
+      const raw = await travelService.getCompatibleTravelers(id)
+      const baseList = normalizeTravelerListResponse(raw)
+      const dest = plan.destinationLocation || plan.destination_location || ''
+      const footprint = dest ? [String(dest).trim()] : []
+
+      let buddies = {}
+      if (user?.id) {
+        try {
+          buddies = await aiService.getBuddyRecommendations(String(user.id), {
+            location: dest || null,
+            seekerFootprint: footprint.length ? footprint : null,
+            limit: 12,
+          })
+        } catch {
+          buddies = {}
+        }
+      }
+
+      const merged = mergeDiscoveryMatches(baseList, buddies, dest, user?.id)
+
       const enriched = await Promise.all(
-        travelers.map(async (traveler) => {
-          const travelerId = traveler?.id ?? traveler?.userId
-          if (!travelerId) return traveler
+        merged.map(async (traveler) => {
+          const travelerId = traveler?.userId ?? traveler?.user_id ?? traveler?.id
+          if (travelerId == null) return traveler
           try {
             const summary = await socialService.getTravelerSummary(travelerId)
             return { ...summary, ...traveler }
@@ -712,12 +785,34 @@ const TravelDetails = () => {
         })
       )
       setCompatTravelers(enriched)
-    } catch {
+      if (enriched.length === 0) {
+        setCompatNotice('No hay coincidencias para este plan. Puedes ampliar en Red de viajeros (Descubrir).')
+      }
+    } catch (e) {
       setCompatTravelers([])
+      setCompatNotice(extractErrorMessage(e) || 'No se pudieron obtener viajeros compatibles.')
     } finally {
       setCompatLoading(false)
     }
-  }
+  }, [id, plan, user?.id])
+
+  const handleCompatConnect = useCallback(async (recipientId) => {
+    setCompatConnectingId(recipientId)
+    try {
+      await socialService.sendConnectionRequest({
+        recipientId,
+        message: '¡Hola! Vi que tenemos planes compatibles.',
+      })
+      globalThis.alert('Solicitud de conexión enviada.')
+      setCompatTravelers((prev) =>
+        prev.filter((t) => String(t.userId ?? t.user_id ?? t.id) !== String(recipientId))
+      )
+    } catch (e) {
+      setCompatNotice(extractErrorMessage(e) || 'No se pudo enviar la solicitud.')
+    } finally {
+      setCompatConnectingId(null)
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -769,7 +864,10 @@ const TravelDetails = () => {
         handleDeleteActivity={handleDeleteActivity}
         compatTravelers={compatTravelers}
         compatLoading={compatLoading}
+        compatNotice={compatNotice}
         loadCompatibleTravelers={loadCompatibleTravelers}
+        compatConnectingId={compatConnectingId}
+        onConnectTraveler={handleCompatConnect}
         onQuickEdit={() => setShowQuickEdit(true)}
         onPickCatalogActivity={handlePickCatalogActivity}
       />

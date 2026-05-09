@@ -56,6 +56,7 @@ describe('aiService', () => {
     await aiService.getTrendsDashboard()
     expect(aiMock.get).toHaveBeenCalledWith('/trends/dashboard')
     await aiService.getBuddyRecommendations(1, null, 10)
+    expect(aiMock.get).toHaveBeenCalledWith('/matching/recommendations/1', { params: { limit: 10 } })
     await aiService.getCompatibilityScore(1, 2)
     expect(aiMock.get).toHaveBeenCalledWith('/matching/compatibility/1/2')
     aiMock.post.mockResolvedValue({})

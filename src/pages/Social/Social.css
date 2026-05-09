@@ -76,6 +76,12 @@
   cursor: pointer;
 }
 
+.social-discover-profile-hit:focus-visible {
+  outline: 2px solid var(--voyager-blue);
+  outline-offset: 2px;
+  border-radius: var(--border-radius);
+}
+
 .social-discover-ai-name {
   display: block;
   font-size: 0.86rem;
@@ -100,19 +106,34 @@
   border: 1px solid var(--border-color);
 }
 
-.social-profile-overlay {
+.social-profile-overlay-root {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  background: rgba(0, 0, 0, 0.35);
+  z-index: 10050;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  box-sizing: border-box;
+}
+
+.social-profile-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
 }
 
 .social-profile-modal {
+  position: relative;
+  z-index: 1;
   width: min(520px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-xl);
   background: var(--surface-card);

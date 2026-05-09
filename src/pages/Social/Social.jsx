@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/use-auth.js'
 import { socialService } from '../../services/socialService'
 import { travelService } from '../../services/travelService'
@@ -8,6 +8,12 @@ import { aiService } from '../../services/aiService'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import SkeletonLoader from '../../components/UI/SkeletonLoader'
 import { Users, Search, MessageCircle, UserPlus, Check, X, Trash2, Sparkles, MapPin, Calendar } from 'lucide-react'
+import { mergeDiscoveryMatches, normalizeTravelerListResponse } from '../../utils/planTravelerMatches'
+import {
+  checkDiscoverRefreshAllowed,
+  recordDiscoverManualRefresh,
+  DISCOVER_REFRESH_COOLDOWN_MS,
+} from '../../utils/discoverRefreshLimiter'
 import './Social.css'
 
 const BORDER_DEFAULT = '1px solid var(--border-color)'
@@ -206,78 +212,13 @@ function formatDiscoverDate(v) {
   }
 }
 
-const safeParseJson = (value) => {
-  if (typeof value !== 'string') return value
-  try {
-    return JSON.parse(value)
-  } catch {
-    return value
-  }
-}
-
-const resolveRecommendations = (buddyPayload) => {
-  const normalized = safeParseJson(buddyPayload)
-  const maybeData = safeParseJson(normalized?.data)
-  const container = maybeData && typeof maybeData === 'object' ? maybeData : normalized
-  const recs = container?.recommendations ?? normalized?.recommendations ?? []
-  return Array.isArray(recs) ? recs : []
-}
-
-function mergeDiscoveryMatches(compatList, buddyPayload, planDestination) {
-  const byId = new Map()
-  const addBackend = (m) => {
-    const uid = m.userId ?? m.user_id ?? m.id
-    if (uid == null) return
-    byId.set(String(uid), {
-      userId: uid,
-      firstName: m.firstName ?? m.first_name ?? 'Viajero',
-      lastName: m.lastName ?? m.last_name ?? '',
-      username: m.username ?? `user_${uid}`,
-      compatibilityScore: Number(m.compatibilityScore ?? m.compatibility_score ?? 0),
-      travelPlanTitle: m.travelPlanTitle ?? m.travel_plan_title ?? null,
-      destinationLocation: m.destinationLocation ?? m.destination_location ?? null,
-      travelStartDate: m.travelStartDate ?? m.travel_start_date ?? null,
-      travelEndDate: m.travelEndDate ?? m.travel_end_date ?? null,
-      source: 'backend',
-    })
-  }
-  for (const m of compatList || []) addBackend(m)
-
-  const recs = resolveRecommendations(buddyPayload)
-
-  for (const r of recs) {
-    const uid = r.userId ?? r.user_id ?? r.id
-    if (uid == null) continue
-    const id = String(uid)
-    if (byId.has(id)) continue
-    const name = String(r.name || '').trim()
-    const parts = name.split(/\s+/)
-    const fn = parts[0] || 'Viajero'
-    const ln = parts.slice(1).join(' ')
-    byId.set(id, {
-      userId: uid,
-      firstName: fn,
-      lastName: ln,
-      username: r.username ?? `user_${id}`,
-      compatibilityScore: Number(r.compatibilityScore ?? r.compatibility_score ?? 0.75),
-      travelPlanTitle: null,
-      destinationLocation: planDestination || null,
-      travelStartDate: null,
-      travelEndDate: null,
-      source: 'ai',
-    })
-  }
-
-  return Array.from(byId.values()).sort(
-    (a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0)
-  )
-}
-
 function SocialDiscoverPanel({
   myPlans,
   selectedPlanId,
   setSelectedPlanId,
   discoverLoading,
+  discoverManualCooldownSec,
+  discoverRefreshNotice,
   aiMatches,
   matches,
   handleSendRequest,
@@ -290,6 +231,12 @@ function SocialDiscoverPanel({
         Elige uno de <strong>tus planes</strong>: cargamos automáticamente viajeros compatibles (backend) y
         sugerencias del servicio de IA. Puedes actualizar cuando cambies de plan.
       </p>
+
+      {discoverRefreshNotice && (
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-warning)', marginBottom: '0.75rem' }} role="status">
+          {discoverRefreshNotice}
+        </p>
+      )}
 
       {myPlans.length === 0 ? (
         <div style={{ ...EMPTY_STATE_STYLE, padding: '2rem 1rem' }}>
@@ -324,8 +271,17 @@ function SocialDiscoverPanel({
               ))}
             </select>
           </div>
-          <button type="button" className="btn-outline-sm" onClick={onRefresh} disabled={discoverLoading || !selectedPlanId}>
-            {discoverLoading ? 'Actualizando…' : 'Actualizar sugerencias'}
+          <button
+            type="button"
+            className="btn-outline-sm"
+            onClick={onRefresh}
+            disabled={discoverLoading || discoverManualCooldownSec > 0}
+          >
+            {discoverLoading
+              ? 'Actualizando…'
+              : discoverManualCooldownSec > 0
+                ? `Actualizar (${discoverManualCooldownSec}s)`
+                : 'Actualizar sugerencias'}
           </button>
         </div>
       )}
@@ -366,12 +322,13 @@ function SocialDiscoverPanel({
           const endL = formatDiscoverDate(match.travelEndDate)
           const dateLine =
             startL && endL ? `${startL} – ${endL}` : startL || endL || null
+          const shared = match.sharedDestinations?.length
+            ? match.sharedDestinations
+            : match.shared_destinations
           return (
-            <button
-              type="button"
+            <div
               key={String(uid)}
               className="social-discover-item"
-              onClick={() => onViewProfile(match)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -384,10 +341,25 @@ function SocialDiscoverPanel({
                 flexWrap: 'wrap',
                 width: '100%',
                 textAlign: 'left',
-                cursor: 'pointer',
               }}
             >
-              <div style={{ ...FLEX_ROW_GAP, flex: '1 1 240px' }}>
+              <button
+                type="button"
+                className="social-discover-profile-hit"
+                onClick={() => onViewProfile(match)}
+                style={{
+                  ...FLEX_ROW_GAP,
+                  flex: '1 1 240px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  margin: 0,
+                  font: 'inherit',
+                  color: 'inherit',
+                  textAlign: 'left',
+                }}
+              >
                 <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--color-info-light)', color: 'var(--voyager-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem' }}>
                   {(match.firstName?.[0] || match.username?.[0] || '?').toUpperCase()}
                 </div>
@@ -413,30 +385,32 @@ function SocialDiscoverPanel({
                       <Calendar size={14} /> {dateLine}
                     </p>
                   )}
+                  {Array.isArray(shared) && shared.length > 0 && (
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.8125rem', color: TEXT_SECONDARY, lineHeight: 1.4 }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Huella en común:</strong> {shared.join(', ')}
+                    </p>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'var(--color-success-light)', color: 'var(--color-success)', padding: '2px 8px', borderRadius: '12px' }}>
                       {Math.round(Math.min(1, Math.max(0, match.compatibilityScore || 0)) * 100)}% compatibilidad
                     </span>
-                    {match.source === 'ai' && (
+                    {(match.source === 'ai' || match.source === 'both') && (
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, background: 'var(--color-info-light)', color: 'var(--voyager-blue)', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                         <Sparkles size={12} /> IA
                       </span>
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
               <button
                 type="button"
                 className="btn-outline-sm"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  handleSendRequest(uid)
-                }}
+                onClick={() => handleSendRequest(uid)}
                 disabled={!uid}
               >
                 <UserPlus size={16} /> Conectar
               </button>
-            </button>
+            </div>
           )
         })}
       </div>
@@ -455,6 +429,8 @@ SocialDiscoverPanel.propTypes = {
   selectedPlanId: PropTypes.string.isRequired,
   setSelectedPlanId: PropTypes.func.isRequired,
   discoverLoading: PropTypes.bool.isRequired,
+  discoverManualCooldownSec: PropTypes.number.isRequired,
+  discoverRefreshNotice: PropTypes.string,
   aiMatches: PropTypes.arrayOf(PropTypes.object).isRequired,
   matches: PropTypes.arrayOf(PropTypes.object).isRequired,
   handleSendRequest: PropTypes.func.isRequired,
@@ -465,6 +441,7 @@ SocialDiscoverPanel.propTypes = {
 const Social = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [activeTab, setActiveTab] = useState('connections') // 'connections', 'requests', 'discover'
   
   const [connections, setConnections] = useState([])
@@ -480,6 +457,23 @@ const Social = () => {
   const [discoverLoading, setDiscoverLoading] = useState(false)
   const [profileLoading, setProfileLoading] = useState(false)
   const [activeTravelerProfile, setActiveTravelerProfile] = useState(null)
+  const refreshAttemptsRef = useRef([])
+  const [discoverManualCooldownUntil, setDiscoverManualCooldownUntil] = useState(0)
+  const [discoverCooldownTick, setDiscoverCooldownTick] = useState(0)
+  const [discoverRefreshNotice, setDiscoverRefreshNotice] = useState('')
+
+  const discoverManualCooldownSec = useMemo(() => {
+    void discoverCooldownTick
+    if (!discoverManualCooldownUntil) return 0
+    const left = Math.ceil((discoverManualCooldownUntil - Date.now()) / 1000)
+    return left > 0 ? left : 0
+  }, [discoverManualCooldownUntil, discoverCooldownTick])
+
+  useEffect(() => {
+    if (discoverManualCooldownUntil <= Date.now()) return undefined
+    const id = setInterval(() => setDiscoverCooldownTick((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [discoverManualCooldownUntil])
 
   const loadSocialData = useCallback(async () => {
     if (!user?.id) return
@@ -528,38 +522,99 @@ const Social = () => {
     }
   }, [activeTab, user?.id])
 
-  const fetchDiscoverMatches = useCallback(async () => {
-    if (!user?.id || !selectedPlanId) {
-      setMatches([])
+  useEffect(() => {
+    const fid = location.state?.focusPlanId
+    if (fid == null) return
+    setActiveTab('discover')
+    setSelectedPlanId(String(fid))
+    const prev = location.state && typeof location.state === 'object' ? { ...location.state } : {}
+    delete prev.focusPlanId
+    navigate(location.pathname, { replace: true, state: prev })
+  }, [location.pathname, location.state, navigate])
+
+  const fetchDiscoverMatches = useCallback(
+    async (options = {}) => {
+      const { recordManualSuccess = false } = options
+      if (!user?.id) {
+        setMatches([])
+        setAiMatches([])
+        return
+      }
+      if (!myPlans.length) {
+        setMatches([])
+        setAiMatches([])
+        return
+      }
+      setDiscoverLoading(true)
+      setError(null)
+      try {
+        const planMeta =
+          myPlans.find((p) => String(p.id) === String(selectedPlanId)) || myPlans[0]
+        const compatPlanId = selectedPlanId || String(planMeta.id)
+        const dest = planMeta?.destinationLocation || planMeta?.destination_location || ''
+        const footprint = [
+          ...new Set(
+            myPlans
+              .map((p) => p.destinationLocation || p.destination_location)
+              .filter(Boolean)
+              .map((x) => String(x).trim())
+          ),
+        ]
+        const [compat, buddies] = await Promise.all([
+          socialService.getCompatibleTravelers(compatPlanId).catch(() => []),
+          aiService
+            .getBuddyRecommendations(String(user.id), {
+              location: dest || null,
+              seekerFootprint: footprint.length ? footprint : null,
+              limit: 15,
+            })
+            .catch(() => ({})),
+        ])
+        const merged = mergeDiscoveryMatches(
+          normalizeTravelerListResponse(compat),
+          buddies,
+          dest,
+          user.id
+        )
+        const onlyAi = merged
+          .filter((m) => m.source === 'ai' || m.source === 'both')
+          .slice(0, 4)
+        const aiIds = new Set(onlyAi.map((m) => String(m.userId ?? m.user_id)))
+        const ranked = [...onlyAi, ...merged.filter((m) => !aiIds.has(String(m.userId ?? m.user_id)))]
+        setAiMatches(onlyAi)
+        setMatches(ranked)
+        if (recordManualSuccess) {
+          recordDiscoverManualRefresh(refreshAttemptsRef)
+          setDiscoverManualCooldownUntil(Date.now() + DISCOVER_REFRESH_COOLDOWN_MS)
+          setDiscoverCooldownTick((n) => n + 1)
+        }
+      } catch (err) {
+        setError(err?.message || 'No se pudieron cargar las sugerencias.')
+        setAiMatches([])
+        setMatches([])
+      } finally {
+        setDiscoverLoading(false)
+      }
+    },
+    [user?.id, selectedPlanId, myPlans]
+  )
+
+  const handleManualDiscoverRefresh = useCallback(() => {
+    const gate = checkDiscoverRefreshAllowed(refreshAttemptsRef)
+    if (!gate.ok) {
+      const sec = Math.max(1, Math.ceil(gate.retryAfterMs / 1000))
+      setDiscoverRefreshNotice(
+        gate.code === 'rate'
+          ? `Has alcanzado el límite de actualizaciones. Vuelve a intentar en ${sec} s.`
+          : `Por seguridad, espera ${sec} s antes de volver a actualizar.`
+      )
+      setDiscoverManualCooldownUntil(Date.now() + gate.retryAfterMs)
+      setDiscoverCooldownTick((n) => n + 1)
       return
     }
-    setDiscoverLoading(true)
-    setError(null)
-    try {
-      const planMeta = myPlans.find((p) => String(p.id) === String(selectedPlanId))
-      const dest = planMeta?.destinationLocation || ''
-      const [compat, buddies] = await Promise.all([
-        socialService.getCompatibleTravelers(selectedPlanId).catch(() => []),
-        aiService.getBuddyRecommendations(String(user.id), dest || null, 15).catch(() => ({})),
-      ])
-      const merged = mergeDiscoveryMatches(
-        Array.isArray(compat) ? compat : [],
-        buddies,
-        dest
-      )
-      const onlyAi = merged.filter((m) => m.source === 'ai').slice(0, 4)
-      const aiIds = new Set(onlyAi.map((m) => String(m.userId ?? m.user_id)))
-      const ranked = [...onlyAi, ...merged.filter((m) => !aiIds.has(String(m.userId ?? m.user_id)))]
-      setAiMatches(onlyAi)
-      setMatches(ranked)
-    } catch (err) {
-      setError(err?.message || 'No se pudieron cargar las sugerencias.')
-      setAiMatches([])
-      setMatches([])
-    } finally {
-      setDiscoverLoading(false)
-    }
-  }, [user?.id, selectedPlanId, myPlans])
+    setDiscoverRefreshNotice('')
+    fetchDiscoverMatches({ recordManualSuccess: true })
+  }, [fetchDiscoverMatches])
 
   const openTravelerProfile = async (traveler) => {
     const travelerId = traveler?.userId ?? traveler?.user_id ?? traveler?.id
@@ -580,9 +635,23 @@ const Social = () => {
   }
 
   useEffect(() => {
-    if (activeTab !== 'discover' || !selectedPlanId || !user?.id) return
+    if (activeTab !== 'discover' || !user?.id) return
+    if (!myPlans.length) return
     fetchDiscoverMatches()
-  }, [activeTab, selectedPlanId, user?.id, fetchDiscoverMatches])
+  }, [activeTab, user?.id, myPlans.length, fetchDiscoverMatches])
+
+  useEffect(() => {
+    if (activeTab !== 'discover') setDiscoverRefreshNotice('')
+  }, [activeTab])
+
+  useEffect(() => {
+    if (!activeTravelerProfile) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') setActiveTravelerProfile(null)
+    }
+    globalThis.addEventListener('keydown', onKey)
+    return () => globalThis.removeEventListener('keydown', onKey)
+  }, [activeTravelerProfile])
 
   const handleSendRequest = async (recipientId) => {
     try {
@@ -677,20 +746,33 @@ const Social = () => {
             selectedPlanId={selectedPlanId}
             setSelectedPlanId={setSelectedPlanId}
             discoverLoading={discoverLoading}
+            discoverManualCooldownSec={discoverManualCooldownSec}
+            discoverRefreshNotice={discoverRefreshNotice}
             aiMatches={aiMatches}
             matches={matches}
             handleSendRequest={handleSendRequest}
-            onRefresh={fetchDiscoverMatches}
+            onRefresh={handleManualDiscoverRefresh}
             onViewProfile={openTravelerProfile}
           />
         )}
       </div>
 
       {activeTravelerProfile && (
-        <dialog open className="social-profile-overlay">
-          <div className="social-profile-modal">
+        <div className="social-profile-overlay-root">
+          <button
+            type="button"
+            className="social-profile-backdrop"
+            aria-label="Cerrar"
+            onClick={() => setActiveTravelerProfile(null)}
+          />
+          <div
+            className="social-profile-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="social-profile-title"
+          >
             <div className="social-profile-head">
-              <h3>
+              <h3 id="social-profile-title">
                 {activeTravelerProfile.firstName} {activeTravelerProfile.lastName}
               </h3>
               <button type="button" className="btn-ghost" onClick={() => setActiveTravelerProfile(null)}>
@@ -704,6 +786,12 @@ const Social = () => {
             {activeTravelerProfile.destinationLocation && (
               <p className="social-profile-line">Destino: {activeTravelerProfile.destinationLocation}</p>
             )}
+            {Array.isArray(activeTravelerProfile.sharedDestinations) &&
+              activeTravelerProfile.sharedDestinations.length > 0 && (
+                <p className="social-profile-line">
+                  Huella en común: {activeTravelerProfile.sharedDestinations.join(', ')}
+                </p>
+              )}
             {profileLoading ? (
               <p className="social-profile-line">Cargando perfil...</p>
             ) : (
@@ -720,7 +808,7 @@ const Social = () => {
               </>
             )}
           </div>
-        </dialog>
+        </div>
       )}
     </div>
   )
