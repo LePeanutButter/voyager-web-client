@@ -141,4 +141,56 @@ describe('useAIChat', () => {
     })
     expect(aiMock.rankWithLocalRecommendations).not.toHaveBeenCalled()
   })
+
+  it('sendMessage no-op on blank text', async () => {
+    const { result } = renderHook(() => useAIChat('9'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    await act(async () => {
+      await result.current.sendMessage('   ')
+    })
+    expect(aiMock.sendLocalChatMessage).not.toHaveBeenCalled()
+  })
+
+  it('welcome message when history is empty array', async () => {
+    aiMock.getLocalChatHistory.mockResolvedValueOnce({ messages: [] })
+    const { result } = renderHook(() => useAIChat('10'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    expect(result.current.messages[0].id).toBe('welcome')
+    expect(result.current.messages[0].content).toMatch(/Voyager IA/)
+  })
+
+  it('ranking failure still appends AI reply', async () => {
+    aiMock.getTrendsDashboard.mockResolvedValueOnce({
+      emergingDestinations: [{ destinationId: '1', name: 'X', tags: ['t'] }],
+    })
+    aiMock.rankWithLocalRecommendations.mockRejectedValueOnce(new Error('rank-down'))
+    aiMock.sendLocalChatMessage.mockResolvedValueOnce({ reply: 'sigue' })
+    const { result } = renderHook(() => useAIChat('11'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    await act(async () => {
+      await result.current.sendMessage('dame recomendaciones')
+    })
+    expect(result.current.messages.at(-1).content).toBe('sigue')
+  })
+
+  it('scrollMessagesPanelToBottom finds overflow parent', async () => {
+    const g = vi.spyOn(globalThis, 'getComputedStyle').mockReturnValue({ overflowY: 'auto' })
+    const { result } = renderHook(() => useAIChat('12'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    const scrollTo = vi.fn()
+    const panel = document.createElement('div')
+    Object.defineProperty(panel, 'scrollHeight', { value: 500, configurable: true })
+    Object.defineProperty(panel, 'clientHeight', { value: 100, configurable: true })
+    panel.scrollTo = scrollTo
+    const anchor = document.createElement('div')
+    panel.appendChild(anchor)
+    document.body.appendChild(panel)
+    result.current.messagesEndRef.current = anchor
+    await act(async () => {
+      await result.current.sendMessage('hola')
+    })
+    expect(scrollTo).toHaveBeenCalled()
+    document.body.removeChild(panel)
+    g.mockRestore()
+  })
 })

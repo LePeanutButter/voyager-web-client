@@ -34,7 +34,7 @@ const EDIT_CONTAINER = {
 
 const EditTravelPlanPage = () => {
   const navigate = useNavigate()
-  const { planId } = useParams()
+  const { id: planId } = useParams()
   const { error, clearError } = useTravelPlans(true)
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)

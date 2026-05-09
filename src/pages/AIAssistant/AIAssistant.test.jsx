@@ -81,4 +81,73 @@ describe('AIAssistant', () => {
     render(<AIAssistant />)
     expect(document.getElementById('chat-messages-container')).toBeTruthy()
   })
+
+  it('limpia historial si el usuario confirma', async () => {
+    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
+    render(<AIAssistant />)
+    await userEvent.click(screen.getByRole('button', { name: /Limpiar/i }))
+    expect(chat.clearHistory).toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
+
+  it('no limpia historial si el usuario cancela', async () => {
+    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(false)
+    render(<AIAssistant />)
+    await userEvent.click(screen.getByRole('button', { name: /Limpiar/i }))
+    expect(chat.clearHistory).not.toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
+
+  it('pregunta rapida rellena el input', async () => {
+    render(<AIAssistant />)
+    await userEvent.click(screen.getByRole('button', { name: /Encuentra destinos romanticos/i }))
+    expect(screen.getByLabelText('Chat message input')).toHaveValue(
+      'Encuentra destinos romanticos en Europa',
+    )
+  })
+
+  it('chips de sugerencias en mensaje IA', async () => {
+    chat.messages = [
+      {
+        id: 'm2',
+        type: 'ai',
+        content: 'Opciones',
+        timestamp: '2026-01-01T12:00:00Z',
+        suggestions: [{ text: 'Chip uno' }, 'Chip dos'],
+      },
+    ]
+    render(<AIAssistant />)
+    await userEvent.click(screen.getByRole('button', { name: /Chip uno/i }))
+    expect(screen.getByLabelText('Chat message input')).toHaveValue('Chip uno')
+    await userEvent.click(screen.getByRole('button', { name: /Chip dos/i }))
+    expect(screen.getByLabelText('Chat message input')).toHaveValue('Chip dos')
+  })
+
+  it('feedback negativo llama submitFeedback con rating bajo', async () => {
+    chat.messages = [
+      {
+        id: 'm3',
+        type: 'ai',
+        content: 'X',
+        timestamp: 'bad-ts',
+        metadata: { rankedItems: [{ id: 'act-9' }] },
+      },
+    ]
+    render(<AIAssistant />)
+    await userEvent.click(screen.getByTitle('No util'))
+    expect(chat.submitFeedback).toHaveBeenCalledWith('m3', 'act-9', 1)
+  })
+
+  it('indicador de escritura cuando loading', () => {
+    chat.loading = true
+    const { container } = render(<AIAssistant />)
+    expect(container.querySelector('.typing-indicator')).toBeTruthy()
+  })
+
+  it('Enter envia sin Shift', async () => {
+    render(<AIAssistant />)
+    const input = screen.getByLabelText('Chat message input')
+    await userEvent.type(input, 'Hola{Enter}')
+    expect(chat.sendMessage).toHaveBeenCalledWith('Hola')
+  })
 })

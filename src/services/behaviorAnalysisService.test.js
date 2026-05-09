@@ -32,6 +32,10 @@ import {
 // most recent registration when this module finishes loading.
 const responseUseCalls = inst.interceptors.response.use.mock.calls
 const [, behaviorResponseError] = responseUseCalls[responseUseCalls.length - 1]
+const requestUseCalls = inst.interceptors.request.use.mock.calls
+const behaviorRequestIdx = requestUseCalls.length - 1
+const [behaviorRequestSuccess, behaviorRequestError] = requestUseCalls[behaviorRequestIdx]
+const [behaviorResponseOk] = responseUseCalls[responseUseCalls.length - 1]
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -41,6 +45,23 @@ beforeEach(() => {
 })
 
 describe('behaviorAnalysisService', () => {
+  it('request interceptor adds Bearer token when present and rethrows request errors', () => {
+    localStorage.setItem('voyager_token', 'abc')
+    const cfg = { headers: {} }
+    expect(behaviorRequestSuccess(cfg).headers.Authorization).toBe('Bearer abc')
+    localStorage.removeItem('voyager_token')
+    localStorage.setItem('smartrip_token', 'st')
+    expect(behaviorRequestSuccess({ headers: {} }).headers.Authorization).toBe('Bearer st')
+    localStorage.clear()
+    const bare = { headers: {} }
+    expect(behaviorRequestSuccess(bare)).toBe(bare)
+    expect(() => behaviorRequestError(new Error('req'))).toThrow('req')
+  })
+
+  it('response success interceptor returns response.data', () => {
+    expect(behaviorResponseOk({ data: { ok: true } })).toEqual({ ok: true })
+  })
+
   it('response error interceptor handles 401, 422, detail, and friendly messages', () => {
     const loc = { pathname: '/app', href: '' }
     vi.stubGlobal('location', loc)
