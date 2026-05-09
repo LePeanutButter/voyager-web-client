@@ -115,7 +115,8 @@ TravelPreferencesQuestionnaire.propTypes = {
   questions: PropTypes.arrayOf(PropTypes.object).isRequired,
   currentQuestion: PropTypes.shape({
     id: PropTypes.string.isRequired,
-    text: PropTypes.string.isRequired,
+    prompt: PropTypes.string.isRequired,
+    text: PropTypes.string,
     allowMultiple: PropTypes.bool,
     options: PropTypes.arrayOf(PropTypes.shape({
       id: PropTypes.string.isRequired,

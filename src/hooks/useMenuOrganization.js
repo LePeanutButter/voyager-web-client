@@ -28,6 +28,8 @@ export const useMenuOrganization = () => {
   useEffect(() => {
     if (user?.id) {
       setMenuTracker(new MenuTracker(user.id));
+    } else {
+      setMenuTracker(null);
     }
   }, [user]);
 
@@ -145,6 +147,8 @@ export const useMenuOrganization = () => {
   useEffect(() => {
     if (user?.id) {
       loadMenu();
+    } else {
+      setLoading(false);
     }
   }, [user?.id, loadMenu]);
 

@@ -81,7 +81,7 @@ const MenuPreferences = () => {
   const handleResetLayout = async () => {
     if (!user?.id) return;
 
-    if (window.confirm('¿Estás seguro de que deseas restablecer el menú a su configuración predeterminada? Se perderán todas tus personalizaciones.')) {
+    if (globalThis.confirm('¿Estás seguro de que deseas restablecer el menú a su configuración predeterminada? Se perderán todas tus personalizaciones.')) {
       try {
         await resetLayout();
         setSuccessMessage('Menú restablecido exitosamente');
@@ -303,7 +303,7 @@ const MenuPreferences = () => {
               <div className="analytics-card">
                 <h3>Patrones de Uso</h3>
                 {analytics.usage_patterns.map((pattern, index) => (
-                  <div key={index} className="pattern-item">
+                  <div key={`usage-pattern-${index}-${pattern}`} className="pattern-item">
                     <span className="pattern-icon">📊</span>
                     <span className="pattern-text">{pattern}</span>
                   </div>

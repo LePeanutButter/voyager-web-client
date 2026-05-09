@@ -50,7 +50,9 @@ export const authService = {
   getCurrentUser: async () => {
     const userId = getStoredUserId()
     if (userId == null) throw new Error('Cannot resolve current user id')
-    return api.get(`/users/${userId}`)
+    const pathId = String(userId)
+    if (!/^\d+$/.test(pathId)) throw new Error('Invalid user id')
+    return api.get(`/users/${pathId}`)
   },
 
   /**

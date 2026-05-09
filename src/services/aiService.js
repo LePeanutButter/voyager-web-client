@@ -64,19 +64,16 @@ export const aiService = {
    * @param {number} [limitArg]
    */
   getBuddyRecommendations: (userId, locationOrOptions = null, limitArg = 10) => {
-    let location = null
-    let seekerFootprint = null
-    let limit = limitArg
-    if (
+    const isOptionsObject =
       locationOrOptions != null &&
       typeof locationOrOptions === 'object' &&
       !Array.isArray(locationOrOptions)
-    ) {
-      location = locationOrOptions.location ?? null
+    const location = isOptionsObject ? (locationOrOptions.location ?? null) : locationOrOptions
+    let seekerFootprint = null
+    let limit = limitArg
+    if (isOptionsObject) {
       seekerFootprint = locationOrOptions.seekerFootprint ?? locationOrOptions.seeker_footprint ?? null
       limit = locationOrOptions.limit ?? limitArg
-    } else {
-      location = locationOrOptions
     }
     const params = { limit }
     if (location) params.location = location

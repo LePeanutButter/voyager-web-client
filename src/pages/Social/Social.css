@@ -139,6 +139,12 @@
   background: var(--surface-card);
   box-shadow: var(--shadow-lg);
   padding: 1rem;
+  margin: auto;
+}
+
+.social-profile-modal::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
 }
 
 .social-profile-head {

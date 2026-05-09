@@ -1,18 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
+import PropTypes from 'prop-types'
 import { travelService } from '../../services/travelService'
 import { MapPin, Calendar, DollarSign, X, Save } from 'lucide-react'
 
 const QUICK_EDIT_BORDER = '1px solid var(--border-color)'
 const QUICK_EDIT_FORM_GROUP = { display: 'flex', flexDirection: 'column', gap: '0.5rem' }
 const QUICK_EDIT_LABEL = { fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }
-const QUICK_EDIT_INPUT = { 
-  padding: '0.75rem', 
-  borderRadius: 'var(--border-radius)', 
-  border: QUICK_EDIT_BORDER,
-  backgroundColor: 'var(--surface-input)',
-  color: 'var(--text-primary)',
-  fontSize: '0.875rem'
-}
 const QUICK_EDIT_INPUT_ICON = {
   width: '100%',
   padding: '0.75rem 0.75rem 0.75rem 2.25rem',
@@ -23,17 +16,27 @@ const QUICK_EDIT_INPUT_ICON = {
   fontSize: '0.875rem'
 }
 const QUICK_EDIT_ICON_POS = { position: 'absolute', left: '0.75rem', top: '0.875rem', color: 'var(--text-muted)' }
-const QUICK_EDIT_MODAL = {
+const QUICK_EDIT_OVERLAY = {
   position: 'fixed',
   top: 0,
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   zIndex: 1000
+}
+const QUICK_EDIT_BACKDROP = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  margin: 0,
+  padding: 0,
+  border: 'none',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  cursor: 'pointer'
 }
 const QUICK_EDIT_CONTENT = {
   backgroundColor: 'var(--surface-card)',
@@ -43,10 +46,13 @@ const QUICK_EDIT_CONTENT = {
   maxWidth: '500px',
   maxHeight: '90vh',
   overflowY: 'auto',
-  border: QUICK_EDIT_BORDER
+  border: QUICK_EDIT_BORDER,
+  position: 'relative',
+  zIndex: 1
 }
 
-const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
+const QuickEditModal = ({ isOpen, onClose, planId, currentData = null, onUpdate }) => {
+  const formId = useId()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     destinationLocation: '',
@@ -141,8 +147,14 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
   if (!isOpen) return null
 
   return (
-    <div style={QUICK_EDIT_MODAL} onClick={onClose}>
-      <div style={QUICK_EDIT_CONTENT} onClick={e => e.stopPropagation()}>
+    <div style={QUICK_EDIT_OVERLAY}>
+      <button
+        type="button"
+        aria-label="Cerrar modal"
+        onClick={onClose}
+        style={QUICK_EDIT_BACKDROP}
+      />
+      <div style={QUICK_EDIT_CONTENT}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem' }}>
@@ -153,6 +165,7 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
             className="btn-ghost"
             style={{ padding: '0.5rem', display: 'flex', alignItems: 'center' }}
             title="Cerrar"
+            type="button"
           >
             <X size={20} />
           </button>
@@ -162,10 +175,11 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Destination */}
           <div style={QUICK_EDIT_FORM_GROUP}>
-            <label style={QUICK_EDIT_LABEL}>Destino *</label>
+            <label htmlFor={`${formId}-destination`} style={QUICK_EDIT_LABEL}>Destino *</label>
             <div style={{ position: 'relative' }}>
               <MapPin style={QUICK_EDIT_ICON_POS} size={16} />
               <input
+                id={`${formId}-destination`}
                 type="text"
                 name="destinationLocation"
                 value={formData.destinationLocation}
@@ -179,10 +193,11 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
 
           {/* Origin */}
           <div style={QUICK_EDIT_FORM_GROUP}>
-            <label style={QUICK_EDIT_LABEL}>Origen</label>
+            <label htmlFor={`${formId}-origin`} style={QUICK_EDIT_LABEL}>Origen</label>
             <div style={{ position: 'relative' }}>
               <MapPin style={QUICK_EDIT_ICON_POS} size={16} />
               <input
+                id={`${formId}-origin`}
                 type="text"
                 name="originLocation"
                 value={formData.originLocation}
@@ -196,10 +211,11 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
           {/* Dates */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={QUICK_EDIT_FORM_GROUP}>
-              <label style={QUICK_EDIT_LABEL}>Fecha Inicio</label>
+              <label htmlFor={`${formId}-startDate`} style={QUICK_EDIT_LABEL}>Fecha Inicio</label>
               <div style={{ position: 'relative' }}>
                 <Calendar style={QUICK_EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-startDate`}
                   type="date"
                   name="startDate"
                   value={formData.startDate}
@@ -209,10 +225,11 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
               </div>
             </div>
             <div style={QUICK_EDIT_FORM_GROUP}>
-              <label style={QUICK_EDIT_LABEL}>Fecha Fin</label>
+              <label htmlFor={`${formId}-endDate`} style={QUICK_EDIT_LABEL}>Fecha Fin</label>
               <div style={{ position: 'relative' }}>
                 <Calendar style={QUICK_EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-endDate`}
                   type="date"
                   name="endDate"
                   value={formData.endDate}
@@ -227,10 +244,11 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
           {/* Budget and Travelers */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={QUICK_EDIT_FORM_GROUP}>
-              <label style={QUICK_EDIT_LABEL}>Presupuesto (USD)</label>
+              <label htmlFor={`${formId}-estimatedBudget`} style={QUICK_EDIT_LABEL}>Presupuesto (USD)</label>
               <div style={{ position: 'relative' }}>
                 <DollarSign style={QUICK_EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-estimatedBudget`}
                   type="number"
                   name="estimatedBudget"
                   value={formData.estimatedBudget}
@@ -243,10 +261,11 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
               </div>
             </div>
             <div style={QUICK_EDIT_FORM_GROUP}>
-              <label style={QUICK_EDIT_LABEL}>Viajeros</label>
+              <label htmlFor={`${formId}-numberOfTravelers`} style={QUICK_EDIT_LABEL}>Viajeros</label>
               <div style={{ position: 'relative' }}>
                 <MapPin style={QUICK_EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-numberOfTravelers`}
                   type="number"
                   name="numberOfTravelers"
                   value={formData.numberOfTravelers}
@@ -310,6 +329,22 @@ const QuickEditModal = ({ isOpen, onClose, planId, currentData, onUpdate }) => {
       </div>
     </div>
   )
+}
+
+QuickEditModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  planId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  currentData: PropTypes.shape({
+    title: PropTypes.string,
+    destinationLocation: PropTypes.string,
+    originLocation: PropTypes.string,
+    startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    estimatedBudget: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    numberOfTravelers: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  }),
+  onUpdate: PropTypes.func.isRequired,
 }
 
 export default QuickEditModal

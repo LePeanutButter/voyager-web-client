@@ -5,7 +5,7 @@ import { TravelCardSkeleton } from '../../components/UI/SkeletonLoader'
 import ErrorBanner from '../../components/UI/ErrorBanner'
 import {
   Plane, MapPin, Calendar, Users, DollarSign,
-  Plus, Clock, Trash2, ArrowRight, Filter, Edit
+  Plus, Clock, Trash2, ArrowRight, Filter
 } from 'lucide-react'
 import './MyTravels.css'
 

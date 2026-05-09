@@ -37,9 +37,6 @@ export default defineConfig({
         'src/**/*.spec.{js,jsx}',
         'src/test/**',
         'src/main.jsx',
-        // Dead code: not wired into the App router and broken (missing import).
-        'src/hooks/useMenuOrganization.js',
-        'src/services/menuOrganizationService.js',
       ],
       thresholds: ciFullCoverage
         ? undefined

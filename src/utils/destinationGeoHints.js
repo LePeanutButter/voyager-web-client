@@ -41,7 +41,7 @@ export function normalizeDestinationSlugForSearch(raw) {
   let s = String(raw).trim()
   if (!s) return ''
   if (/^dst_/i.test(s)) {
-    s = s.slice(4).replace(/_/g, ' ')
+    s = s.slice(4).replaceAll('_', ' ')
   }
   return s
 }

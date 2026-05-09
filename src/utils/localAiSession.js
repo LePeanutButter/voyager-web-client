@@ -1,3 +1,5 @@
+import { newLocalChatSessionId } from './secureRandomId.js'
+
 const STORAGE_PREFIX = 'voyager-local-chat-session:'
 
 export function getOrCreateLocalChatSessionId(userId) {
@@ -10,7 +12,7 @@ export function getOrCreateLocalChatSessionId(userId) {
     sid = ''
   }
   if (!sid) {
-    sid = globalThis.crypto?.randomUUID?.() || `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    sid = newLocalChatSessionId()
     try {
       globalThis.sessionStorage?.setItem(key, sid)
     } catch {
@@ -23,7 +25,7 @@ export function getOrCreateLocalChatSessionId(userId) {
 export function rotateLocalChatSessionId(userId) {
   if (!userId) return null
   const key = STORAGE_PREFIX + String(userId)
-  const sid = globalThis.crypto?.randomUUID?.() || `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const sid = newLocalChatSessionId()
   try {
     globalThis.sessionStorage?.setItem(key, sid)
   } catch {

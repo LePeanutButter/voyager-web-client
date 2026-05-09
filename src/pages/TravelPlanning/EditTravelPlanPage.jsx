@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTravelPlans } from '../../hooks/useTravelPlans'
 import { travelPlanService } from '../../services/travelPlanService'
@@ -35,7 +35,7 @@ const EDIT_CONTAINER = {
 const EditTravelPlanPage = () => {
   const navigate = useNavigate()
   const { planId } = useParams()
-  const { update, error, clearError } = useTravelPlans(true)
+  const { error, clearError } = useTravelPlans(true)
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
   const [formData, setFormData] = useState({
@@ -49,6 +49,7 @@ const EditTravelPlanPage = () => {
     estimatedBudget: '',
   })
   const [originalData, setOriginalData] = useState({})
+  const formId = useId()
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -190,8 +191,9 @@ const EditTravelPlanPage = () => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Title */}
           <div style={EDIT_FORM_GROUP_COL}>
-            <label style={EDIT_LABEL}>Título del Viaje *</label>
+            <label htmlFor={`${formId}-title`} style={EDIT_LABEL}>Título del Viaje *</label>
             <input
+              id={`${formId}-title`}
               type="text"
               name="title"
               value={formData.title}
@@ -204,8 +206,9 @@ const EditTravelPlanPage = () => {
 
           {/* Description */}
           <div style={EDIT_FORM_GROUP_COL}>
-            <label style={EDIT_LABEL}>Descripción</label>
+            <label htmlFor={`${formId}-description`} style={EDIT_LABEL}>Descripción</label>
             <textarea
+              id={`${formId}-description`}
               name="description"
               value={formData.description}
               onChange={handleChange}
@@ -218,10 +221,11 @@ const EditTravelPlanPage = () => {
           {/* Origin and Destination */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={EDIT_FORM_GROUP_COL}>
-              <label style={EDIT_LABEL}>Origen</label>
+              <label htmlFor={`${formId}-origin`} style={EDIT_LABEL}>Origen</label>
               <div style={{ position: 'relative' }}>
                 <MapPin style={EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-origin`}
                   type="text"
                   name="originLocation"
                   value={formData.originLocation}
@@ -232,10 +236,11 @@ const EditTravelPlanPage = () => {
               </div>
             </div>
             <div style={EDIT_FORM_GROUP_COL}>
-              <label style={EDIT_LABEL}>Destino *</label>
+              <label htmlFor={`${formId}-destination`} style={EDIT_LABEL}>Destino *</label>
               <div style={{ position: 'relative' }}>
                 <MapPin style={EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-destination`}
                   type="text"
                   name="destinationLocation"
                   value={formData.destinationLocation}
@@ -251,10 +256,11 @@ const EditTravelPlanPage = () => {
           {/* Dates */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={EDIT_FORM_GROUP_COL}>
-              <label style={EDIT_LABEL}>Fecha de Inicio</label>
+              <label htmlFor={`${formId}-startDate`} style={EDIT_LABEL}>Fecha de Inicio</label>
               <div style={{ position: 'relative' }}>
                 <Calendar style={EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-startDate`}
                   type="date"
                   name="startDate"
                   value={formData.startDate}
@@ -264,10 +270,11 @@ const EditTravelPlanPage = () => {
               </div>
             </div>
             <div style={EDIT_FORM_GROUP_COL}>
-              <label style={EDIT_LABEL}>Fecha de Fin</label>
+              <label htmlFor={`${formId}-endDate`} style={EDIT_LABEL}>Fecha de Fin</label>
               <div style={{ position: 'relative' }}>
                 <Calendar style={EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-endDate`}
                   type="date"
                   name="endDate"
                   value={formData.endDate}
@@ -282,10 +289,11 @@ const EditTravelPlanPage = () => {
           {/* Travelers and Budget */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={EDIT_FORM_GROUP_COL}>
-              <label style={EDIT_LABEL}>Número de Viajeros</label>
+              <label htmlFor={`${formId}-numberOfTravelers`} style={EDIT_LABEL}>Número de Viajeros</label>
               <div style={{ position: 'relative' }}>
                 <Users style={EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-numberOfTravelers`}
                   type="number"
                   name="numberOfTravelers"
                   value={formData.numberOfTravelers}
@@ -297,10 +305,11 @@ const EditTravelPlanPage = () => {
               </div>
             </div>
             <div style={EDIT_FORM_GROUP_COL}>
-              <label style={EDIT_LABEL}>Presupuesto Estimado (USD)</label>
+              <label htmlFor={`${formId}-estimatedBudget`} style={EDIT_LABEL}>Presupuesto Estimado (USD)</label>
               <div style={{ position: 'relative' }}>
                 <DollarSign style={EDIT_ICON_POS} size={16} />
                 <input
+                  id={`${formId}-estimatedBudget`}
                   type="number"
                   name="estimatedBudget"
                   value={formData.estimatedBudget}

@@ -225,6 +225,13 @@ function SocialDiscoverPanel({
   onRefresh,
   onViewProfile,
 }) {
+  let refreshButtonLabel = 'Actualizar sugerencias'
+  if (discoverLoading) {
+    refreshButtonLabel = 'Actualizando…'
+  } else if (discoverManualCooldownSec > 0) {
+    refreshButtonLabel = `Actualizar (${discoverManualCooldownSec}s)`
+  }
+
   return (
     <div>
       <p style={{ color: TEXT_SECONDARY, marginBottom: '1.25rem', lineHeight: 1.5 }}>
@@ -233,9 +240,12 @@ function SocialDiscoverPanel({
       </p>
 
       {discoverRefreshNotice && (
-        <p style={{ fontSize: '0.8125rem', color: 'var(--color-warning)', marginBottom: '0.75rem' }} role="status">
+        <output
+          style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--color-warning)', marginBottom: '0.75rem' }}
+          aria-live="polite"
+        >
           {discoverRefreshNotice}
-        </p>
+        </output>
       )}
 
       {myPlans.length === 0 ? (
@@ -277,11 +287,7 @@ function SocialDiscoverPanel({
             onClick={onRefresh}
             disabled={discoverLoading || discoverManualCooldownSec > 0}
           >
-            {discoverLoading
-              ? 'Actualizando…'
-              : discoverManualCooldownSec > 0
-                ? `Actualizar (${discoverManualCooldownSec}s)`
-                : 'Actualizar sugerencias'}
+            {refreshButtonLabel}
           </button>
         </div>
       )}
@@ -457,6 +463,7 @@ const Social = () => {
   const [discoverLoading, setDiscoverLoading] = useState(false)
   const [profileLoading, setProfileLoading] = useState(false)
   const [activeTravelerProfile, setActiveTravelerProfile] = useState(null)
+  const travelerProfileDialogRef = useRef(null)
   const refreshAttemptsRef = useRef([])
   const [discoverManualCooldownUntil, setDiscoverManualCooldownUntil] = useState(0)
   const [discoverCooldownTick, setDiscoverCooldownTick] = useState(0)
@@ -466,7 +473,7 @@ const Social = () => {
     void discoverCooldownTick
     if (!discoverManualCooldownUntil) return 0
     const left = Math.ceil((discoverManualCooldownUntil - Date.now()) / 1000)
-    return left > 0 ? left : 0
+    return Math.max(0, left)
   }, [discoverManualCooldownUntil, discoverCooldownTick])
 
   useEffect(() => {
@@ -474,6 +481,28 @@ const Social = () => {
     const id = setInterval(() => setDiscoverCooldownTick((n) => n + 1), 1000)
     return () => clearInterval(id)
   }, [discoverManualCooldownUntil])
+
+  useEffect(() => {
+    if (!activeTravelerProfile) return undefined
+    const dlg = travelerProfileDialogRef.current
+    if (!dlg) return undefined
+    const open = () => {
+      if (!dlg.open) dlg.showModal()
+    }
+    requestAnimationFrame(open)
+    const onPointerDown = (e) => {
+      if (!dlg.open) return
+      const r = dlg.getBoundingClientRect()
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+        setActiveTravelerProfile(null)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      if (dlg.open) dlg.close()
+    }
+  }, [activeTravelerProfile])
 
   const loadSocialData = useCallback(async () => {
     if (!user?.id) return
@@ -758,57 +787,52 @@ const Social = () => {
       </div>
 
       {activeTravelerProfile && (
-        <div className="social-profile-overlay-root">
-          <button
-            type="button"
-            className="social-profile-backdrop"
-            aria-label="Cerrar"
-            onClick={() => setActiveTravelerProfile(null)}
-          />
-          <div
-            className="social-profile-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="social-profile-title"
-          >
-            <div className="social-profile-head">
-              <h3 id="social-profile-title">
-                {activeTravelerProfile.firstName} {activeTravelerProfile.lastName}
-              </h3>
-              <button type="button" className="btn-ghost" onClick={() => setActiveTravelerProfile(null)}>
-                Cerrar
-              </button>
-            </div>
-            <p className="social-profile-username">@{activeTravelerProfile.username}</p>
-            <p className="social-profile-line">
-              Compatibilidad: {Math.round(Math.min(1, Math.max(0, activeTravelerProfile.compatibilityScore || 0)) * 100)}%
-            </p>
-            {activeTravelerProfile.destinationLocation && (
-              <p className="social-profile-line">Destino: {activeTravelerProfile.destinationLocation}</p>
-            )}
-            {Array.isArray(activeTravelerProfile.sharedDestinations) &&
-              activeTravelerProfile.sharedDestinations.length > 0 && (
-                <p className="social-profile-line">
-                  Huella en común: {activeTravelerProfile.sharedDestinations.join(', ')}
-                </p>
-              )}
-            {profileLoading ? (
-              <p className="social-profile-line">Cargando perfil...</p>
-            ) : (
-              <>
-                {activeTravelerProfile?.summary?.bio && (
-                  <p className="social-profile-bio">{activeTravelerProfile.summary.bio}</p>
-                )}
-                {Array.isArray(activeTravelerProfile?.summary?.interests) &&
-                activeTravelerProfile.summary.interests.length > 0 ? (
-                  <p className="social-profile-line">
-                    Intereses: {activeTravelerProfile.summary.interests.join(', ')}
-                  </p>
-                ) : null}
-              </>
-            )}
+        <dialog
+          ref={travelerProfileDialogRef}
+          className="social-profile-modal"
+          aria-labelledby="social-profile-title"
+          onCancel={(e) => {
+            e.preventDefault()
+            setActiveTravelerProfile(null)
+          }}
+        >
+          <div className="social-profile-head">
+            <h3 id="social-profile-title">
+              {activeTravelerProfile.firstName} {activeTravelerProfile.lastName}
+            </h3>
+            <button type="button" className="btn-ghost" onClick={() => setActiveTravelerProfile(null)}>
+              Cerrar
+            </button>
           </div>
-        </div>
+          <p className="social-profile-username">@{activeTravelerProfile.username}</p>
+          <p className="social-profile-line">
+            Compatibilidad: {Math.round(Math.min(1, Math.max(0, activeTravelerProfile.compatibilityScore || 0)) * 100)}%
+          </p>
+          {activeTravelerProfile.destinationLocation && (
+            <p className="social-profile-line">Destino: {activeTravelerProfile.destinationLocation}</p>
+          )}
+          {Array.isArray(activeTravelerProfile.sharedDestinations) &&
+            activeTravelerProfile.sharedDestinations.length > 0 && (
+              <p className="social-profile-line">
+                Huella en común: {activeTravelerProfile.sharedDestinations.join(', ')}
+              </p>
+            )}
+          {profileLoading ? (
+            <p className="social-profile-line">Cargando perfil...</p>
+          ) : (
+            <>
+              {activeTravelerProfile?.summary?.bio && (
+                <p className="social-profile-bio">{activeTravelerProfile.summary.bio}</p>
+              )}
+              {Array.isArray(activeTravelerProfile?.summary?.interests) &&
+              activeTravelerProfile.summary.interests.length > 0 ? (
+                <p className="social-profile-line">
+                  Intereses: {activeTravelerProfile.summary.interests.join(', ')}
+                </p>
+              ) : null}
+            </>
+          )}
+        </dialog>
       )}
     </div>
   )

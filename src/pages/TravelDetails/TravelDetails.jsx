@@ -610,7 +610,7 @@ function TravelDetailsView({
               </div>
             </div>
             {compatNotice && (
-              <p className="travel-details-compat-notice" role="status">{compatNotice}</p>
+              <output className="travel-details-compat-notice" aria-live="polite">{compatNotice}</output>
             )}
             <CompatibleTravelersList
               loading={compatLoading}

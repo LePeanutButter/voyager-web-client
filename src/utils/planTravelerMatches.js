@@ -29,6 +29,47 @@ const resolveRecommendations = (buddyPayload) => {
   return Array.isArray(recs) ? recs : []
 }
 
+function upsertAiBuddyEntry(byId, r, planDestination) {
+  const uid = r.userId ?? r.user_id ?? r.id
+  if (uid == null) return
+  const id = String(uid)
+  const name = String(r.name || '').trim()
+  const parts = name.split(/\s+/)
+  const fn = parts[0] || 'Viajero'
+  const ln = parts.slice(1).join(' ')
+  const sharedRaw = r.sharedDestinations ?? r.shared_destinations ?? []
+  const shared = Array.isArray(sharedRaw) ? [...sharedRaw] : []
+  const aiScore = Number(r.compatibilityScore ?? r.compatibility_score ?? 0.75)
+
+  if (byId.has(id)) {
+    const existing = byId.get(id)
+    if (aiScore > (existing.compatibilityScore || 0)) {
+      existing.compatibilityScore = aiScore
+    }
+    if (existing.source === 'backend') {
+      existing.source = 'both'
+    }
+    if (shared.length) {
+      existing.sharedDestinations = [...new Set([...(existing.sharedDestinations || []), ...shared])]
+    }
+    return
+  }
+
+  byId.set(id, {
+    userId: uid,
+    firstName: fn,
+    lastName: ln,
+    username: r.username ?? `user_${id}`,
+    compatibilityScore: aiScore,
+    travelPlanTitle: null,
+    destinationLocation: planDestination || null,
+    travelStartDate: null,
+    travelEndDate: null,
+    sharedDestinations: shared,
+    source: 'ai',
+  })
+}
+
 /**
  * Combina candidatos del backend (planes solapados) con recomendaciones del servicio de IA.
  * @param {Array<object>} compatList
@@ -61,44 +102,7 @@ export function mergeDiscoveryMatches(compatList, buddyPayload, planDestination,
   const recs = resolveRecommendations(buddyPayload)
 
   for (const r of recs) {
-    const uid = r.userId ?? r.user_id ?? r.id
-    if (uid == null) continue
-    const id = String(uid)
-    const name = String(r.name || '').trim()
-    const parts = name.split(/\s+/)
-    const fn = parts[0] || 'Viajero'
-    const ln = parts.slice(1).join(' ')
-    const sharedRaw = r.sharedDestinations ?? r.shared_destinations ?? []
-    const shared = Array.isArray(sharedRaw) ? [...sharedRaw] : []
-    const aiScore = Number(r.compatibilityScore ?? r.compatibility_score ?? 0.75)
-
-    if (byId.has(id)) {
-      const existing = byId.get(id)
-      if (aiScore > (existing.compatibilityScore || 0)) {
-        existing.compatibilityScore = aiScore
-      }
-      if (existing.source === 'backend') {
-        existing.source = 'both'
-      }
-      if (shared.length) {
-        existing.sharedDestinations = [...new Set([...(existing.sharedDestinations || []), ...shared])]
-      }
-      continue
-    }
-
-    byId.set(id, {
-      userId: uid,
-      firstName: fn,
-      lastName: ln,
-      username: r.username ?? `user_${id}`,
-      compatibilityScore: aiScore,
-      travelPlanTitle: null,
-      destinationLocation: planDestination || null,
-      travelStartDate: null,
-      travelEndDate: null,
-      sharedDestinations: shared,
-      source: 'ai',
-    })
+    upsertAiBuddyEntry(byId, r, planDestination)
   }
 
   return Array.from(byId.values())
