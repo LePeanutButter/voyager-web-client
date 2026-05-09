@@ -13,7 +13,9 @@ describe('TravelerMatchingPage', () => {
 
   it('renders page header', () => {
     render(<TravelerMatchingPage />)
-    expect(screen.getByRole('heading', { name: /Find Compatible Travelers/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /Encuentra viajeros compatibles/i }),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('tm-mock')).toBeInTheDocument()
   })
 })

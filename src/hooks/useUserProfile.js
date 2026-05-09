@@ -2,10 +2,11 @@ import { useState, useCallback, useEffect } from 'react'
 import { authService } from '../services/authService'
 import { useAuth } from '../contexts/use-auth.js'
 import { extractErrorMessage } from '../utils/errorUtils'
+import { provisionUserAcrossAiServices } from '../services/voyagerCrossService'
 
 /**
  * Custom hook for reading and updating the current user's profile.
- * Reads from AuthContext first, then validates against /users/me.
+ * Reads from AuthContext first, then validates against /users/{id}.
  */
 export function useUserProfile() {
   const { user: contextUser, updateUser } = useAuth()
@@ -60,7 +61,8 @@ export function useUserProfile() {
         const updated = await authService.updateProfile(profile.id, payload)
         setProfile(updated)
         updateUser(updated)
-        setSuccess('Profile updated successfully!')
+        void provisionUserAcrossAiServices(updated)
+        setSuccess('Perfil actualizado correctamente')
         return updated
       } catch (err) {
         setError(extractErrorMessage(err))

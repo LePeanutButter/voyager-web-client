@@ -13,7 +13,9 @@ describe('ConnectionRequestsPage', () => {
 
   it('renders page header and embedded component', () => {
     render(<ConnectionRequestsPage />)
-    expect(screen.getByRole('heading', { name: /Connection Requests/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /Solicitudes de conexion/i }),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('cr-mock')).toBeInTheDocument()
   })
 })

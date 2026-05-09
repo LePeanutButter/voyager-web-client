@@ -26,7 +26,7 @@ const ConnectionRequests = () => {
       const pendingRequests = await getPendingRequests()
       setRequests(pendingRequests)
     } catch (err) {
-      setError(err.message || 'Failed to load pending requests')
+      setError(err.message || 'No se pudieron cargar las solicitudes pendientes')
     } finally {
       setLoading(false)
     }
@@ -39,12 +39,12 @@ const ConnectionRequests = () => {
 
     try {
       await acceptConnectionRequest(requestId)
-      setSuccessMessage('Connection request accepted!')
+      setSuccessMessage('¡Solicitud de conexion aceptada!')
       
       // Remove the accepted request from the list
       setRequests(prev => prev.filter(req => req.id !== requestId))
     } catch (err) {
-      setError(err.message || 'Failed to accept connection request')
+      setError(err.message || 'No se pudo aceptar la solicitud de conexion')
     } finally {
       setProcessing(null)
     }
@@ -57,12 +57,12 @@ const ConnectionRequests = () => {
 
     try {
       await rejectConnectionRequest(requestId)
-      setSuccessMessage('Connection request rejected')
+      setSuccessMessage('Solicitud de conexion rechazada')
       
       // Remove the rejected request from the list
       setRequests(prev => prev.filter(req => req.id !== requestId))
     } catch (err) {
-      setError(err.message || 'Failed to reject connection request')
+      setError(err.message || 'No se pudo rechazar la solicitud de conexion')
     } finally {
       setProcessing(null)
     }
@@ -83,7 +83,7 @@ const ConnectionRequests = () => {
     return (
       <div className="connection-requests loading">
         <div className="spinner"></div>
-        <p>Loading connection requests...</p>
+        <p>Cargando solicitudes de conexion...</p>
       </div>
     )
   }
@@ -91,8 +91,8 @@ const ConnectionRequests = () => {
   return (
     <div className="connection-requests">
       <div className="connection-requests__header">
-        <h2>Connection Requests</h2>
-        <p>Manage requests from travelers who want to connect with you</p>
+        <h2>Solicitudes de conexion</h2>
+        <p>Gestiona solicitudes de viajeros que desean conectar contigo</p>
       </div>
 
       {error && (
@@ -123,8 +123,8 @@ const ConnectionRequests = () => {
                 )}
               </div>
               <div className="request-card__info">
-                <h3>{request.requesterName || 'Traveler'}</h3>
-                <p className="request-date">Requested {formatDate(request.createdAt)}</p>
+                <h3>{request.requesterName || 'Viajero'}</h3>
+                <p className="request-date">Solicitado {formatDate(request.createdAt)}</p>
                 {request.message && (
                   <p className="request-message">
                     <q cite="#">{request.message}</q>
@@ -132,7 +132,7 @@ const ConnectionRequests = () => {
                 )}
               </div>
               <div className="request-card__status">
-                <span className="status-badge pending">Pending</span>
+                <span className="status-badge pending">Pendiente</span>
               </div>
             </div>
 
@@ -146,10 +146,10 @@ const ConnectionRequests = () => {
                   {processing === request.id ? (
                     <>
                       <div className="btn-spinner"></div>
-                      Processing...
+                      Procesando...
                     </>
                   ) : (
-                    'Accept'
+                    'Aceptar'
                   )}
                 </button>
                 <button
@@ -160,10 +160,10 @@ const ConnectionRequests = () => {
                   {processing === request.id ? (
                     <>
                       <div className="btn-spinner"></div>
-                      Processing...
+                      Procesando...
                     </>
                   ) : (
-                    'Reject'
+                    'Rechazar'
                   )}
                 </button>
               </div>
@@ -175,9 +175,9 @@ const ConnectionRequests = () => {
       {requests.length === 0 && !loading && (
         <div className="connection-requests__empty">
           <div className="empty-icon">📭</div>
-          <h3>No pending requests</h3>
-          <p>{'You don\u2019t have any pending connection requests at the moment.'}</p>
-          <p>{'When travelers send you connection requests, they\u2019ll appear here.'}</p>
+          <h3>No hay solicitudes pendientes</h3>
+          <p>{'No tienes solicitudes de conexion pendientes en este momento.'}</p>
+          <p>{'Cuando los viajeros te envien solicitudes, apareceran aqui.'}</p>
         </div>
       )}
     </div>

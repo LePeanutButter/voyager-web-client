@@ -25,10 +25,10 @@ const TravelerMatching = ({ travelPlanId }) => {
       setTravelers(compatibleTravelers)
       
       if (compatibleTravelers.length === 0) {
-        setError('No compatible travelers found for this travel plan')
+        setError('No se encontraron viajeros compatibles para este plan')
       }
     } catch (err) {
-      setError(err.message || 'Failed to find compatible travelers')
+      setError(err.message || 'No se pudieron encontrar viajeros compatibles')
     } finally {
       setLoading(false)
     }
@@ -48,18 +48,18 @@ const TravelerMatching = ({ travelPlanId }) => {
     try {
       await sendConnectionRequest({
         recipientId,
-        message: `Hi! I noticed we're both traveling to the same destination. Would love to connect!`
+        message: '¡Hola! Veo que viajamos al mismo destino. Me encantaria conectar.'
       })
       
-      setSuccessMessage(`Connection request sent to ${recipientName}!`)
+      setSuccessMessage(`¡Solicitud de conexion enviada a ${recipientName}!`)
       
       // Remove the traveler from the list to prevent duplicate requests
       setTravelers(prev => prev.filter(t => t.userId !== recipientId))
     } catch (err) {
       if (err.message.includes('already pending')) {
-        setError('You already have a pending connection request with this traveler')
+        setError('Ya tienes una solicitud pendiente con este viajero')
       } else {
-        setError(err.message || 'Failed to send connection request')
+        setError(err.message || 'No se pudo enviar la solicitud de conexion')
       }
     } finally {
       setSendingTo(null)
@@ -79,7 +79,7 @@ const TravelerMatching = ({ travelPlanId }) => {
     return (
       <div className="traveler-matching loading">
         <div className="spinner"></div>
-        <p>Finding compatible travelers...</p>
+        <p>Buscando viajeros compatibles...</p>
       </div>
     )
   }
@@ -87,15 +87,15 @@ const TravelerMatching = ({ travelPlanId }) => {
   return (
     <div className="traveler-matching">
       <div className="traveler-matching__header">
-        <h2>Compatible Travelers</h2>
-        <p>Travelers with similar destinations and compatible dates</p>
+        <h2>Viajeros compatibles</h2>
+        <p>Viajeros con destinos similares y fechas compatibles</p>
       </div>
 
       {error && !travelers.length && (
         <div className="traveler-matching__error">
           <p>{error}</p>
           <button onClick={fetchCompatibleTravelers} className="btn btn-secondary">
-            Try Again
+            Reintentar
           </button>
         </div>
       )}
@@ -128,7 +128,7 @@ const TravelerMatching = ({ travelPlanId }) => {
               <div className="traveler-card__compatibility">
                 <div className="compatibility-score">
                   <span className="score">{traveler.compatibilityScore}%</span>
-                  <span className="label">Match</span>
+                  <span className="label">Compatibilidad</span>
                 </div>
               </div>
             </div>
@@ -137,16 +137,16 @@ const TravelerMatching = ({ travelPlanId }) => {
               <div className="trip-info">
                 <h4>{traveler.travelPlanTitle}</h4>
                 <p className="destination">
-                  <strong>Destination:</strong> {traveler.destinationLocation}
+                  <strong>Destino:</strong> {traveler.destinationLocation}
                 </p>
                 <p className="dates">
-                  <strong>Travel dates:</strong> {formatDate(traveler.travelStartDate)} - {formatDate(traveler.travelEndDate)}
+                  <strong>Fechas de viaje:</strong> {formatDate(traveler.travelStartDate)} - {formatDate(traveler.travelEndDate)}
                 </p>
                 <p className="overlap">
-                  <strong>Overlap:</strong> {traveler.daysOverlap} days
+                  <strong>Coincidencia:</strong> {traveler.daysOverlap} dias
                 </p>
                 <p className="travelers-count">
-                  <strong>Group size:</strong> {traveler.numberOfTravelers} {traveler.numberOfTravelers === 1 ? 'traveler' : 'travelers'}
+                  <strong>Tamano del grupo:</strong> {traveler.numberOfTravelers} {traveler.numberOfTravelers === 1 ? 'viajero' : 'viajeros'}
                 </p>
               </div>
             </div>
@@ -160,10 +160,10 @@ const TravelerMatching = ({ travelPlanId }) => {
                 {sendingTo === traveler.userId ? (
                   <>
                     <div className="btn-spinner"></div>
-                    Sending...
+                    Enviando...
                   </>
                 ) : (
-                  'Send Connection Request'
+                  'Enviar solicitud de conexion'
                 )}
               </button>
             </div>
@@ -173,8 +173,8 @@ const TravelerMatching = ({ travelPlanId }) => {
 
       {travelers.length === 0 && !loading && !error && (
         <div className="traveler-matching__empty">
-          <p>No compatible travelers found for this travel plan.</p>
-          <p>Try adjusting your travel dates or destination to find more matches.</p>
+          <p>No se encontraron viajeros compatibles para este plan.</p>
+          <p>Prueba ajustando fechas o destino para encontrar mas coincidencias.</p>
         </div>
       )}
     </div>

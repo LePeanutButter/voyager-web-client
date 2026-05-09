@@ -25,7 +25,7 @@ describe('RegisterPage', () => {
         <RegisterPage />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('heading', { name: /Create account/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Create Account/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Crear cuenta/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Crear cuenta/i })).toBeInTheDocument()
   })
 })

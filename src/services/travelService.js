@@ -110,7 +110,7 @@ export const travelService = {
    * @returns {Promise<MatchResponseDto[]>}
    */
   findMatches: ({ destination, startDate, endDate, interests = [], limit = 20 }) =>
-    api.get('/matching/matches', {
+    api.get('/matches', {
       params: { destination, startDate, endDate, interests, limit },
     }),
 
@@ -120,4 +120,10 @@ export const travelService = {
    * @returns {Promise<CompatibilityMatchResponse[]>}
    */
   getCompatibilityMatches: (body) => api.post('/compatibility/matches', body),
+
+  // ─── Catálogo Amadeus ──────────────────────────────────────────────────────
+  searchFlights: (params) => api.get('/catalog/flights', { params }),
+  getHotelsByCity: (cityCode) => api.get('/catalog/hotels/by-city', { params: { cityCode } }),
+  getHotelOffers: (params) => api.get('/catalog/hotels/offers', { params }),
+  getActivitiesByGeo: (params) => api.get('/catalog/activities', { params }),
 }

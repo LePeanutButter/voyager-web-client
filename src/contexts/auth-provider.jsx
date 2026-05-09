@@ -2,6 +2,7 @@ import { useReducer, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { authService } from '../services/authService'
 import { TOKEN_KEY } from '../services/api'
+import { provisionUserAcrossAiServices } from '../services/voyagerCrossService'
 import { AuthContext } from './auth-context.js'
 
 const sanitizeUser = (user) => {
@@ -90,6 +91,7 @@ export const AuthProvider = ({ children }) => {
         const rawUser = await authService.getCurrentUser()
         const user = sanitizeUser(rawUser)
         localStorage.setItem('voyager_user', JSON.stringify(user))
+        await provisionUserAcrossAiServices(user)
         dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
       } catch {
         localStorage.removeItem(TOKEN_KEY)
@@ -104,9 +106,24 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (arg1, arg2) => {
     if (typeof arg2 === 'string' && arg2.length > 0) {
       const token = arg2
-      const user = sanitizeUser(arg1)
       localStorage.setItem(TOKEN_KEY, token)
+      if (!arg1) {
+        localStorage.removeItem('voyager_user')
+      }
+      let user = sanitizeUser(arg1)
+      if (!user) {
+        try {
+          const rawUser = await authService.getCurrentUser()
+          user = sanitizeUser(rawUser)
+        } catch (e) {
+          localStorage.removeItem(TOKEN_KEY)
+          localStorage.removeItem('voyager_user')
+          dispatch({ type: ACTIONS.AUTH_FAILURE, payload: e.message })
+          throw e
+        }
+      }
       if (user) localStorage.setItem('voyager_user', JSON.stringify(user))
+      await provisionUserAcrossAiServices(user)
       dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
       return { user, token }
     }
@@ -115,14 +132,17 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: ACTIONS.SET_LOADING, payload: true })
     try {
       const loginResponse = await authService.login(credentials)
+      console.log('Login response:', loginResponse)
       const token = loginResponse?.token
       const rawUser = loginResponse?.user
 
       if (!token) throw new Error('No token received from server')
 
       const user = sanitizeUser(rawUser)
+      console.log('Sanitized user:', user)
       localStorage.setItem(TOKEN_KEY, token)
       if (user) localStorage.setItem('voyager_user', JSON.stringify(user))
+      await provisionUserAcrossAiServices(user)
       dispatch({ type: ACTIONS.AUTH_SUCCESS, user, token })
       return { user, token }
     } catch (error) {

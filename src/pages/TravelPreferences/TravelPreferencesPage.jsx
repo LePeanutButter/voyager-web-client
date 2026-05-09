@@ -21,23 +21,26 @@ function TravelPreferencesQuestionnaire({
   onNext,
 }) {
   const progress = ((stepIndex + 1) / questions.length) * 100
+  console.log('Current question object:', currentQuestion)
+  console.log('Current question ID:', currentQuestion?.id)
+  console.log('Current answers:', answers)
   const currentAnswers = answers[currentQuestion?.id] || []
   const canProceed = currentAnswers.length > 0
 
   return (
     <div className="page-container" style={{ maxWidth: 600 }}>
       <button type="button" className="btn-back" onClick={() => navigate(-1)} style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-        <ArrowLeft size={16} /> Back
+        <ArrowLeft size={16} /> Volver
       </button>
 
       <div style={{ background: 'var(--surface-card)', padding: '2.5rem', borderRadius: 'var(--border-radius-xl)', boxShadow: 'var(--shadow-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--voyager-blue)' }}>
             <Compass size={24} />
-            <span style={{ fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Travel Profile</span>
+            <span style={{ fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perfil de viaje</span>
           </div>
           <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Step {stepIndex + 1} of {questions.length}
+            Paso {stepIndex + 1} de {questions.length}
           </span>
         </div>
 
@@ -48,11 +51,15 @@ function TravelPreferencesQuestionnaire({
         <ErrorBanner variant="error" message={error} onDismiss={onDismissError} />
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', lineHeight: 1.4 }}>
-          {currentQuestion.text}
+          {currentQuestion.prompt}
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
           {currentQuestion.options?.map((opt) => {
+            console.log('Option object:', opt)
+            console.log('Option ID:', opt.id)
+            console.log('Option text:', opt.text)
+            console.log('Option label:', opt.label)
             const isSelected = currentAnswers.includes(opt.id)
             return (
               <button
@@ -75,14 +82,14 @@ function TravelPreferencesQuestionnaire({
                   textAlign: 'left',
                 }}
               >
-                <span>{opt.text}</span>
+                <span>{opt.label}</span>
                 {isSelected && <CheckCircle size={18} color="var(--voyager-blue)" />}
               </button>
             )
           })}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="travel-prefs-footer-actions">
           <button
             type="button"
             className="btn-primary"
@@ -90,9 +97,9 @@ function TravelPreferencesQuestionnaire({
             disabled={!canProceed || saving}
             style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}
           >
-            {saving ? 'Saving...' : (
+            {saving ? 'Guardando...' : (
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {stepIndex < questions.length - 1 ? 'Next' : 'Finish'} <ChevronRight size={18} />
+                {stepIndex < questions.length - 1 ? 'Siguiente' : 'Finalizar'} <ChevronRight size={18} />
               </span>
             )}
           </button>
@@ -108,7 +115,8 @@ TravelPreferencesQuestionnaire.propTypes = {
   questions: PropTypes.arrayOf(PropTypes.object).isRequired,
   currentQuestion: PropTypes.shape({
     id: PropTypes.string.isRequired,
-    text: PropTypes.string.isRequired,
+    prompt: PropTypes.string.isRequired,
+    text: PropTypes.string,
     allowMultiple: PropTypes.bool,
     options: PropTypes.arrayOf(PropTypes.shape({
       id: PropTypes.string.isRequired,
@@ -149,28 +157,17 @@ const TravelPreferencesPage = () => {
     const init = async () => {
       try {
         setLoading(true)
-        let existingPrefs = null
-        try {
-          existingPrefs = await aiService.getTravelPreferences(userId)
-        } catch (err) {
-          if (err?.response?.status !== 404) {
-            throw err
-          }
-        }
-
-        if (existingPrefs?.isCompleted) {
-          setPreferences(existingPrefs)
-          setIsCompleted(true)
-          setLoading(false)
-          return
-        }
-
+        
+        // Always start questionnaire first, don't check existing preferences
         const session = await aiService.startQuestionnaire(userId)
+        console.log('AI Service Response:', session)
+        console.log('Questions array:', session.questions)
+        console.log('Current question:', session.questions?.[0])
         setSessionId(session.sessionId)
         setQuestions(session.questions || [])
 
       } catch (err) {
-        setError(err?.message || 'Failed to initialize preferences.')
+        setError(err?.message || 'No se pudieron inicializar las preferencias.')
       } finally {
         setLoading(false)
       }
@@ -197,33 +194,49 @@ const TravelPreferencesPage = () => {
   }
 
   const handleNext = async () => {
-    if (stepIndex < questions.length - 1) {
-      setStepIndex((step) => step + 1)
-      return
-    }
-
     setSaving(true)
     setError(null)
 
     try {
-      const formattedAnswers = Object.entries(answers).map(([qId, oIds]) => ({
-        questionId: qId,
-        selectedOptionIds: oIds,
-      }))
+      const currentAnswers = answers[currentQuestion?.id] || []
+      const formattedAnswers = [{
+        questionId: currentQuestion?.id,
+        selectedOptionIds: currentAnswers,
+      }]
 
-      await aiService.submitQuestionnaire(sessionId, formattedAnswers)
-      const finalPrefs = await aiService.getTravelPreferences(userId)
+      const response = await aiService.submitQuestionnaireStep({
+        userId,
+        sessionId,
+        answers: formattedAnswers,
+      })
 
-      setPreferences(finalPrefs)
-      setIsCompleted(true)
+      if (response.isComplete) {
+        // Cuestionario completado - enviar todas las respuestas
+        const allFormattedAnswers = Object.entries(answers).map(([qId, oIds]) => ({
+          questionId: qId,
+          selectedOptionIds: oIds,
+        }))
+
+        const response = await aiService.submitQuestionnaire(sessionId, allFormattedAnswers, userId)
+        
+        setPreferences(response)
+        setIsCompleted(true)
+      } else {
+        // Hay más preguntas - actualizar estado
+        setSessionId(response.sessionId)
+        setQuestions(response.questions || [])
+        setStepIndex(0) // Resetear a 0 porque las preguntas nuevas vienen en un array fresco
+      }
     } catch (err) {
-      setError(err?.message || 'Failed to submit preferences.')
+      setError(err?.message || 'No se pudieron procesar las respuestas.')
     } finally {
       setSaving(false)
     }
   }
 
   const currentQuestion = questions[stepIndex]
+
+  console.log('Component state:', { loading, isCompleted, questionsLength: questions.length, stepIndex })
 
   if (loading) {
     return (
@@ -240,14 +253,16 @@ const TravelPreferencesPage = () => {
         <div style={{ display: 'inline-flex', padding: '1.5rem', background: 'var(--color-success-light)', color: 'var(--color-success)', borderRadius: '50%', marginBottom: '1.5rem' }}>
           <CheckCircle size={48} />
         </div>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Preferences Saved!</h1>
+        <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>¡Preferencias guardadas!</h1>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '1.1rem' }}>
-          Your travel profile has been analyzed. You are categorized as a{' '}
-          <strong style={{ color: 'var(--text-primary)', margin: '0 0.25rem' }}>{preferences?.travelerCategory || 'Explorer'}</strong>.
+          Tu perfil de viaje ha sido analizado. Estas categorizado como{' '}
+          <strong style={{ color: 'var(--text-primary)', margin: '0 0.25rem' }}>{preferences?.travelerCategory || 'Explorador'}</strong>.
         </p>
-        <button type="button" className="btn-primary" onClick={() => navigate('/dashboard')}>
-          Go to Dashboard
-        </button>
+        <div className="travel-prefs-complete-actions">
+          <button type="button" className="btn-primary" onClick={() => navigate('/dashboard')}>
+            Ir al panel
+          </button>
+        </div>
       </div>
     )
   }
@@ -255,10 +270,12 @@ const TravelPreferencesPage = () => {
   if (questions.length === 0) {
     return (
       <div className="page-container" style={{ maxWidth: 600 }}>
-        <ErrorBanner variant="error" message={error || 'No questions available.'} />
+        <ErrorBanner variant="error" message={error || 'No hay preguntas disponibles.'} />
       </div>
     )
   }
+
+  console.log('Rendering questionnaire with currentQuestion:', currentQuestion)
 
   return (
     <TravelPreferencesQuestionnaire

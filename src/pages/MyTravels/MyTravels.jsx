@@ -12,10 +12,10 @@ import './MyTravels.css'
 const STATUS_FILTERS = ['ALL', 'PLANNING', 'ACTIVE', 'COMPLETED', 'CANCELLED']
 
 const statusConfig = {
-  PLANNING: { label: 'Planning', cls: 'badge-planning' },
-  ACTIVE:   { label: 'Active',   cls: 'badge-active' },
-  COMPLETED:{ label: 'Completed',cls: 'badge-completed' },
-  CANCELLED:{ label: 'Cancelled',cls: 'badge-cancelled' },
+  PLANNING: { label: 'Planificando', cls: 'badge-planning' },
+  ACTIVE:   { label: 'Activo',       cls: 'badge-active' },
+  COMPLETED:{ label: 'Completado',   cls: 'badge-completed' },
+  CANCELLED:{ label: 'Cancelado',    cls: 'badge-cancelled' },
 }
 
 const MyTravels = () => {
@@ -51,10 +51,10 @@ const MyTravels = () => {
         <div className="empty-state-icon">
           <Plane size={32} />
         </div>
-        <h3>No travel plans yet</h3>
-        <p>Start planning your first adventure and let AI guide you to the perfect destination!</p>
+        <h3>Aun no tienes planes de viaje</h3>
+        <p>Comienza a planear tu primera aventura y deja que la IA te guie al destino ideal.</p>
         <Link to="/travel-plans/create" className="btn-primary" style={{ display: 'inline-flex' }}>
-          <Plus size={16} /> Create My First Plan
+          <Plus size={16} /> Crear mi primer plan
         </Link>
       </>
     )
@@ -64,10 +64,10 @@ const MyTravels = () => {
         <div className="empty-state-icon">
           <Filter size={28} />
         </div>
-        <h3>No {activeFilter.toLowerCase()} plans</h3>
-        <p>Try selecting a different filter.</p>
+        <h3>No hay planes {activeFilter.toLowerCase()}</h3>
+        <p>Prueba seleccionando un filtro diferente.</p>
         <button className="btn-primary" onClick={() => setActiveFilter('ALL')} style={{ display: 'inline-flex' }}>
-          View All Plans
+          Ver todos los planes
         </button>
       </>
     )
@@ -99,8 +99,8 @@ const MyTravels = () => {
                 <button
                   className="delete-btn"
                   onClick={(e) => { e.stopPropagation(); setConfirmDelete(plan.id) }}
-                  title="Delete plan"
-                  aria-label="Delete plan"
+                  title="Eliminar plan"
+                  aria-label="Eliminar plan"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -128,7 +128,7 @@ const MyTravels = () => {
                     {plan.numberOfTravelers && (
                       <div className="meta-row">
                         <Users size={14} />
-                        <span>{plan.numberOfTravelers} traveler{plan.numberOfTravelers > 1 ? 's' : ''}</span>
+                        <span>{plan.numberOfTravelers} viajero{plan.numberOfTravelers > 1 ? 's' : ''}</span>
                       </div>
                     )}
                     {plan.estimatedBudget && (
@@ -145,12 +145,14 @@ const MyTravels = () => {
                     <Clock size={12} />
                     <span>{formatDate(plan.createdAt)}</span>
                   </div>
-                  <button
-                    className="btn-view-details"
-                    onClick={() => navigate(`/travel-plans/${plan.id}`)}
-                  >
-                    Details <ArrowRight size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      className="btn-view-details"
+                      onClick={() => navigate(`/travel-plans/${plan.id}`)}
+                    >
+                      Detalles <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -166,11 +168,11 @@ const MyTravels = () => {
       <div className="page-header">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1>My Travels</h1>
-            <p>Manage and track all your travel plans</p>
+            <h1>Mis Viajes</h1>
+            <p>Administra y da seguimiento a todos tus planes de viaje</p>
           </div>
           <button className="btn-primary" onClick={() => navigate('/travel-plans/create')}>
-            <Plus size={18} /> New Plan
+            <Plus size={18} /> Nuevo plan
           </button>
         </div>
       </div>
@@ -187,7 +189,7 @@ const MyTravels = () => {
               className={`filter-tab ${activeFilter === f ? 'active' : ''}`}
               onClick={() => setActiveFilter(f)}
             >
-              {f === 'ALL' ? `All (${plans.length})` : f.charAt(0) + f.slice(1).toLowerCase()}
+              {f === 'ALL' ? `Todos (${plans.length})` : (statusConfig[f]?.label || f)}
             </button>
           ))}
         </div>
@@ -200,16 +202,16 @@ const MyTravels = () => {
         <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <button type="button" onClick={() => setConfirmDelete(null)} aria-label="Close modal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 'none', cursor: 'default' }} />
           <dialog open className="modal-box animate-scaleIn" style={{ maxWidth: 500, position: 'relative', zIndex: 1, margin: 0 }}>
-            <h3>Delete Travel Plan?</h3>
-            <p>This action cannot be undone. The plan and all its activities will be permanently deleted.</p>
+            <h3>¿Eliminar plan de viaje?</h3>
+            <p>Esta accion no se puede deshacer. El plan y todas sus actividades se eliminaran permanentemente.</p>
             <div className="modal-actions">
-              <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Cancelar</button>
               <button
                 className="btn-danger"
                 onClick={() => handleDelete(confirmDelete)}
                 disabled={deletingId === confirmDelete}
               >
-                {deletingId === confirmDelete ? 'Deleting…' : 'Delete Plan'}
+                {deletingId === confirmDelete ? 'Eliminando…' : 'Eliminar plan'}
               </button>
             </div>
           </dialog>

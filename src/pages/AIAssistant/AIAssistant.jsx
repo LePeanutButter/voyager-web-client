@@ -10,10 +10,10 @@ import {
 import './AIAssistant.css'
 
 const QUICK_SUGGESTIONS = [
-  { icon: MapPin, text: 'Find romantic destinations in Europe' },
-  { icon: Calendar, text: 'Plan a 7-day trip to Japan' },
-  { icon: DollarSign, text: 'Budget-friendly vacation under $1,500' },
-  { icon: Lightbulb, text: 'Best time to visit Southeast Asia' },
+  { icon: MapPin, text: 'Encuentra destinos romanticos en Europa' },
+  { icon: Calendar, text: 'Planifica un viaje de 7 dias a Japon' },
+  { icon: DollarSign, text: 'Vacaciones economicas por menos de $1,500' },
+  { icon: Lightbulb, text: 'Mejor epoca para visitar el Sudeste Asiatico' },
 ]
 
 const AIAssistant = () => {
@@ -35,11 +35,15 @@ const AIAssistant = () => {
     clearError,
   } = useAIChat(userId)
 
+  const focusChatInput = () => {
+    inputRef.current?.focus({ preventScroll: true })
+  }
+
   const handleSend = async () => {
     const text = inputValue.trim()
     if (!text || loading) return
     setInputValue('')
-    inputRef.current?.focus()
+    focusChatInput()
     await sendMessage(text)
   }
 
@@ -52,7 +56,7 @@ const AIAssistant = () => {
 
   const handleSuggestion = (text) => {
     setInputValue(text)
-    inputRef.current?.focus()
+    focusChatInput()
   }
 
   const handleFeedback = async (msgId, activityId, rating) => {
@@ -61,7 +65,7 @@ const AIAssistant = () => {
   }
 
   const handleClearHistory = async () => {
-    if (globalThis.confirm('Clear entire conversation history?') === false) return
+    if (globalThis.confirm('¿Borrar todo el historial de conversacion?') === false) return
     await clearHistory()
   }
 
@@ -83,8 +87,8 @@ const AIAssistant = () => {
             <Sparkles size={24} />
           </div>
           <div>
-            <h1>AI Travel Assistant</h1>
-            <p>Powered by advanced AI — ask anything about your travels</p>
+            <h1>Asistente IA de viajes</h1>
+            <p>IA local (Ollama + memoria en servidor) — ideal para planificación y contexto conversacional</p>
           </div>
         </div>
         <div className="ai-header-actions">
@@ -92,10 +96,10 @@ const AIAssistant = () => {
             id="ai-clear-history-btn"
             className="btn-outline-sm"
             onClick={handleClearHistory}
-            title="Clear conversation"
+            title="Limpiar conversacion"
           >
             <Trash2 size={15} />
-            Clear
+            Limpiar
           </button>
         </div>
       </div>
@@ -147,15 +151,25 @@ const AIAssistant = () => {
                           <div className="msg-feedback">
                             <button
                               className={`feedback-btn ${feedbackGiven[msg.id] === 'up' ? 'active' : ''}`}
-                              onClick={() => handleFeedback(msg.id, null, 5)}
-                              title="Helpful"
+                              onClick={() =>
+                                handleFeedback(
+                                  msg.id,
+                                  msg.metadata?.rankedItems?.[0]?.id || null,
+                                  5
+                                )}
+                              title="Util"
                             >
                               <ThumbsUp size={13} />
                             </button>
                             <button
                               className={`feedback-btn ${feedbackGiven[msg.id] === 'down' ? 'active red' : ''}`}
-                              onClick={() => handleFeedback(msg.id, null, 1)}
-                              title="Not helpful"
+                              onClick={() =>
+                                handleFeedback(
+                                  msg.id,
+                                  msg.metadata?.rankedItems?.[0]?.id || null,
+                                  1
+                                )}
+                              title="No util"
                             >
                               <ThumbsDown size={13} />
                             </button>
@@ -194,7 +208,7 @@ const AIAssistant = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about destinations, itineraries, budgets…"
+              placeholder="Pregunta sobre destinos, itinerarios, presupuestos..."
               rows={1}
               disabled={loading}
               aria-label="Chat message input"
@@ -209,14 +223,14 @@ const AIAssistant = () => {
               <Send size={18} />
             </button>
           </div>
-          <p className="chat-hint">Press Enter to send · Shift+Enter for new line</p>
+          <p className="chat-hint">Presiona Enter para enviar · Shift+Enter para nueva linea</p>
         </div>
 
         {/* Sidebar */}
         <div className="ai-sidebar">
           {/* Quick suggestions */}
           <div className="ai-sidebar-section">
-            <h3>Quick Prompts</h3>
+            <h3>Preguntas rapidas</h3>
             <div className="quick-suggestions">
               {QUICK_SUGGESTIONS.map((s) => {
                 const Icon = s.icon
@@ -236,13 +250,13 @@ const AIAssistant = () => {
 
           {/* Capabilities */}
           <div className="ai-sidebar-section">
-            <h3>What I can do</h3>
+            <h3>Lo que puedo hacer</h3>
             <div className="capabilities">
               {[
-                { icon: Sparkles, label: 'Smart Recommendations', desc: 'Personalized for your style' },
-                { icon: MapPin, label: 'Destination Discovery', desc: 'Hidden gems worldwide' },
-                { icon: TrendingUp, label: 'Budget Planning', desc: 'Cost estimates & tips' },
-                { icon: Calendar, label: 'Itinerary Builder', desc: 'Day-by-day planning' },
+                { icon: Sparkles, label: 'Recomendaciones inteligentes', desc: 'Personalizadas para tu estilo' },
+                { icon: MapPin, label: 'Descubrimiento de destinos', desc: 'Lugares especiales en todo el mundo' },
+                { icon: TrendingUp, label: 'Planificacion de presupuesto', desc: 'Estimaciones de costo y consejos' },
+                { icon: Calendar, label: 'Constructor de itinerarios', desc: 'Planificacion dia por dia' },
               ].map(({ icon: Icon, label, desc }) => (
                 <div key={label} className="capability-item">
                   <div className="capability-icon">

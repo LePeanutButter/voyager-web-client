@@ -1,4 +1,20 @@
-import api from './api'
+import api, { TOKEN_KEY } from './api'
+import { decodeJwtPayload, getNumericId, safeJsonParse } from '../utils/jwt'
+
+const getStoredUserId = () => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) {
+    const payload = decodeJwtPayload(token)
+    const fromJwt =
+      getNumericId(payload?.userId) ??
+      getNumericId(payload?.id) ??
+      getNumericId(payload?.sub)
+    if (fromJwt != null) return fromJwt
+  }
+
+  const storedUser = safeJsonParse(localStorage.getItem('voyager_user') || '')
+  return getNumericId(storedUser?.id)
+}
 
 /**
  * Auth service — wraps /users/* endpoints in voyager-backend-core.
@@ -6,7 +22,7 @@ import api from './api'
  * Contracts:
  *   POST /users/register  { username, email, password, firstName, lastName, phoneNumber? }
  *   POST /users/login     { usernameOrEmail, password } → LoginResponseDto
- *   GET  /users/me        → UserDto
+ *   GET  /users/{id}      → UserDto
  *   PUT  /users/{id}      { firstName, lastName, phoneNumber?, bio?, interests? } → UserDto
  *   GET  /users/{id}      → UserDto
  *   GET  /users/check-username?username=…  → Boolean
@@ -31,7 +47,13 @@ export const authService = {
    * Fetch the currently authenticated user's profile.
    * @returns {Promise<UserDto>}
    */
-  getCurrentUser: () => api.get('/users/me'),
+  getCurrentUser: async () => {
+    const userId = getStoredUserId()
+    if (userId == null) throw new Error('Cannot resolve current user id')
+    const pathId = String(userId)
+    if (!/^\d+$/.test(pathId)) throw new Error('Invalid user id')
+    return api.get(`/users/${pathId}`)
+  },
 
   /**
    * Update a user's profile fields.
@@ -63,4 +85,21 @@ export const authService = {
    */
   checkEmail: (email) =>
     api.get('/users/check-email', { params: { email } }),
+
+  // ─── Admin / gestión adicional ────────────────────────────────────────────
+  changePassword: (userId, currentPassword, newPassword) =>
+    api.put(`/users/${userId}/password`, null, { params: { currentPassword, newPassword } }),
+  listUsers: (params = {}) => api.get('/users', { params }),
+  getUsersByRole: (role, params = {}) => api.get(`/users/role/${role}`, { params }),
+  getUsersByStatus: (status, params = {}) => api.get(`/users/status/${status}`, { params }),
+  searchUsers: (searchTerm, params = {}) => api.get('/users/search', { params: { searchTerm, ...params } }),
+  updateUserRole: (userId, role) => api.put(`/users/${userId}/role`, null, { params: { role } }),
+  updateUserStatus: (userId, status) => api.put(`/users/${userId}/status`, null, { params: { status } }),
+  deleteUser: (userId) => api.delete(`/users/${userId}`),
+  getUserStatistics: () => api.get('/users/statistics'),
+
+  getGoogleLoginUrl: () => {
+    const base = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+    return `${base.replace(/\/api\/v1\/?$/, '')}/api/v1/auth/google/login`
+  },
 }

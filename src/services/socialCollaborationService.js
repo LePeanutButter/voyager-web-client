@@ -13,7 +13,7 @@ const unwrapApiResponse = (response) => {
   }
   // Backend usually returns ApiResponse<T> with a `data` field.
   // Keep a safe fallback for direct payload responses to avoid runtime data loss.
-  return Object.prototype.hasOwnProperty.call(response, 'data') ? response.data : response
+  return Object.hasOwn(response, 'data') ? response.data : response
 }
 
 export const socialCollaborationService = {
@@ -44,5 +44,16 @@ export const socialCollaborationService = {
   async getCompatibilityMatches(request) {
     const response = await api.post(SOCIAL_ENDPOINTS.compatibilityMatches, request)
     return normalizeCompatibilityMatches(unwrapApiResponse(response))
-  }
+  },
+
+  // Legacy endpoints (backward compatibility)
+  async shareActivityLegacy(activityId, receiverId) {
+    const response = await api.post(`/legacy/activities/${activityId}/share`, { receiverId })
+    return normalizeSharedActivity(unwrapApiResponse(response))
+  },
+
+  async updateSharedActivityLegacy(sharedActivityId, action) {
+    const response = await api.patch(`/legacy/shared-activities/${sharedActivityId}`, { action })
+    return normalizeSharedActivity(unwrapApiResponse(response))
+  },
 }

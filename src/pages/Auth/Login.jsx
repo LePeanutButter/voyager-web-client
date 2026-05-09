@@ -53,7 +53,7 @@ const Login = () => {
         <Card className="auth-card">
           <div className="auth-header">
             <h1>Welcome Back</h1>
-            <p>Sign in to your TourismAI account</p>
+            <p>Sign in to your SmarTrip account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
@@ -127,7 +127,7 @@ const Login = () => {
             <h3>Demo Account</h3>
             <p>Try the platform with our demo account:</p>
             <div className="demo-credentials">
-              <p><strong>Email:</strong> demo@tourismai.com</p>
+              <p><strong>Email:</strong> demo@smartrip.com</p>
               <p><strong>Password:</strong> password</p>
             </div>
           </Card>

@@ -21,6 +21,19 @@ import {
   getConversationMessages,
   getAllConversationMessages,
   sendTravelerMessage,
+  markMessageAsRead,
+  getTravelerSummary,
+  getConversations,
+  getSocialFeed,
+  createPost,
+  likePost,
+  unlikePost,
+  commentOnPost,
+  getPostComments,
+  createReview,
+  getReviews,
+  updateReview,
+  deleteReview,
   socialService,
 } from './socialService'
 
@@ -28,25 +41,25 @@ beforeEach(() => vi.clearAllMocks())
 
 describe('socialService', () => {
   it('getCompatibleTravelers', async () => {
-    apiMock.get.mockResolvedValue({ data: [{ id: 1 }] })
+    apiMock.get.mockResolvedValue([{ id: 1 }])
     expect(await getCompatibleTravelers('p1')).toEqual([{ id: 1 }])
   })
 
   it('sendConnectionRequest', async () => {
-    apiMock.post.mockResolvedValue({ data: { id: 1 } })
+    apiMock.post.mockResolvedValue({ id: 1 })
     expect(await sendConnectionRequest({ recipientId: 2 })).toEqual({ id: 1 })
   })
 
   it('acceptConnectionRequest / rejectConnectionRequest', async () => {
-    apiMock.put.mockResolvedValue({ data: {} })
+    apiMock.put.mockResolvedValue({})
     await acceptConnectionRequest('r1')
     await rejectConnectionRequest('r2')
   })
 
   it('getPendingRequests / getSentRequests', async () => {
-    apiMock.get.mockResolvedValue({ data: [1] })
+    apiMock.get.mockResolvedValue([1])
     expect(await getPendingRequests()).toEqual([1])
-    apiMock.get.mockResolvedValue({ data: [2] })
+    apiMock.get.mockResolvedValue([2])
     expect(await getSentRequests()).toEqual([2])
   })
 
@@ -95,7 +108,7 @@ describe('socialService', () => {
   it('sendTravelerMessage', async () => {
     apiMock.post.mockResolvedValue({ id: 1 })
     expect(await sendTravelerMessage({ connectionId: 1, senderId: 2, content: 'hi' })).toEqual({ id: 1 })
-    apiMock.post.mockResolvedValue({ data: { x: 1 } })
+    apiMock.post.mockResolvedValue({ x: 1 })
     expect(await sendTravelerMessage({ connectionId: 1, senderId: 2, content: 'hi' })).toEqual({ x: 1 })
   })
 
@@ -128,5 +141,85 @@ describe('socialService', () => {
     apiMock.get.mockResolvedValue([])
     await socialService.getUserConnections(1)
     expect(apiMock.get).toHaveBeenCalled()
+  })
+
+  it('propagates errors from getCompatibleTravelers, send/accept/reject and pending/sent', async () => {
+    apiMock.get.mockRejectedValueOnce(new Error('comp-fail'))
+    await expect(getCompatibleTravelers('p')).rejects.toThrow('comp-fail')
+    apiMock.post.mockRejectedValueOnce(new Error('conn-fail'))
+    await expect(sendConnectionRequest({ recipientId: 1 })).rejects.toThrow('conn-fail')
+    apiMock.put.mockRejectedValueOnce(new Error('acc-fail'))
+    await expect(acceptConnectionRequest('r')).rejects.toThrow('acc-fail')
+    apiMock.put.mockRejectedValueOnce(new Error('rej-fail'))
+    await expect(rejectConnectionRequest('r')).rejects.toThrow('rej-fail')
+    apiMock.get.mockRejectedValueOnce(new Error('pend-fail'))
+    await expect(getPendingRequests()).rejects.toThrow('pend-fail')
+    apiMock.get.mockRejectedValueOnce(new Error('sent-fail'))
+    await expect(getSentRequests()).rejects.toThrow('sent-fail')
+    apiMock.get.mockRejectedValueOnce(new Error('uc-fail'))
+    await expect(getUserConnections(1)).rejects.toThrow('uc-fail')
+    apiMock.delete.mockRejectedValueOnce(new Error('del-fail'))
+    await expect(removeConnection(1)).rejects.toThrow('del-fail')
+  })
+
+  it('returns [] when api responses are nullish', async () => {
+    apiMock.get.mockResolvedValue(null)
+    expect(await getCompatibleTravelers('p')).toEqual([])
+    apiMock.get.mockResolvedValue(null)
+    expect(await getPendingRequests()).toEqual([])
+    apiMock.get.mockResolvedValue(null)
+    expect(await getSentRequests()).toEqual([])
+  })
+
+  it('messages helpers (markRead, summary, demo endpoints)', async () => {
+    apiMock.put.mockResolvedValue({})
+    await markMessageAsRead(99)
+    expect(apiMock.put).toHaveBeenCalledWith('/social/messages/99/read')
+    apiMock.put.mockRejectedValueOnce(new Error('mark'))
+    await expect(markMessageAsRead(1)).rejects.toThrow('mark')
+
+    apiMock.get.mockResolvedValue({ summary: 1 })
+    await getTravelerSummary(7)
+    expect(apiMock.get).toHaveBeenCalledWith('/social/travelers/7/summary')
+    apiMock.get.mockRejectedValueOnce(new Error('sum'))
+    await expect(getTravelerSummary(7)).rejects.toThrow('sum')
+
+    apiMock.get.mockResolvedValue({})
+    await getConversations(1)
+    expect(apiMock.get).toHaveBeenCalledWith('/social/conversations/1')
+    await getSocialFeed(1, 0, 10)
+    expect(apiMock.get).toHaveBeenCalledWith('/social/feed/1', { params: { page: 0, size: 10 } })
+
+    apiMock.post.mockResolvedValue({})
+    await createPost({ content: 'hi' })
+    expect(apiMock.post).toHaveBeenCalledWith('/social/posts', { content: 'hi' })
+    await likePost(2)
+    expect(apiMock.post).toHaveBeenCalledWith('/social/posts/2/like')
+    apiMock.delete.mockResolvedValue({})
+    await unlikePost(2)
+    expect(apiMock.delete).toHaveBeenCalledWith('/social/posts/2/like')
+    await commentOnPost(2, { body: 'x' })
+    expect(apiMock.post).toHaveBeenCalledWith('/social/posts/2/comments', { body: 'x' })
+    await getPostComments(2, 1, 5)
+    expect(apiMock.get).toHaveBeenCalledWith('/social/posts/2/comments', {
+      params: { page: 1, size: 5 },
+    })
+
+    await createReview({ rating: 5 })
+    expect(apiMock.post).toHaveBeenCalledWith('/social/reviews', { rating: 5 })
+    await getReviews('TRIP', 9)
+    expect(apiMock.get).toHaveBeenCalledWith('/social/reviews/TRIP/9', {
+      params: { page: 0, size: 20 },
+    })
+    await updateReview(1, { rating: 4 })
+    expect(apiMock.put).toHaveBeenCalledWith('/social/reviews/1', { rating: 4 })
+    await deleteReview(1)
+    expect(apiMock.delete).toHaveBeenCalledWith('/social/reviews/1')
+  })
+
+  it('socialService aggregates exported helpers', () => {
+    expect(typeof socialService.markMessageAsRead).toBe('function')
+    expect(typeof socialService.createPost).toBe('function')
+    expect(typeof socialService.deleteReview).toBe('function')
   })
 })

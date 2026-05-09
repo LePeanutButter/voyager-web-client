@@ -66,7 +66,7 @@ const LoginPage = () => {
         <div className="auth-hero-content">
           <div className="auth-logo">
             <Plane size={28} />
-            <span>Voyager</span>
+            <span>SmarTrip</span>
           </div>
           <h1>Your journey<br />starts here</h1>
           <p>Plan smarter trips, connect with fellow travelers, and let AI guide your adventures.</p>
@@ -86,8 +86,8 @@ const LoginPage = () => {
       <div className="auth-form-panel">
         <div className="auth-form-container animate-fadeIn">
           <div className="auth-form-header">
-            <h2>Welcome back</h2>
-            <p>Sign in to your Voyager account</p>
+            <h2>Bienvenido de nuevo</h2>
+            <p>Inicia sesion en tu cuenta de SmarTrip</p>
           </div>
 
           <ErrorBanner variant="error" message={error} onDismiss={() => setError('')} />
@@ -167,14 +167,14 @@ const LoginPage = () => {
               disabled={loading}
             >
               <Globe size={18} />
-              Continue with Google
+              Continuar con Google
             </button>
           </form>
 
           <div className="auth-footer">
             <p>
-              Don&apos;t have an account?{' '}
-              <Link to="/register" className="auth-link">Create one free</Link>
+              ¿No tienes cuenta?{' '}
+              <Link to="/register" className="auth-link">Crea una gratis</Link>
             </p>
           </div>
         </div>

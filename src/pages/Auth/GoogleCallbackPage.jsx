@@ -22,24 +22,24 @@ const GoogleCallbackPage = () => {
       const message = searchParams.get('message')
 
       if (error) {
-        setErrorMessage(message || 'Google authentication failed. Please try again.')
+        setErrorMessage(message || 'La autenticacion con Google fallo. Intenta de nuevo.')
         setStatus('error')
         return
       }
 
       if (!token) {
-        setErrorMessage('No authentication token received.')
+        setErrorMessage('No se recibio token de autenticacion.')
         setStatus('error')
         return
       }
 
       try {
         // Inject the Google-issued JWT into the auth context
-        // The user object will be fetched from /users/me automatically
+        // The user object will be fetched from /users/{id} automatically
         await login(null, token)
         navigate('/dashboard', { replace: true })
       } catch (err) {
-        setErrorMessage(err?.message || 'Authentication failed. Please try again.')
+        setErrorMessage(err?.message || 'La autenticacion fallo. Intenta de nuevo.')
         setStatus('error')
       }
     }
@@ -82,14 +82,14 @@ const GoogleCallbackPage = () => {
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ marginBottom: '0.5rem' }}>Signing you in…</h2>
             <p style={{ color: 'var(--text-secondary)' }}>
-              Completing Google authentication, please wait.
+              Completando autenticacion con Google, espera un momento.
             </p>
           </div>
         </>
       ) : (
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
           <h2 style={{ color: 'var(--color-danger)', marginBottom: '0.75rem' }}>
-            Authentication Failed
+            Error de autenticacion
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
             {errorMessage}
@@ -99,7 +99,7 @@ const GoogleCallbackPage = () => {
             onClick={() => navigate('/login')}
             style={{ display: 'inline-flex' }}
           >
-            Return to Login
+            Volver a iniciar sesion
           </button>
         </div>
       )}

@@ -12,7 +12,7 @@ import api from './api'
 export const getCompatibleTravelers = async (travelPlanId) => {
   try {
     const response = await api.get(`/travel-plans/${travelPlanId}/compatible-travelers`)
-    return response.data || []
+    return response || []
   } catch (error) {
     console.error('Error fetching compatible travelers:', error)
     throw error
@@ -28,8 +28,9 @@ export const getCompatibleTravelers = async (travelPlanId) => {
  */
 export const sendConnectionRequest = async (requestData) => {
   try {
+    console.log('socialService.sendConnectionRequest payload:', requestData)
     const response = await api.post('/social/connections', requestData)
-    return response.data
+    return response
   } catch (error) {
     console.error('Error sending connection request:', error)
     throw error
@@ -44,7 +45,7 @@ export const sendConnectionRequest = async (requestData) => {
 export const acceptConnectionRequest = async (requestId) => {
   try {
     const response = await api.put(`/social/connections/${requestId}/accept`)
-    return response.data
+    return response
   } catch (error) {
     console.error('Error accepting connection request:', error)
     throw error
@@ -59,7 +60,7 @@ export const acceptConnectionRequest = async (requestId) => {
 export const rejectConnectionRequest = async (requestId) => {
   try {
     const response = await api.put(`/social/connections/${requestId}/reject`)
-    return response.data
+    return response
   } catch (error) {
     console.error('Error rejecting connection request:', error)
     throw error
@@ -73,7 +74,7 @@ export const rejectConnectionRequest = async (requestId) => {
 export const getPendingRequests = async () => {
   try {
     const response = await api.get('/social/connections/pending')
-    return response.data || []
+    return response || []
   } catch (error) {
     console.error('Error fetching pending requests:', error)
     throw error
@@ -87,7 +88,7 @@ export const getPendingRequests = async () => {
 export const getSentRequests = async () => {
   try {
     const response = await api.get('/social/connections/sent')
-    return response.data || []
+    return response || []
   } catch (error) {
     console.error('Error fetching sent requests:', error)
     throw error
@@ -110,19 +111,6 @@ export const getUserConnections = async (userId) => {
     return unwrapList(response)
   } catch (error) {
     console.error('Error fetching user connections:', error)
-    throw error
-  }
-}
-
-/**
- * @param {number|string} connectionId
- * @returns {Promise<void>}
- */
-export const removeConnection = async (connectionId) => {
-  try {
-    await api.delete(`/social/connections/${connectionId}`)
-  } catch (error) {
-    console.error('Error removing connection:', error)
     throw error
   }
 }
@@ -150,6 +138,20 @@ export const getConversationMessages = async (connectionId, userId, page = 0, si
     return { messages, raw: response }
   } catch (error) {
     console.error('Error fetching conversation messages:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a connection.
+ * @param {number} connectionId - ID of the connection to delete
+ * @returns {Promise<void>}
+ */
+export const removeConnection = async (connectionId) => {
+  try {
+    await api.delete(`/social/connections/${connectionId}`)
+  } catch (error) {
+    console.error('Error removing connection:', error)
     throw error
   }
 }
@@ -214,13 +216,46 @@ export const sendTravelerMessage = async ({ connectionId, senderId, content }) =
       senderId,
       content,
     })
-    if (response?.data !== undefined) return response.data
     return response
   } catch (error) {
     console.error('Error sending traveler message:', error)
     throw error
   }
 }
+
+export const markMessageAsRead = async (messageId) => {
+  try {
+    return await api.put(`/social/messages/${messageId}/read`)
+  } catch (error) {
+    console.error('Error marking message as read:', error)
+    throw error
+  }
+}
+
+export const getTravelerSummary = async (travelerId) => {
+  try {
+    return await api.get(`/social/travelers/${travelerId}/summary`)
+  } catch (error) {
+    console.error('Error fetching traveler summary:', error)
+    throw error
+  }
+}
+
+// Demo-enabled social endpoints
+export const getConversations = async (userId) => api.get(`/social/conversations/${userId}`)
+export const getSocialFeed = async (userId, page = 0, size = 20) =>
+  api.get(`/social/feed/${userId}`, { params: { page, size } })
+export const createPost = async (payload) => api.post('/social/posts', payload)
+export const likePost = async (postId) => api.post(`/social/posts/${postId}/like`)
+export const unlikePost = async (postId) => api.delete(`/social/posts/${postId}/like`)
+export const commentOnPost = async (postId, payload) => api.post(`/social/posts/${postId}/comments`, payload)
+export const getPostComments = async (postId, page = 0, size = 20) =>
+  api.get(`/social/posts/${postId}/comments`, { params: { page, size } })
+export const createReview = async (payload) => api.post('/social/reviews', payload)
+export const getReviews = async (targetType, targetId, page = 0, size = 20) =>
+  api.get(`/social/reviews/${targetType}/${targetId}`, { params: { page, size } })
+export const updateReview = async (reviewId, payload) => api.put(`/social/reviews/${reviewId}`, payload)
+export const deleteReview = async (reviewId) => api.delete(`/social/reviews/${reviewId}`)
 
 /** Aggregate export for consumers that prefer a single namespace object */
 export const socialService = {
@@ -235,4 +270,17 @@ export const socialService = {
   getConversationMessages,
   getAllConversationMessages,
   sendTravelerMessage,
+  markMessageAsRead,
+  getTravelerSummary,
+  getConversations,
+  getSocialFeed,
+  createPost,
+  likePost,
+  unlikePost,
+  commentOnPost,
+  getPostComments,
+  createReview,
+  getReviews,
+  updateReview,
+  deleteReview,
 }

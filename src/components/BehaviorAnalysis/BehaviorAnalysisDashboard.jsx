@@ -330,6 +330,18 @@ const BehaviorAnalysisDashboard = ({ userId }) => {
         </div>
       )}
 
+      {!summary && !error && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
+          <p className="text-sm font-medium">
+            <strong>¿Aún no tienes datos suficientes?</strong>
+          </p>
+          <p className="text-sm mt-2">
+            Usa la plataforma durante unos días para generar patrones de comportamiento. 
+            Crea travel plans, interactúa con otros viajeros y navega por diferentes secciones.
+          </p>
+        </div>
+      )}
+
       {summary && <BehaviorSummaryCard summary={summary} />}
 
       {patterns.length > 0 && <PatternsCard patterns={patterns} />}
