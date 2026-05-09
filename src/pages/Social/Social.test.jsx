@@ -315,9 +315,8 @@ describe('Social', () => {
       if (!el) throw new Error('dialog perfil no montado')
       return el
     })
-    const cerrarBtn = within(profileDialog).getByRole('button', {
-      name: (accessibleName) => accessibleName.replace(/\s+/g, ' ').trim() === 'Cerrar',
-    })
+    // <dialog> sin `open` puede excluir hijos del árbol a11y; hidden: true permite consultar el botón
+    const cerrarBtn = within(profileDialog).getByRole('button', { name: /Cerrar/i, hidden: true })
     await userEvent.click(cerrarBtn)
     await waitFor(() => expect(screen.queryByText('BioPerfilCerrar')).not.toBeInTheDocument())
   })
