@@ -23,13 +23,16 @@ vi.mock('../../components/TravelPlan/QuickEditModal', () => ({
     ) : null,
 }))
 
-vi.mock('../../components/Catalog/CatalogDestinationsPanel', () => ({
-  CatalogDestinationsPanel: ({ onPickCatalogActivity }) => (
-    <button type="button" onClick={() => onPickCatalogActivity({ name: 'Tour', description: 'City' })}>
-      Elegir del catalogo
-    </button>
-  ),
-}))
+vi.mock('../../components/Catalog/CatalogDestinationsPanel', () => {
+  /* eslint-disable react/prop-types -- stub de prueba */
+  return {
+    CatalogDestinationsPanel: ({ onPickCatalogActivity }) => (
+      <button type="button" onClick={() => onPickCatalogActivity({ name: 'Tour', description: 'City' })}>
+        Elegir del catalogo
+      </button>
+    ),
+  }
+})
 
 vi.mock('../../services/travelService', () => ({
   travelService: {

@@ -89,10 +89,12 @@ export function CatalogDestinationsPanel({
     return () => clearInterval(id)
   }, [cooldownUntil])
 
+  // cooldownTick no se usa en el cuerpo: dependencia para forzar recomputar el countdown cada tick
   const cooldownLeftSec = useMemo(() => {
     return cooldownUntil > Date.now()
       ? Math.ceil((cooldownUntil - Date.now()) / 1000)
       : 0
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentario sobre cooldownTick
   }, [cooldownUntil, cooldownTick])
 
   const loadCatalog = useCallback(

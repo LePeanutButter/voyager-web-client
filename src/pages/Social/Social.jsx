@@ -491,10 +491,12 @@ const Social = () => {
   const [discoverCooldownTick, setDiscoverCooldownTick] = useState(0)
   const [discoverRefreshNotice, setDiscoverRefreshNotice] = useState('')
 
+  // discoverCooldownTick no se usa en el cuerpo: dependencia para forzar recomputar el countdown cada tick
   const discoverManualCooldownSec = useMemo(() => {
     if (!discoverManualCooldownUntil) return 0
     const left = Math.ceil((discoverManualCooldownUntil - Date.now()) / 1000)
     return Math.max(0, left)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentario sobre discoverCooldownTick
   }, [discoverManualCooldownUntil, discoverCooldownTick])
 
   useEffect(() => {

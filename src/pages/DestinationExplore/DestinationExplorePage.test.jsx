@@ -27,26 +27,29 @@ vi.mock('../../hooks/useTravelPlans', () => ({
   }),
 }))
 
-vi.mock('../../components/Catalog/CatalogDestinationsPanel', () => ({
-  CatalogDestinationsPanel: ({ onPickCatalogActivity, onCatalogDataLoaded }) => (
-    <div>
-      <button
-        type="button"
-        onClick={() =>
-          onCatalogDataLoaded({
-            activities: [
-              { id: 'a1', name: 'Tour guiado', description: 'City walk' },
-            ],
-          })}
-      >
-        mock-catalog
-      </button>
-      <button type="button" onClick={() => onPickCatalogActivity({ name: 'Kayak', description: 'Agua' })}>
-        mock-pick
-      </button>
-    </div>
-  ),
-}))
+vi.mock('../../components/Catalog/CatalogDestinationsPanel', () => {
+  /* eslint-disable react/prop-types -- stub de prueba */
+  return {
+    CatalogDestinationsPanel: ({ onPickCatalogActivity, onCatalogDataLoaded }) => (
+      <div>
+        <button
+          type="button"
+          onClick={() =>
+            onCatalogDataLoaded({
+              activities: [
+                { id: 'a1', name: 'Tour guiado', description: 'City walk' },
+              ],
+            })}
+        >
+          mock-catalog
+        </button>
+        <button type="button" onClick={() => onPickCatalogActivity({ name: 'Kayak', description: 'Agua' })}>
+          mock-pick
+        </button>
+      </div>
+    ),
+  }
+})
 
 vi.mock('../../services/aiService', () => ({
   aiService: {
