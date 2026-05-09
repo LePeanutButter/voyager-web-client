@@ -187,7 +187,7 @@ const CreateTravelPlanPage = () => {
     const budget = roundCop(rawBudget)
 
     const travelers = formData.numberOfTravelers
-      ? Math.max(1, parseInt(formData.numberOfTravelers, 10) || 1)
+      ? Math.max(1, Number.parseInt(formData.numberOfTravelers, 10) || 1)
       : 1
 
     try {

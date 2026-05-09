@@ -233,10 +233,10 @@ export class MenuTracker {
         ...context,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
-        url: window.location.href,
+        url: globalThis.location.href,
         viewport: {
-          width: window.innerWidth,
-          height: window.innerHeight
+          width: globalThis.innerWidth,
+          height: globalThis.innerHeight
         }
       }
     };

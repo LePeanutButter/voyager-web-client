@@ -90,7 +90,6 @@ export function CatalogDestinationsPanel({
   }, [cooldownUntil])
 
   const cooldownLeftSec = useMemo(() => {
-    void cooldownTick
     return cooldownUntil > Date.now()
       ? Math.ceil((cooldownUntil - Date.now()) / 1000)
       : 0

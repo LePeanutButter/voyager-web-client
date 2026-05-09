@@ -64,6 +64,28 @@ const USERNAME_SUB_STYLE = { margin: 0, fontSize: '0.875rem', color: TEXT_SECOND
 
 const getConnectionRecordId = (conn) => conn?.id ?? conn?.connectionId ?? null
 
+function coalesceSelectedPlanId(previousId, plans) {
+  if (previousId && plans.some((p) => String(p.id) === String(previousId))) {
+    return previousId
+  }
+  return plans[0] ? String(plans[0].id) : ''
+}
+
+async function loadDiscoverTabTravelPlans({ getCancelled, setMyPlans, setSelectedPlanId }) {
+  try {
+    const list = await travelService.list()
+    if (getCancelled()) return
+    const arr = Array.isArray(list) ? list : []
+    setMyPlans(arr)
+    setSelectedPlanId((prev) => coalesceSelectedPlanId(prev, arr))
+  } catch {
+    if (!getCancelled()) {
+      setMyPlans([])
+      setSelectedPlanId('')
+    }
+  }
+}
+
 const normalizeConnectionPeer = (conn = {}) => ({
   id:
     conn?.connectedUserId ??
@@ -470,7 +492,6 @@ const Social = () => {
   const [discoverRefreshNotice, setDiscoverRefreshNotice] = useState('')
 
   const discoverManualCooldownSec = useMemo(() => {
-    void discoverCooldownTick
     if (!discoverManualCooldownUntil) return 0
     const left = Math.ceil((discoverManualCooldownUntil - Date.now()) / 1000)
     return Math.max(0, left)
@@ -527,25 +548,13 @@ const Social = () => {
   }, [loadSocialData])
 
   useEffect(() => {
-    if (activeTab !== 'discover' || !user?.id) return
+    if (activeTab !== 'discover' || !user?.id) return undefined
     let cancelled = false
-    ;(async () => {
-      try {
-        const list = await travelService.list()
-        if (cancelled) return
-        const arr = Array.isArray(list) ? list : []
-        setMyPlans(arr)
-        setSelectedPlanId((prev) => {
-          if (prev && arr.some((p) => String(p.id) === String(prev))) return prev
-          return arr[0] ? String(arr[0].id) : ''
-        })
-      } catch {
-        if (!cancelled) {
-          setMyPlans([])
-          setSelectedPlanId('')
-        }
-      }
-    })()
+    loadDiscoverTabTravelPlans({
+      getCancelled: () => cancelled,
+      setMyPlans,
+      setSelectedPlanId,
+    })
     return () => {
       cancelled = true
     }
