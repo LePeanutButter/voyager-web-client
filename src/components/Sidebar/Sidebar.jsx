@@ -29,6 +29,8 @@ const ICON_BY_NAV_ID = {
   preferences: Sparkles,
 }
 
+const DASHBOARD_PATH = '/dashboard'
+
 const ICON_BY_PATH = {
   '/dashboard': Home,
   '/my-travels': Luggage,
@@ -43,7 +45,7 @@ const ICON_BY_PATH = {
 
 function pathIsActive(pathname, path) {
   if (pathname === path) return true
-  if (path === '/dashboard') return pathname === '/dashboard'
+  if (path === DASHBOARD_PATH) return pathname === DASHBOARD_PATH
   return pathname.startsWith(`${path}/`)
 }
 

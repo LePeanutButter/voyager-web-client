@@ -270,6 +270,41 @@ describe('AuthProvider', () => {
     await waitFor(() => expect(screen.getByTestId('reg-err').textContent).toBe('reg-bad'))
   })
 
+  it('login con token y getCurrentUser fallido limpia storage y lanza', async () => {
+    authSvc.getCurrentUser.mockRejectedValue(new Error('sesion invalida'))
+    function FailOauth() {
+      const { login, error } = useAuth()
+      return (
+        <div>
+          <span data-testid="oauth-err">{error ?? ''}</span>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await login(null, 'jwt-mal')
+              } catch {
+                /* expected */
+              }
+            }}
+          >
+            bad-oauth
+          </button>
+        </div>
+      )
+    }
+    render(
+      <AuthProvider>
+        <FailOauth />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByRole('button', { name: 'bad-oauth' })).toBeInTheDocument())
+    await act(async () => {
+      screen.getByRole('button', { name: 'bad-oauth' }).click()
+    })
+    await waitFor(() => expect(screen.getByTestId('oauth-err').textContent).toBe('sesion invalida'))
+    expect(localStorage.getItem('voyager_token')).toBeNull()
+  })
+
   it('register delegates to login', async () => {
     authSvc.register.mockResolvedValue(undefined)
     authSvc.login.mockResolvedValue({

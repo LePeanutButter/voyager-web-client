@@ -89,13 +89,12 @@ export function CatalogDestinationsPanel({
     return () => clearInterval(id)
   }, [cooldownUntil])
 
-  const cooldownLeftSec = useMemo(
-    () =>
-      cooldownUntil > Date.now()
-        ? Math.ceil((cooldownUntil - Date.now()) / 1000)
-        : 0,
-    [cooldownUntil, cooldownTick]
-  )
+  const cooldownLeftSec = useMemo(() => {
+    void cooldownTick
+    return cooldownUntil > Date.now()
+      ? Math.ceil((cooldownUntil - Date.now()) / 1000)
+      : 0
+  }, [cooldownUntil, cooldownTick])
 
   const loadCatalog = useCallback(
     async ({ manual = false } = {}) => {

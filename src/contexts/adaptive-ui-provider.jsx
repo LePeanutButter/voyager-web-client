@@ -63,6 +63,8 @@ AdaptiveUIProvider.propTypes = {
   children: PropTypes.node.isRequired,
 }
 
+// Hook exportado junto al provider; Fast Refresh tolera este par en un solo archivo.
+// eslint-disable-next-line react-refresh/only-export-components -- hook del mismo módulo que el provider
 export function useAdaptiveUI() {
   const ctx = useContext(AdaptiveUIContext)
   if (!ctx) {

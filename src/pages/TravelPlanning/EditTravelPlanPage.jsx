@@ -365,7 +365,8 @@ const EditTravelPlanPage = () => {
         color: 'var(--text-secondary)'
       }}>
         <p style={{ margin: 0 }}>
-          <strong>Nota:</strong> Los campos marcados con * son obligatorios. Los cambios se guardarán automáticamente al presionar "Guardar Cambios".
+          <strong>Nota:</strong> Los campos marcados con * son obligatorios. Los cambios se guardarán automáticamente al presionar el
+          botón Guardar cambios.
         </p>
       </div>
     </div>

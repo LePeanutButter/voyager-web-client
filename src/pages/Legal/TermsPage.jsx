@@ -48,8 +48,9 @@ const TermsPage = () => {
           <section className="legal-section">
             <h2>5. Limitacion de responsabilidad</h2>
             <p>
-              SmarTrip se ofrece "tal cual". En la medida permitida por la ley, no garantizamos disponibilidad continua ni ausencia total
-              de errores y no asumimos responsabilidad por danos indirectos derivados del uso del servicio.
+              SmarTrip se ofrece tal cual, sin garantias expresas adicionales. En la medida permitida por la ley, no garantizamos
+              disponibilidad continua ni ausencia total de errores y no asumimos responsabilidad por danos indirectos derivados del
+              uso del servicio.
             </p>
           </section>
 

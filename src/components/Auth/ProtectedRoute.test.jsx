@@ -1,51 +1,120 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { AuthContext } from '../../contexts/auth-context.js'
 import ProtectedRoute from './ProtectedRoute'
 
-vi.mock('../../contexts/use-auth.js', () => ({
-  useAuth: vi.fn(),
-}))
-
-import { useAuth } from '../../contexts/use-auth.js'
+function renderWithAuth(value, ui) {
+  return render(
+    <MemoryRouter initialEntries={['/secret']}>
+      <AuthContext.Provider value={value}>
+        {ui}
+      </AuthContext.Provider>
+    </MemoryRouter>,
+  )
+}
 
 describe('ProtectedRoute', () => {
-  it('loading', () => {
-    useAuth.mockReturnValue({ loading: true, isAuthenticated: false })
-    render(
-      <MemoryRouter>
-        <ProtectedRoute />
-      </MemoryRouter>,
+  it('muestra cargando mientras loading', () => {
+    renderWithAuth(
+      { isAuthenticated: false, loading: true, user: null },
+      <Routes>
+        <Route
+          path="/secret"
+          element={
+            <ProtectedRoute>
+              <div>privado</div>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>,
     )
-    expect(screen.getByText(/Cargando/i)).toBeInTheDocument()
+    expect(screen.getByText(/cargando/i)).toBeInTheDocument()
   })
 
-  it('redirect when unauthenticated', () => {
-    useAuth.mockReturnValue({ loading: false, isAuthenticated: false })
+  it('redirige a login si no autenticado', () => {
     render(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <Routes>
-          <Route path="/" element={<ProtectedRoute />}>
-            <Route path="dashboard" element={<div>secret</div>} />
-          </Route>
-          <Route path="/login" element={<div>login page</div>} />
-        </Routes>
+      <MemoryRouter initialEntries={['/secret']}>
+        <AuthContext.Provider value={{ isAuthenticated: false, loading: false, user: null }}>
+          <Routes>
+            <Route
+              path="/secret"
+              element={
+                <ProtectedRoute>
+                  <div>privado</div>
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/login" element={<div>login-page</div>} />
+          </Routes>
+        </AuthContext.Provider>
       </MemoryRouter>,
     )
-    expect(screen.getByText('login page')).toBeInTheDocument()
+    expect(screen.getByText('login-page')).toBeInTheDocument()
   })
 
-  it('outlet when authenticated', () => {
-    useAuth.mockReturnValue({ loading: false, isAuthenticated: true })
+  it('redirige a dashboard si el rol no está permitido', () => {
     render(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <Routes>
-          <Route path="/" element={<ProtectedRoute />}>
-            <Route path="dashboard" element={<div>secret</div>} />
-          </Route>
-        </Routes>
+      <MemoryRouter initialEntries={['/admin']}>
+        <AuthContext.Provider
+          value={{
+            isAuthenticated: true,
+            loading: false,
+            user: { role: 'USER' },
+          }}
+        >
+          <Routes>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <div>admin</div>
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/dashboard" element={<div>dash</div>} />
+          </Routes>
+        </AuthContext.Provider>
       </MemoryRouter>,
     )
-    expect(screen.getByText('secret')).toBeInTheDocument()
+    expect(screen.getByText('dash')).toBeInTheDocument()
+  })
+
+  it('permite acceso con rol permitido', () => {
+    renderWithAuth(
+      {
+        isAuthenticated: true,
+        loading: false,
+        user: { role: 'ADMIN' },
+      },
+      <Routes>
+        <Route
+          path="/secret"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <div>admin-area</div>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>,
+    )
+    expect(screen.getByText('admin-area')).toBeInTheDocument()
+  })
+
+  it('renderiza Outlet cuando no hay children', () => {
+    render(
+      <MemoryRouter initialEntries={['/nested']}>
+        <AuthContext.Provider
+          value={{ isAuthenticated: true, loading: false, user: { role: 'USER' } }}
+        >
+          <Routes>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/nested" element={<div>outlet-child</div>} />
+            </Route>
+          </Routes>
+        </AuthContext.Provider>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('outlet-child')).toBeInTheDocument()
   })
 })

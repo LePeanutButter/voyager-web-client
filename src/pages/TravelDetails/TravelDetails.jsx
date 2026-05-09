@@ -428,7 +428,7 @@ TravelDetailsBreadcrumb.propTypes = {
   navigate: PropTypes.func.isRequired,
 }
 
-function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLoading, handleStatusChange, onQuickEdit }) {
+function TravelDetailsTopSection({ plan, id, sc, transitions, statusLoading, handleStatusChange, onQuickEdit }) {
   return (
     <div className="details-header">
       <div>
@@ -474,7 +474,6 @@ function TravelDetailsTopSection({ plan, id, navigate, sc, transitions, statusLo
 TravelDetailsTopSection.propTypes = {
   plan: PropTypes.object.isRequired,
   id: PropTypes.string.isRequired,
-  navigate: PropTypes.func.isRequired,
   sc: PropTypes.object.isRequired,
   transitions: PropTypes.arrayOf(PropTypes.string).isRequired,
   statusLoading: PropTypes.bool.isRequired,
@@ -544,7 +543,6 @@ function TravelDetailsView({
       <TravelDetailsTopSection
         plan={plan}
         id={id}
-        navigate={navigate}
         sc={sc}
         transitions={transitions}
         statusLoading={statusLoading}
