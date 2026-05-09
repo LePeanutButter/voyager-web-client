@@ -4,6 +4,7 @@ const apiMock = vi.hoisted(() => ({
   post: vi.fn(),
   get: vi.fn(),
   put: vi.fn(),
+  delete: vi.fn(),
 }))
 
 vi.mock('./api', () => ({
@@ -64,5 +65,55 @@ describe('authService', () => {
     expect(apiMock.get).toHaveBeenCalledWith('/users/check-username', { params: { username: 'u' } })
     await authService.checkEmail('e@e.com')
     expect(apiMock.get).toHaveBeenCalledWith('/users/check-email', { params: { email: 'e@e.com' } })
+  })
+
+  it('getCurrentUser throws when no id is resolvable', async () => {
+    await expect(authService.getCurrentUser()).rejects.toThrow(/current user id/)
+  })
+
+  it('admin user management endpoints', async () => {
+    apiMock.put.mockResolvedValue({})
+    apiMock.get.mockResolvedValue([])
+    apiMock.delete.mockResolvedValue({})
+
+    await authService.changePassword(1, 'old', 'new')
+    expect(apiMock.put).toHaveBeenCalledWith('/users/1/password', null, {
+      params: { currentPassword: 'old', newPassword: 'new' },
+    })
+
+    await authService.listUsers({ page: 0 })
+    expect(apiMock.get).toHaveBeenCalledWith('/users', { params: { page: 0 } })
+
+    await authService.getUsersByRole('ADMIN', { page: 1 })
+    expect(apiMock.get).toHaveBeenCalledWith('/users/role/ADMIN', { params: { page: 1 } })
+
+    await authService.getUsersByStatus('ACTIVE')
+    expect(apiMock.get).toHaveBeenCalledWith('/users/status/ACTIVE', { params: {} })
+
+    await authService.searchUsers('jane', { limit: 10 })
+    expect(apiMock.get).toHaveBeenCalledWith('/users/search', {
+      params: { searchTerm: 'jane', limit: 10 },
+    })
+
+    await authService.updateUserRole(1, 'BUSINESS')
+    expect(apiMock.put).toHaveBeenCalledWith('/users/1/role', null, {
+      params: { role: 'BUSINESS' },
+    })
+
+    await authService.updateUserStatus(1, 'BANNED')
+    expect(apiMock.put).toHaveBeenCalledWith('/users/1/status', null, {
+      params: { status: 'BANNED' },
+    })
+
+    await authService.deleteUser(1)
+    expect(apiMock.delete).toHaveBeenCalledWith('/users/1')
+
+    await authService.getUserStatistics()
+    expect(apiMock.get).toHaveBeenCalledWith('/users/statistics')
+  })
+
+  it('getGoogleLoginUrl strips trailing /api/v1', () => {
+    const url = authService.getGoogleLoginUrl()
+    expect(url.endsWith('/api/v1/auth/google/login')).toBe(true)
   })
 })

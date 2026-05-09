@@ -103,4 +103,39 @@ describe('voyagerCrossService', () => {
       })
     ).resolves.toBeUndefined()
   })
+
+  it('provisionUserAcrossAiServices is a no-op when user has no id', async () => {
+    await expect(provisionUserAcrossAiServices(null)).resolves.toBeUndefined()
+    await expect(provisionUserAcrossAiServices({})).resolves.toBeUndefined()
+    expect(aiMock.getUserProfile).not.toHaveBeenCalled()
+  })
+
+  it('buildAiUserProfilePayload throws when user has no id', () => {
+    expect(() => buildAiUserProfilePayload({})).toThrow(/sin id/)
+    expect(() => buildMatchingIngestPayload(null)).toThrow(/sin id/)
+  })
+
+  it('display name falls back to name then username then default', () => {
+    const onlyName = buildAiUserProfilePayload({ id: 1, name: 'Solo', email: 'x@y.z' })
+    expect(onlyName.name).toBe('Solo')
+    const onlyUsername = buildAiUserProfilePayload({ id: 1, username: 'usr', email: '' })
+    expect(onlyUsername.name).toBe('usr')
+    const blank = buildAiUserProfilePayload({ id: 1 })
+    expect(blank.name).toBe('Viajero')
+  })
+
+  it('uses HTTP status from response.status when present', async () => {
+    aiMock.getUserProfile.mockRejectedValue({ response: { status: 404 } })
+    aiMock.createUserProfile.mockResolvedValue({})
+    aiMock.ingestMatchingProfiles.mockResolvedValue({})
+    await provisionUserAcrossAiServices({
+      id: 5,
+      email: 'a@a.com',
+      firstName: 'A',
+      lastName: '',
+      username: 'a',
+      role: 'USER',
+    })
+    expect(aiMock.createUserProfile).toHaveBeenCalled()
+  })
 })

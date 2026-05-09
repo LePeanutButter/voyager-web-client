@@ -24,9 +24,9 @@ describe('TravelPreferencesPage', () => {
       questions: [
         {
           id: 'q1',
-          text: 'Question one?',
+          prompt: 'Question one?',
           allowMultiple: false,
-          options: [{ id: 'o1', text: 'Opt A' }],
+          options: [{ id: 'o1', label: 'Opt A' }],
         },
       ],
     })

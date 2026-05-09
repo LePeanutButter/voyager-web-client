@@ -22,6 +22,23 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => vi.fn() }
 })
 
+vi.mock('../../contexts/use-auth.js', () => ({
+  useAuth: () => ({ user: { id: 1 } }),
+}))
+
+vi.mock('../../services/socialService', () => ({
+  socialService: {
+    getTravelerSummary: vi.fn().mockResolvedValue({}),
+    sendConnectionRequest: vi.fn().mockResolvedValue({}),
+  },
+}))
+
+vi.mock('../../services/aiService', () => ({
+  aiService: {
+    getBuddyRecommendations: vi.fn().mockResolvedValue({}),
+  },
+}))
+
 const mockPlan = {
   id: 7,
   title: 'Details plan',

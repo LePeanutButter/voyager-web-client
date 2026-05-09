@@ -77,4 +77,68 @@ describe('useAIChat', () => {
     expect(aiMock.submitLocalRecommendationFeedback).toHaveBeenCalled()
     act(() => result.current.clearError())
   })
+
+  it('triggers ranking when message asks for recommendations and reports errors', async () => {
+    aiMock.getTrendsDashboard.mockResolvedValueOnce({
+      emergingDestinations: [
+        { destinationId: 'd1', name: 'Bali', country: 'ID', tags: ['beach'] },
+      ],
+    })
+    aiMock.rankWithLocalRecommendations.mockResolvedValue({
+      items: [{ id: 'd1', name: 'Bali Beach' }],
+    })
+    aiMock.sendLocalChatMessage.mockResolvedValue({
+      message: 'Aqui van las recom',
+      recommendations: ['Bali', { name: 'Goa' }, { title: 'Phuket' }, { text: 'Maldivas' }, 42],
+    })
+    const { result } = renderHook(() => useAIChat('77'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    await act(async () => {
+      await result.current.sendMessage('necesito recom de hoteles')
+    })
+    expect(aiMock.rankWithLocalRecommendations).toHaveBeenCalled()
+    const lastAi = result.current.messages.findLast?.((m) => m.type === 'ai')
+      ?? [...result.current.messages].reverse().find((m) => m.type === 'ai')
+    expect(lastAi.suggestions).toEqual(expect.arrayContaining(['Bali', 'Goa', 'Bali Beach']))
+  })
+
+  it('reports error when sendLocalChatMessage rejects', async () => {
+    aiMock.sendLocalChatMessage.mockRejectedValueOnce(new Error('chat-broke'))
+    const { result } = renderHook(() => useAIChat('5'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    await act(async () => {
+      await result.current.sendMessage('hola')
+    })
+    expect(result.current.error).toBeTruthy()
+    const last = result.current.messages.at(-1)
+    expect(last.isError).toBe(true)
+    act(() => result.current.clearError())
+    expect(result.current.error).toBeNull()
+  })
+
+  it('submitFeedback noop without userId and swallows API errors', async () => {
+    const { result: resultNoUser } = renderHook(() => useAIChat(null))
+    await act(async () => {
+      await resultNoUser.current.submitFeedback('m', 'a', 5)
+    })
+    expect(aiMock.submitLocalRecommendationFeedback).not.toHaveBeenCalled()
+
+    aiMock.submitLocalRecommendationFeedback.mockRejectedValueOnce(new Error('feedback-fail'))
+    const { result } = renderHook(() => useAIChat('6'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    await act(async () => {
+      await result.current.submitFeedback('m', null, 4)
+    })
+    expect(result.current.error).toBeTruthy()
+  })
+
+  it('keeps ranking pool empty when trends fail or are empty', async () => {
+    aiMock.getTrendsDashboard.mockRejectedValueOnce(new Error('down'))
+    const { result } = renderHook(() => useAIChat('8'))
+    await waitFor(() => expect(result.current.loadingHistory).toBe(false))
+    await act(async () => {
+      await result.current.sendMessage('quiero recom de tours')
+    })
+    expect(aiMock.rankWithLocalRecommendations).not.toHaveBeenCalled()
+  })
 })

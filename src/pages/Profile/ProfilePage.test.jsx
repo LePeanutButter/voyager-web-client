@@ -37,9 +37,9 @@ describe('ProfilePage', () => {
 
   it('shows profile and opens edit', async () => {
     render(<ProfilePage />)
-    expect(screen.getByText(/my profile/i)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /edit profile/i }))
-    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
+    expect(screen.getByText(/Mi perfil/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Editar perfil/i }))
+    expect(screen.getByLabelText(/^Nombre$/i)).toBeInTheDocument()
   })
 
   it('loading skeleton', () => {

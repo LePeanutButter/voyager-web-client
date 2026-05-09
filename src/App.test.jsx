@@ -6,7 +6,7 @@ describe('App', () => {
   it('renders marketing home', async () => {
     render(<App />)
     expect(
-      await screen.findByText(/Discover Your Next Adventure/i),
+      await screen.findByText(/Recomendaciones inteligentes\./i),
     ).toBeInTheDocument()
   })
 })

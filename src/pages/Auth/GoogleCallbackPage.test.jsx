@@ -29,7 +29,9 @@ describe('GoogleCallbackPage', () => {
         </Routes>
       </MemoryRouter>,
     )
-    await waitFor(() => expect(screen.getByText(/No authentication token/i)).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText(/No se recibio token de autenticacion/i)).toBeInTheDocument(),
+    )
   })
 
   it('calls login and navigates on token', async () => {

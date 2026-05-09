@@ -17,7 +17,7 @@ describe('ProtectedRoute', () => {
         <ProtectedRoute />
       </MemoryRouter>,
     )
-    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+    expect(screen.getByText(/Cargando/i)).toBeInTheDocument()
   })
 
   it('redirect when unauthenticated', () => {

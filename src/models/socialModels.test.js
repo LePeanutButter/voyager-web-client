@@ -54,4 +54,32 @@ describe('socialModels', () => {
       },
     ])
   })
+
+  it('applies safe defaults for missing fields and falsy inputs', () => {
+    expect(normalizeConnections([{}])).toEqual([
+      { id: 0, username: 'Unknown user', status: '' },
+    ])
+    expect(normalizeActivities([{ id: 4 }])).toEqual([{ id: 4, name: 'Activity 4' }])
+    expect(normalizeActivities('not-array')).toEqual([])
+
+    expect(normalizeSharedActivity(null)).toEqual({
+      id: 0,
+      activityId: 0,
+      senderId: 0,
+      receiverId: 0,
+      status: 'PENDING',
+      sharedPlan: false,
+    })
+
+    expect(normalizeCompatibilityMatches([{ matchedInterests: 'oops' }])).toEqual([
+      {
+        userId: 0,
+        totalScore: 0,
+        destinationScore: 0,
+        dateProximityScore: 0,
+        interestScore: 0,
+        matchedInterests: [],
+      },
+    ])
+  })
 })
