@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Social from './Social'
@@ -310,7 +310,15 @@ describe('Social', () => {
     await waitFor(() => expect(screen.queryByText('BioPerfilCerrar')).not.toBeInTheDocument())
     await userEvent.click(screen.getAllByRole('button', { name: /IA Buddy/i })[0])
     await waitFor(() => expect(screen.getByText('BioPerfilCerrar')).toBeInTheDocument())
-    await userEvent.click(screen.getByRole('button', { name: /^Cerrar$/i }))
+    const profileDialog = await waitFor(() => {
+      const el = document.querySelector('dialog.social-profile-modal')
+      if (!el) throw new Error('dialog perfil no montado')
+      return el
+    })
+    const cerrarBtn = within(profileDialog).getByRole('button', {
+      name: (accessibleName) => accessibleName.replace(/\s+/g, ' ').trim() === 'Cerrar',
+    })
+    await userEvent.click(cerrarBtn)
     await waitFor(() => expect(screen.queryByText('BioPerfilCerrar')).not.toBeInTheDocument())
   })
 
