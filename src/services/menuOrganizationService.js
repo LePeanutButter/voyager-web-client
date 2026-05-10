@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // Create separate API instance for AI service
 const aiApi = axios.create({
-  baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_AI_SERVICE_BASE_URL || 'http://localhost:8000/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -101,7 +101,7 @@ export const MenuCategory = {
  */
 export const trackMenuInteraction = async (trackingData) => {
   try {
-    const response = await aiApi.post('/api/v1/menu/track-interaction', {
+    const response = await aiApi.post('/menu/track-interaction', {
       ...trackingData,
       timestamp: trackingData.timestamp || new Date().toISOString()
     });
@@ -119,7 +119,7 @@ export const trackMenuInteraction = async (trackingData) => {
  */
 export const getPersonalizedMenuLayout = async (userId) => {
   try {
-    const response = await aiApi.get(`/api/v1/menu/personalized-layout/${userId}`);
+    const response = await aiApi.get(`/menu/personalized-layout/${userId}`);
     return response;
   } catch (error) {
     console.error('Error getting personalized menu layout:', error);
@@ -138,7 +138,7 @@ export const getPersonalizedMenuLayout = async (userId) => {
  */
 export const updateMenuPreferences = async (userId, preferences) => {
   try {
-    const response = await aiApi.post(`/api/v1/menu/user-preferences/${userId}`, preferences);
+    const response = await aiApi.post(`/menu/user-preferences/${userId}`, preferences);
     return response;
   } catch (error) {
     console.error('Error updating menu preferences:', error);
@@ -154,7 +154,7 @@ export const updateMenuPreferences = async (userId, preferences) => {
  */
 export const getMenuAnalytics = async (userId, days = 30) => {
   try {
-    const response = await aiApi.get(`/api/v1/menu/analytics/${userId}`, {
+    const response = await aiApi.get(`/menu/analytics/${userId}`, {
       params: { days }
     });
     return response;
@@ -171,7 +171,7 @@ export const getMenuAnalytics = async (userId, days = 30) => {
  */
 export const resetMenuLayout = async (userId) => {
   try {
-    const response = await aiApi.post(`/api/v1/menu/reset-layout/${userId}`);
+    const response = await aiApi.post(`/menu/reset-layout/${userId}`);
     return response;
   } catch (error) {
     console.error('Error resetting menu layout:', error);
@@ -185,7 +185,7 @@ export const resetMenuLayout = async (userId) => {
  */
 export const getDefaultMenuLayout = async () => {
   try {
-    const response = await aiApi.get('/api/v1/menu/default-layout');
+    const response = await aiApi.get('/menu/default-layout');
     return response;
   } catch (error) {
     console.error('Error getting default menu layout:', error);
@@ -200,7 +200,7 @@ export const getDefaultMenuLayout = async () => {
  */
 export const batchTrackMenuInteractions = async (trackingRequests) => {
   try {
-    const response = await aiApi.post('/api/v1/menu/batch-track', trackingRequests);
+    const response = await aiApi.post('/menu/batch-track', trackingRequests);
     return response;
   } catch (error) {
     console.error('Error batch tracking menu interactions:', error);

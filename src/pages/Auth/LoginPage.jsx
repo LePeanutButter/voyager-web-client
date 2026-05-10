@@ -18,7 +18,7 @@ const LoginPage = () => {
 
   const googleLoginUrl = useMemo(() => {
     const base = import.meta.env.VITE_API_BASE_URL || '/api/v1'
-    return `${base.replace(/\/api\/v1\/?$/, '')}/api/v1/auth/google/login`
+    return `${base}/auth/google/login`
   }, [])
 
   const handleChange = (e) => {
