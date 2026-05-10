@@ -223,20 +223,27 @@ jobs:
     name: Deploy Handoff (Manual Learner Lab)
     needs: build_and_test
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      FRONTEND_BUCKET: smarttrip-frontend-bucket
     steps:
-      # Step 1: Download build artifact
+      # Step 1: Checkout (manual package includes scripts/deploy-web-client-manual.sh)
+      - name: Checkout project
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Step 2: Download build artifact
       - name: Download build artifact
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: web-client-dist
           path: release
 
-      # Step 2: Upload manual deployment package
+      # Step 3: Upload manual deployment package
       - name: Upload manual deployment package
-        env:
-          FRONTEND_BUCKET: ${{ secrets.FRONTEND_BUCKET }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: web-client-manual-deploy
+          name: web-client-production-manual-deploy
           path: |
             release/web-client-dist.tar.gz
             scripts/deploy-web-client-manual.sh
+
