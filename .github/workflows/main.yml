@@ -232,6 +232,10 @@ jobs:
 
       # Step 5: Build the application for production
       - name: Compile source code
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_AI_SERVICE_BASE_URL: ${{ secrets.VITE_AI_SERVICE_BASE_URL }}
+          VITE_WS_BROKER_URL: ${{ secrets.VITE_WS_BROKER_URL }}
         run: npm run build
 
       # Step 6: Package build output as artifact for deployment
@@ -268,7 +272,8 @@ jobs:
 
       # Step 2: Upload manual deployment package
       - name: Upload manual deployment package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        env:
+          FRONTEND_BUCKET: ${{ secrets.FRONTEND_BUCKET }}
         with:
           name: web-client-production-manual-deploy
           path: |

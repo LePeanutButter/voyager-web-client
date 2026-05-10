@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Manual deploy for AWS Academy / Learner Lab
-# Requires local AWS CLI auth already active (temporary credentials).
+# Manual deploy script for Voyager Web Client
+# This script prepares the web client for manual S3 deployment
+# VITE variables are already injected during build time by GitHub Actions workflow
 #
 # Usage:
 #   ./scripts/deploy-web-client-manual.sh /path/to/web-client-dist.tar.gz
 #
 # Optional env vars:
-#   AWS_REGION=us-east-1
-#   FRONTEND_BUCKET=smarttrip-frontend-bucket
-#   CLOUDFRONT_DISTRIBUTION_ID=E123456789
+#   FRONTEND_BUCKET= (for documentation purposes)
 
 PACKAGE_PATH="${1:-}"
-AWS_REGION="${AWS_REGION:-us-east-1}"
-FRONTEND_BUCKET="${FRONTEND_BUCKET:-smarttrip-frontend-bucket}"
 
 if [[ -z "${PACKAGE_PATH}" ]]; then
   echo "Usage: $0 <web-client-dist.tar.gz-path>"
@@ -36,14 +33,31 @@ if [[ ! -d "${TMP_DIR}/dist" ]]; then
   exit 1
 fi
 
-aws s3 sync "${TMP_DIR}/dist/" "s3://${FRONTEND_BUCKET}" --delete --region "${AWS_REGION}"
-echo "Web client uploaded to s3://${FRONTEND_BUCKET}"
+# Create deployment info file
+cat > "${TMP_DIR}/dist/deployment-info.txt" << EOF
+Deployment Information
+====================
+Target S3 Bucket: ${FRONTEND_BUCKET:-"not specified"}
+Build Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+Build Environment: GitHub Actions (VITE variables injected during build)
 
-if [[ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]]; then
-  aws cloudfront create-invalidation \
-    --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
-    --paths "/*"
-  echo "CloudFront invalidation requested for ${CLOUDFRONT_DISTRIBUTION_ID}"
-else
-  echo "CLOUDFRONT_DISTRIBUTION_ID not set; skipping invalidation."
-fi
+Manual Deployment Instructions:
+1. Upload contents of dist/ directory to your S3 bucket
+2. Configure static website hosting on S3 bucket if needed
+3. Update CloudFront distribution if applicable
+
+Note: Environment variables are already compiled into the JavaScript files
+during the build process. No additional .env configuration is needed.
+EOF
+
+# Create deployment package
+DEPLOYMENT_PACKAGE="${TMP_DIR}/voyager-web-client-deploy.tar.gz"
+tar -czf "${DEPLOYMENT_PACKAGE}" -C "${TMP_DIR}/dist" .
+
+echo "Deployment package created: ${DEPLOYMENT_PACKAGE}"
+echo "Package contents:"
+tar -tzf "${DEPLOYMENT_PACKAGE}" | head -20
+echo "..."
+echo ""
+echo "Manual deployment required. Upload the contents to S3 bucket: ${FRONTEND_BUCKET:-"not specified"}"
+echo "See deployment-info.txt in the package for detailed instructions."
