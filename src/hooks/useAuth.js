@@ -1,4 +1,4 @@
-import { useAuth as useAuthContext } from '../contexts/AuthContext'
+import { useAuth as useAuthContext } from '../contexts/use-auth.js'
 
 // Custom hook for authentication with additional utility functions
 export const useAuth = () => {

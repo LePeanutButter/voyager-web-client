@@ -1,53 +1,91 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
-import { Search, Bell, User, Menu, Globe } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../../contexts/use-auth.js'
+import { useAdaptiveUI } from '../../contexts/adaptive-ui-provider.jsx'
+import { useTheme } from '../../contexts/use-theme.js'
+import { buildAdaptiveHeaderLinks } from '../../utils/adaptiveUiNav'
+import { User, Menu } from 'lucide-react'
 import './Header.css'
 
 const Header = () => {
   const { user, logout } = useAuth()
+  const { menuData } = useAdaptiveUI()
+  const { theme } = useTheme()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [isScrolled, setIsScrolled] = useState(false)
+  const logoSrc = theme === 'dark' ? '/logo-alt.png' : '/logo.png'
+
+  const links = useMemo(() => {
+    if (!user) {
+      return [
+        { to: '/', label: 'Inicio' },
+        { to: '/ai-assistant', label: 'Recomendaciones IA' },
+        { to: '/social', label: 'Comunidad' },
+      ]
+    }
+    const adaptive = buildAdaptiveHeaderLinks(menuData, 5)
+    if (adaptive?.length) {
+      return adaptive
+    }
+    return [
+      { to: '/dashboard', label: 'Inicio' },
+      { to: '/ai-assistant', label: 'IA' },
+      { to: '/social', label: 'Comunidad' },
+      { to: '/my-travels', label: 'Experiencias' },
+    ]
+  }, [user, menuData])
+
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(globalThis.scrollY > 8)
+    onScroll()
+    globalThis.addEventListener('scroll', onScroll)
+    return () => globalThis.removeEventListener('scroll', onScroll)
+  }, [])
 
   return (
-    <header className="header">
+    <header className={`header ${isScrolled ? 'scrolled' : ''}`}>
       <div className="header-container">
         <div className="header-left">
           <button className="menu-toggle">
             <Menu size={24} />
           </button>
           <Link to="/" className="logo">
-            <Globe size={32} />
-            <span>TourismAI</span>
+            <img src={logoSrc} alt="SmarTrip" className="logo-mark" />
           </Link>
         </div>
         
-        <div className="header-center">
-          <div className="search-bar">
-            <Search size={20} className="search-icon" />
-            <input type="text" placeholder="Search destinations, activities, or tips..." />
-          </div>
-        </div>
+        <nav className="header-center">
+          {links.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`nav-chip ${location.pathname === item.to ? 'active' : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
         
         <div className="header-right">
-          <button className="icon-button">
-            <Bell size={20} />
-          </button>
-          
           {user ? (
             <div className="user-menu">
-              <button className="user-avatar">
+              <button className="user-avatar" onClick={() => navigate('/profile')}>
                 <User size={20} />
-                <span>{user.name}</span>
+                <span>{user.firstName || user.username || 'Perfil'}</span>
               </button>
               <div className="user-dropdown">
-                <Link to="/profile">Profile</Link>
-                <Link to="/settings">Settings</Link>
-                <button onClick={logout}>Logout</button>
+                <Link to="/profile">Perfil</Link>
+                <Link to="/my-travels">Mis Viajes</Link>
+                <Link to="/travel-plans/create">Crear plan de viaje</Link>
+                <Link to="/travel-preferences">Preferencias IA</Link>
+                <button onClick={logout}>Cerrar sesion</button>
               </div>
             </div>
           ) : (
             <div className="auth-buttons">
-              <Link to="/login" className="btn btn-outline">Login</Link>
-              <Link to="/register" className="btn btn-primary">Sign Up</Link>
+              <Link to="/login" className="btn btn-outline">Iniciar sesión</Link>
+              <Link to="/register" className="btn btn-primary">Explorar recomendaciones</Link>
             </div>
           )}
         </div>

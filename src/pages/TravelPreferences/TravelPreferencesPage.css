@@ -1,0 +1,91 @@
+.travel-prefs-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.travel-prefs-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+}
+
+.travel-prefs-sub {
+  margin: 0;
+  color: var(--text-muted, #64748b);
+  font-size: 0.95rem;
+}
+
+.travel-prefs-derived {
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.travel-prefs-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.travel-prefs-loading {
+  margin: 1rem 0;
+  color: var(--text-muted, #64748b);
+}
+
+.travel-prefs-card {
+  margin-bottom: 1rem;
+}
+
+.travel-prefs-card h3 {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+
+.travel-prefs-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.travel-prefs-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.travel-prefs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.travel-prefs-result h2 {
+  margin-top: 0;
+}
+
+.travel-prefs-summary {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-muted, #475569);
+}
+
+@media (min-width: 768px) {
+  .travel-prefs-page {
+    padding: 2rem 1.5rem 4rem;
+  }
+}
+
+/* CTA centrado en el cuestionario y en la pantalla de éxito */
+.travel-prefs-footer-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.travel-prefs-complete-actions {
+  display: flex;
+  justify-content: center;
+}

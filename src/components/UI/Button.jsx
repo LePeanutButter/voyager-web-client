@@ -1,4 +1,4 @@
-import React from 'react'
+import PropTypes from 'prop-types'
 import './Button.css'
 
 const Button = ({ 
@@ -15,7 +15,9 @@ const Button = ({
   const baseClasses = 'btn'
   const variantClasses = `btn-${variant}`
   const sizeClasses = `btn-${size}`
-  const stateClasses = disabled ? 'btn-disabled' : loading ? 'btn-loading' : ''
+  let stateClasses = ''
+  if (disabled) stateClasses = 'btn-disabled'
+  else if (loading) stateClasses = 'btn-loading'
   
   const classes = [
     baseClasses,
@@ -37,6 +39,17 @@ const Button = ({
       {children}
     </button>
   )
+}
+
+Button.propTypes = {
+  children: PropTypes.node,
+  variant: PropTypes.string,
+  size: PropTypes.string,
+  disabled: PropTypes.bool,
+  loading: PropTypes.bool,
+  onClick: PropTypes.func,
+  type: PropTypes.string,
+  className: PropTypes.string,
 }
 
 export default Button

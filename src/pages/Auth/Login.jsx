@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
@@ -53,7 +53,7 @@ const Login = () => {
         <Card className="auth-card">
           <div className="auth-header">
             <h1>Welcome Back</h1>
-            <p>Sign in to your TourismAI account</p>
+            <p>Sign in to your SmarTrip account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
@@ -113,7 +113,8 @@ const Login = () => {
 
           <div className="auth-footer">
             <p>
-              Don't have an account? <Link to="/register">Sign up</Link>
+              {'Don\u2019t have an account? '}
+              <Link to="/register">Sign up</Link>
             </p>
             <p>
               <Link to="/forgot-password">Forgot your password?</Link>
@@ -126,7 +127,7 @@ const Login = () => {
             <h3>Demo Account</h3>
             <p>Try the platform with our demo account:</p>
             <div className="demo-credentials">
-              <p><strong>Email:</strong> demo@tourismai.com</p>
+              <p><strong>Email:</strong> demo@smartrip.com</p>
               <p><strong>Password:</strong> password</p>
             </div>
           </Card>

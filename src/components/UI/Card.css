@@ -1,15 +1,16 @@
 .card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e9ecef;
+  background: var(--surface-card);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: all 0.22s ease;
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(13, 131, 208, 0.22);
 }
 
 .card-header {
@@ -20,12 +21,12 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--text-primary);
 }
 
 .card-subtitle {
   margin: 0;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
@@ -35,8 +36,8 @@
 
 .card-footer {
   padding: 0 1.5rem 1.5rem 1.5rem;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-subtle);
 }
 
 /* Padding variants */
